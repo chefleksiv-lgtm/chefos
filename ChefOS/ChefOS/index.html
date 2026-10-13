@@ -27,6 +27,7 @@
     <!-- v2.0: экран входа/регистрации (до PIN-экрана; z выше) -->
     <div id="account-screen" class="fixed inset-0 z-[300] bg-black hidden flex-col items-center justify-center transition-opacity duration-500 opacity-0">
         <div class="flex flex-col items-center max-w-xs w-full px-6">
+            <img src="img/logo.png" alt="ChefOS" class="w-20 h-20 rounded-full mb-4 shadow-2xl shadow-black/60">
             <h1 class="text-4xl font-bold mb-2 tracking-tight text-white">ChefOS</h1>
             <p class="text-sm text-gray-400 mb-6" data-i18n="acc_title">Вход в ChefOS</p>
 
@@ -59,6 +60,7 @@
 
     <div id="pin-screen" class="fixed inset-0 z-[200] bg-black/80 flex flex-col items-center justify-center transition-opacity duration-500">
         <div class="flex flex-col items-center max-w-xs w-full px-6">
+            <img src="img/logo.png" alt="ChefOS" class="w-20 h-20 rounded-full mb-4 shadow-2xl shadow-black/60">
             <h1 class="text-4xl font-bold mb-2 tracking-tight text-white">ChefOS</h1>
             <p class="text-sm text-gray-400 mb-10" id="pin-msg">Введите PIN-код для входа</p>
             
@@ -96,7 +98,7 @@
 
     <header class="w-full max-w-4xl mb-8 flex flex-col gap-4">
         <div class="flex justify-between items-end">
-            <div><h1 class="text-3xl font-semibold tracking-tight">ChefOS</h1><p id="current-kitchen-label" class="text-sm text-orange-500 mt-1 font-medium">Основная кухня</p></div>
+            <div><div class="flex items-center gap-3"><img src="img/logo.png" alt="ChefOS" class="w-11 h-11 rounded-full shadow-lg shadow-black/50"><div><h1 class="text-3xl font-semibold tracking-tight">ChefOS</h1><p id="current-kitchen-label" class="text-sm text-orange-500 mt-1 font-medium">Основная кухня</p></div></div></div>
             <div class="flex items-center gap-3">
                 <span id="role-badge" class="px-3 py-1 bg-white/10 rounded-full text-xs font-medium text-white shadow-sm border border-white/5">Роль</span>
                 <button id="notif-bell-btn" onclick="openNotificationsModal()" class="relative w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-colors shadow-sm" title="Уведомления"><i class="fa-solid fa-bell"></i><span id="notif-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center"></span></button>
