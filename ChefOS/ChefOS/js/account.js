@@ -117,6 +117,8 @@
             if (tr) tr.className = mode === 'register' ? on : off;
             const btn = document.getElementById('account-submit-btn-text');
             if (btn) btn.setAttribute('data-i18n', mode === 'login' ? 'acc_go_login' : 'acc_go_register');
+            const pw2 = document.getElementById('account-password2');
+            if (pw2) pw2.classList.toggle('hidden', mode !== 'register');
             accountSetError('');
             if (typeof applyTranslations === 'function') { try { applyTranslations(); } catch (e) {} }
         }
@@ -133,6 +135,10 @@
                 localStorage.setItem(ACCOUNT_API_KEY, String(srv).trim());
             } catch (e) {}
             accountSetError('');
+            if (accountMode === 'register') {
+                const password2 = document.getElementById('account-password2').value || '';
+                if (password !== password2) { accountSetError('acc_err_mismatch'); accountSetLoading(false); return; }
+            }
             accountSetLoading(true);
             try {
                 let r;

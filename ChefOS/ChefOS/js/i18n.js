@@ -295,6 +295,8 @@
             'acc_tab_register': { ru: 'Регистрация', en: 'Sign up' },
             'acc_login_ph': { ru: 'Логин (a-z, 0-9, _)', en: 'Login (a-z, 0-9, _)' },
             'acc_password_ph': { ru: 'Пароль (минимум 6 символов)', en: 'Password (min 6 chars)' },
+            'acc_password2_ph': { ru: 'Повторите пароль', en: 'Repeat password' },
+            'acc_err_mismatch': { ru: 'Пароли не совпадают', en: 'Passwords do not match' },
             'acc_go_login': { ru: 'Войти', en: 'Sign in' },
             'acc_go_register': { ru: 'Создать аккаунт', en: 'Create account' },
             'acc_server_toggle': { ru: 'Настройки сервера', en: 'Server settings' },
