@@ -222,6 +222,8 @@
             'fin_cogs': { ru: 'Фуд-кост (Сырье)', en: 'COGS (Ingredients)' },
             'fin_payroll': { ru: 'Зарплатный фонд', en: 'Payroll' },
             'fin_payroll_open': { ru: 'Журнал выплат →', en: 'Payout journal →' },
+            'fin_labor_pct': { ru: 'Зарплаты, %', en: 'Labor %' },
+            'fin_prime_cost': { ru: 'Прайм-кост, %', en: 'Prime cost %' },
             'payroll_title': { ru: 'Журнал зарплаты', en: 'Payroll journal' },
             'payroll_month': { ru: 'Месяц', en: 'Month' },
             'payroll_total': { ru: 'Итого', en: 'Total' },

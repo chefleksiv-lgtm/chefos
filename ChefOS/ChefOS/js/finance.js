@@ -22,6 +22,12 @@
             document.getElementById('finance-payroll').textContent = `${currentCurrency}${data.payroll.toLocaleString('ru-RU')}`;
             document.getElementById('finance-losses').textContent = `${currentCurrency}${data.losses.toLocaleString('ru-RU')}`;
             
+            // v2.2: Labor cost % и Prime cost — ключевые метрики ресторана
+            const laborPct = data.income > 0 ? (data.payroll / data.income) * 100 : 0;
+            const primePct = data.income > 0 ? ((data.cogs + data.payroll) / data.income) * 100 : 0;
+            document.getElementById('finance-labor-pct').textContent = data.income > 0 ? laborPct.toFixed(1) + '%' : '—';
+            document.getElementById('finance-prime-cost').textContent = data.income > 0 ? primePct.toFixed(1) + '%' : '—';
+            
             const profit = data.income - data.cogs - data.payroll - data.losses;
             document.getElementById('finance-profit').textContent = `${currentCurrency}${profit.toLocaleString('ru-RU')}`;
             document.getElementById('finance-profit').className = `text-3xl font-bold ${profit >= 0 ? 'text-white' : 'text-red-400'}`;
