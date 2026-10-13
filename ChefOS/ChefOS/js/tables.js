@@ -45,7 +45,7 @@
         }
 
         function renderFloorPlan() {
-            const plan = document.getElementById('floor-plan');
+            const plan = document.getElementById('floor-canvas');
             if (!plan) return;
             if (!Array.isArray(tablesDB)) tablesDB = [];
             const isChef = (typeof currentAppRole !== 'undefined') && currentAppRole === 'chef';
@@ -56,21 +56,29 @@
             plan.innerHTML = tablesDB.map(tb => {
                 const tab = tableTabFor(tb.id);
                 const occupied = !!tab;
-                const ring = occupied ? 'border-amber-400 shadow-amber-500/20' : 'border-emerald-500/70 shadow-emerald-500/10';
-                const shape = tb.shape === 'square' ? 'rounded-2xl' : 'rounded-full';
+                const ring = occupied ? 'border-amber-400/90 shadow-amber-500/25' : 'border-white/15 shadow-black/40';
+                const shape = tb.shape === 'square' ? 'rounded-[22%]' : 'rounded-full';
                 const itemCount = tab ? Object.values(tab.items || {}).reduce((a, b) => a + b, 0) : 0;
                 const px = tableSizePx(tb);
                 const tabSum = occupied ? tableTabSum(tab) : 0;
                 const elapsed = occupied ? tableElapsedMin(tab) : 0;
-                return `<div class="floor-table absolute ${shape} bg-[#2C2C2E] border-2 ${ring} shadow-lg flex flex-col items-center justify-center select-none ${floorEditMode ? 'cursor-move' : 'cursor-pointer active:scale-95'} transition-transform"
-                    data-id="${tb.id}" style="left:${tb.x}%; top:${tb.y}%; width:${px}px; height:${px}px; transform:translate(-50%,-50%); touch-action:none;"
+                const pillAbove = tb.y > 76;
+                return `<div class="floor-table absolute select-none ${floorEditMode ? 'cursor-move' : 'cursor-pointer active:scale-95'} transition-transform"
+                    data-id="${tb.id}" style="left:${tb.x}%; top:${tb.y}%; transform:translate(-50%,-50%); touch-action:none;"
                     ${floorEditMode ? `onpointerdown="tableDragStart(event, ${tb.id})" onclick="openTableEdit(${tb.id})"` : `onclick="openTableTab(${tb.id})"`}>
-                    <div class="text-white font-bold ${px >= 92 ? 'text-xl' : 'text-lg'} leading-none pointer-events-none">${escapeHtml(tb.name)}</div>
-                    <div class="text-gray-400 text-[10px] pointer-events-none">${tb.seats} ${t('table_seats_short')}</div>
-                    ${occupied && !floorEditMode ? `<div class="text-amber-300 text-[11px] font-bold pointer-events-none">${currentCurrency}${tabSum}</div>
-                    <div class="text-gray-500 text-[9px] pointer-events-none">${elapsed} ${t('table_min_short')}</div>` : ''}
-                    ${occupied && !floorEditMode ? `<div class="absolute -top-2 -right-2 min-w-[24px] h-6 px-1 rounded-full bg-amber-400 text-black text-xs font-bold flex items-center justify-center pointer-events-none">${itemCount}</div>` : ''}
-                    ${((tab && tab.allergies && tab.allergies.length) || (tb.allergies && tb.allergies.length)) ? `<div class="absolute -bottom-2 -left-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center pointer-events-none" title="${t('table_allergies')}">!</div>` : ''}
+                    <div class="relative" style="width:${px}px; height:${px}px;">
+                        <div class="${shape} w-full h-full bg-gradient-to-b from-[#3A3A3C] to-[#262628] border-2 ${ring} shadow-lg flex flex-col items-center justify-center pointer-events-none">
+                            <div class="text-white font-semibold tracking-wide leading-none ${px >= 92 ? 'text-2xl' : px >= 72 ? 'text-xl' : 'text-lg'}">${escapeHtml(tb.name)}</div>
+                            <div class="text-gray-500 ${px >= 72 ? 'text-[10px]' : 'text-[9px]'} mt-1 font-medium">${tb.seats} ${t('table_seats_short')}</div>
+                        </div>
+                        ${occupied && !floorEditMode ? `<div class="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1 rounded-full bg-amber-400 text-black text-[11px] font-bold flex items-center justify-center pointer-events-none shadow-md shadow-black/40">${itemCount}</div>` : ''}
+                        ${((tab && tab.allergies && tab.allergies.length) || (tb.allergies && tb.allergies.length)) ? `<div class="absolute -bottom-1.5 -left-1.5 w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center pointer-events-none shadow-md shadow-black/40" title="${t('table_allergies')}">!</div>` : ''}
+                    </div>
+                    ${occupied && !floorEditMode ? `<div class="absolute ${pillAbove ? 'bottom-full mb-2' : 'top-full mt-2'} left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none bg-black/70 backdrop-blur-md border border-white/10 rounded-full pl-2.5 pr-2.5 py-1 shadow-lg shadow-black/40 flex items-center gap-1.5">
+                        <span class="text-amber-300 text-[11px] font-bold">${currentCurrency}${tabSum}</span>
+                        <span class="text-gray-600 text-[10px]">·</span>
+                        <span class="text-gray-400 text-[10px] font-medium">${elapsed} ${t('table_min_short')}</span>
+                    </div>` : ''}
                 </div>`;
             }).join('');
 
@@ -82,17 +90,125 @@
             }
             const eb = document.getElementById('floor-edit-btn');
             if (eb) eb.innerHTML = `<i class="fa-solid ${floorEditMode ? 'fa-check' : 'fa-pen'} mr-2"></i><span>${floorEditMode ? t('floor_done') : t('floor_edit')}</span>`;
+            floorInitGestures();
+            applyFloorTransform();
         }
 
         function toggleFloorEdit() {
             floorEditMode = !floorEditMode;
+            floorZoomReset();
             renderFloorPlan();
+        }
+
+        // --- Масштабирование плана зала: щипок, колесо, кнопки, панорама ---
+        let floorZoom = 1, floorPanX = 0, floorPanY = 0;
+        const _floorPtrs = new Map();
+        let _floorPinchD = 0, _floorPanOn = false, _floorPanMoved = false;
+        function applyFloorTransform() {
+            const c = document.getElementById('floor-canvas');
+            if (c) c.style.transform = `translate(${floorPanX}px, ${floorPanY}px) scale(${floorZoom})`;
+            const rb = document.getElementById('floor-zoom-reset');
+            if (rb) rb.classList.toggle('hidden', floorZoom === 1 && floorPanX === 0 && floorPanY === 0);
+        }
+        function clampFloorPan() {
+            const vp = document.getElementById('floor-plan');
+            if (!vp) return;
+            const r = vp.getBoundingClientRect();
+            const limX = Math.max(0, r.width * (floorZoom - 1) / 2) + 24;
+            const limY = Math.max(0, r.height * (floorZoom - 1) / 2) + 24;
+            floorPanX = Math.min(limX, Math.max(-limX, floorPanX));
+            floorPanY = Math.min(limY, Math.max(-limY, floorPanY));
+        }
+        function floorZoomAt(clientX, clientY, factor) {
+            const vp = document.getElementById('floor-plan');
+            if (!vp) return;
+            const r = vp.getBoundingClientRect();
+            const mx = clientX - (r.left + r.width / 2), my = clientY - (r.top + r.height / 2);
+            const nz = Math.min(3, Math.max(1, floorZoom * factor));
+            if (nz === floorZoom) return;
+            const k = nz / floorZoom;
+            floorPanX = mx - (mx - floorPanX) * k;
+            floorPanY = my - (my - floorPanY) * k;
+            floorZoom = nz;
+            clampFloorPan();
+            applyFloorTransform();
+        }
+        function floorZoomBy(f) {
+            const vp = document.getElementById('floor-plan');
+            const r = vp ? vp.getBoundingClientRect() : { left: 0, top: 0, width: 0, height: 0 };
+            floorZoomAt(r.left + r.width / 2, r.top + r.height / 2, f);
+        }
+        function floorZoomReset() {
+            floorZoom = 1; floorPanX = 0; floorPanY = 0;
+            _floorPtrs.clear(); _floorPinchD = 0; _floorPanOn = false;
+            applyFloorTransform();
+        }
+        function floorPinchDist() {
+            const p = [..._floorPtrs.values()];
+            return Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+        }
+        function floorInitGestures() {
+            const vp = document.getElementById('floor-plan');
+            if (!vp || vp._floorGest) return;
+            vp._floorGest = true;
+            vp.addEventListener('pointerdown', (e) => {
+                if (e.target.closest('button')) return;
+                vp.setPointerCapture(e.pointerId);
+                _floorPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                _floorPanMoved = false;
+                if (_floorPtrs.size === 2) {
+                    _floorPinchD = floorPinchDist();
+                    _floorPanOn = false;
+                } else if (_floorPtrs.size === 1 && !floorEditMode && !e.target.closest('.floor-table')) {
+                    _floorPanOn = true;
+                } else {
+                    _floorPanOn = false;
+                }
+            });
+            vp.addEventListener('pointermove', (e) => {
+                if (!_floorPtrs.has(e.pointerId)) return;
+                const prev = _floorPtrs.get(e.pointerId);
+                _floorPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                if (_floorPtrs.size === 2) {
+                    const d = floorPinchDist();
+                    if (_floorPinchD > 0 && d > 0) {
+                        const p = [..._floorPtrs.values()];
+                        floorZoomAt((p[0].x + p[1].x) / 2, (p[0].y + p[1].y) / 2, d / _floorPinchD);
+                    }
+                    _floorPinchD = d;
+                } else if (_floorPtrs.size === 1 && _floorPanOn) {
+                    floorPanX += e.clientX - prev.x;
+                    floorPanY += e.clientY - prev.y;
+                    _floorPanMoved = true;
+                    clampFloorPan();
+                    applyFloorTransform();
+                }
+            });
+            const end = (e) => {
+                _floorPtrs.delete(e.pointerId);
+                if (_floorPtrs.size < 2) _floorPinchD = 0;
+                if (_floorPtrs.size === 0) _floorPanOn = false;
+            };
+            vp.addEventListener('pointerup', end);
+            vp.addEventListener('pointercancel', end);
+            vp.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                floorZoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.15 : 0.87);
+            }, { passive: false });
+            // клик по столику после панорамы — не открывать счёт
+            vp.addEventListener('click', (e) => {
+                if (_floorPanMoved && e.target.closest('.floor-table')) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    _floorPanMoved = false;
+                }
+            }, true);
         }
 
         function floorPlanClick(e) {
             if (!floorEditMode) return;
             if (e.target.closest('.floor-table')) return;
-            const plan = document.getElementById('floor-plan');
+            const plan = document.getElementById('floor-canvas');
             const r = plan.getBoundingClientRect();
             const x = Math.min(94, Math.max(6, ((e.clientX - r.left) / r.width) * 100));
             const y = Math.min(90, Math.max(10, ((e.clientY - r.top) / r.height) * 100));
@@ -171,11 +287,12 @@
         let dragTableId = null, dragMoved = false, _suppressTableClick = false;
         function tableDragStart(e, id) {
             if (!floorEditMode) return;
+            if (_floorPtrs.size > 1) return;
             dragTableId = id; dragMoved = false;
             e.preventDefault();
             const move = (ev) => {
                 if (dragTableId !== id) return;
-                const plan = document.getElementById('floor-plan');
+                const plan = document.getElementById('floor-canvas');
                 const r = plan.getBoundingClientRect();
                 const cx = (ev.touches && ev.touches[0]) ? ev.touches[0].clientX : ev.clientX;
                 const cy = (ev.touches && ev.touches[0]) ? ev.touches[0].clientY : ev.clientY;
