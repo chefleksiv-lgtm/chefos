@@ -29,6 +29,7 @@
             'kds_min': { ru: 'мин', en: 'min' },
             'kds_hr': { ru: 'ч', en: 'h' },
             'kds_clear_done': { ru: 'Очистить готовые', en: 'Clear done' },
+            'kds_th_desc': { ru: 'Пороги таймера (минут):', en: 'Timer thresholds (min):' },
             'tile_stocktake': { ru: 'Инвентари-<br>зация', en: 'Stocktake' },
             'tile_books': { ru: 'Книги', en: 'Books' },
             'tile_team': { ru: 'Команда', en: 'Team' },

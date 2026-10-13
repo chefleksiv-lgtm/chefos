@@ -22,7 +22,8 @@ const PERSISTED_KEYS = [
     'invoicesDB', 'syncMeta', 'syncLog',
     'swapRequestsDB', 'notificationsDB', 'dayOffRequestsDB', 'dayOffDB', 'v19migrated',
     'locationsDB', 'activeLocationId', 'locationData',
-    'fsPointsDB', 'fsTempDB', 'fsCheckTemplate', 'fsCheckDB'
+    'fsPointsDB', 'fsTempDB', 'fsCheckTemplate', 'fsCheckDB',
+    'kdsThresholds'
 ];
 
 // --- МУЛЬТИ-ЛОКАЦИИ (v2.2) ---
@@ -37,7 +38,8 @@ const LOCATION_KEYS = [
     'payrollDB', 'timeclockDB', 'salesDB', 'kdsDB', 'tipsDB', 'ordersDB',
     'invoicesDB', 'syncLog',
     'swapRequestsDB', 'notificationsDB', 'dayOffRequestsDB', 'dayOffDB',
-    'fsPointsDB', 'fsTempDB', 'fsCheckTemplate', 'fsCheckDB'
+    'fsPointsDB', 'fsTempDB', 'fsCheckTemplate', 'fsCheckDB',
+    'kdsThresholds'
 ];
 // Дефолтное (пустое) состояние новой локации — снимок дефолтов data.js до loadState().
 const DEFAULT_LOCATION_STATE = (() => {

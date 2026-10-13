@@ -203,6 +203,8 @@
 
         // KDS (v2.2): кухонные тикеты — {id, num, ts: ISO, items:[{name, qty}], status:'new'|'done'}
         let kdsDB = [];
+        // Пороги таймера KDS в минутах: до green — норма, до amber — внимание, дальше — опоздание (меняет шеф)
+        let kdsThresholds = { green: 5, amber: 10 };
 
         // Мульти-локации (v2.2): несколько ресторанов под одним аккаунтом.
         // locationsDB: [{id, name}]; activeLocationId — текущая; locationData: {locId: {key: value}} — данные остальных.

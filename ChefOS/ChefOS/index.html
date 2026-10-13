@@ -974,7 +974,22 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <button id="kds-clear-btn" onclick="clearDoneTickets()" class="h-9 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white text-xs font-medium transition-colors" data-i18n="kds_clear_done">Очистить готовые</button>
+                    <button id="kds-settings-btn" onclick="toggleKDSSettings()" class="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-colors" title="Настройки"><i class="fa-solid fa-gear text-sm"></i></button>
                     <button onclick="closeModal('kds-modal')" class="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+            <div id="kds-settings-block" class="hidden px-6 pt-4 shrink-0">
+                <div class="bg-black/30 border border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <p class="text-sm text-gray-400 flex-1" data-i18n="kds_th_desc">Пороги таймера (минут):</p>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-teal-400 shrink-0"></span>
+                        <input type="number" id="kds-th-green" min="1" class="w-20 h-10 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-teal-500">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-amber-400 shrink-0"></span>
+                        <input type="number" id="kds-th-amber" min="2" class="w-20 h-10 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-amber-500">
+                    </div>
+                    <button onclick="saveKDSThresholds()" class="h-10 px-5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium transition-colors" data-i18n="save">Сохранить</button>
                 </div>
             </div>
             <div class="p-6 overflow-y-auto hide-scrollbar">
