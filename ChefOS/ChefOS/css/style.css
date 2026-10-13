@@ -43,3 +43,20 @@
             color: #9ca3af !important;
             opacity: 1 !important;
         }
+
+        /* Плитки дашборда: премиальное перетаскивание */
+        .tile-drag-float {
+            border-radius: 1.25rem !important;
+            box-shadow: 0 24px 48px rgba(0,0,0,.55), 0 0 0 1.5px rgba(255,255,255,.18) !important;
+            filter: brightness(1.08) saturate(1.05);
+            opacity: .98 !important;
+            cursor: grabbing;
+        }
+        .tile-drop-hint {
+            opacity: 1 !important;
+            border-radius: 1.25rem;
+            background: rgba(255,255,255,.05) !important;
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,.18);
+        }
+        .tile-drop-hint > * { visibility: hidden; }
+        .tile-chosen { }
