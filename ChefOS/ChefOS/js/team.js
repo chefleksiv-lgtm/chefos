@@ -106,7 +106,16 @@
                 salInfo.classList.remove('hidden');
             }
             document.getElementById('edit-emp-currency').textContent = currentCurrency; 
-            refreshEmpAccessRolePreview();
+            // Уровень доступа: стартуем с сохранённого (или выведенного из должности), дальше — за шефом
+            refreshEmpAccessRolePreview._touched = false;
+            const arSel = document.getElementById('edit-emp-accessrole');
+            if (arSel) {
+                const stored = (id !== null && (teamDB.find(i => i.id === id) || {}).accessRole);
+                const initial = (stored && ['chef', 'souschef', 'cook', 'cashier'].includes(stored))
+                    ? stored
+                    : deriveAccessRole(document.getElementById('edit-emp-role').value);
+                arSel.value = initial;
+            }
             openModal('employee-edit-modal');
         }
 
@@ -138,6 +147,11 @@
             const pinRaw = (document.getElementById('edit-emp-pin').value || '').trim();
             const pin = /^\d{4}$/.test(pinRaw) ? pinRaw : null; // личный PIN: 4 цифры или пусто
             const roleText = document.getElementById('edit-emp-role').value;
+            // Уровень доступа выбирает шеф вручную (селект); fallback — вывод из должности
+            const arSel = document.getElementById('edit-emp-accessrole');
+            const accessRole = (arSel && ['chef', 'souschef', 'cook', 'cashier'].includes(arSel.value))
+                ? arSel.value
+                : deriveAccessRole(roleText);
             if (editingEmployeeId) { 
                 const e = teamDB.find(i => i.id === editingEmployeeId); 
                 if(e) { 
@@ -146,10 +160,10 @@
                     e.phone = document.getElementById('edit-emp-phone').value; 
                     e.rate = parseFloat(document.getElementById('edit-emp-rate').value) || 0; 
                     e.pin = pin;
-                    e.accessRole = deriveAccessRole(roleText); // v1.9: права следуют за должностью
+                    e.accessRole = accessRole;
                 } 
             } else { 
-                teamDB.push({ id: Date.now(), name: n, role: roleText, phone: document.getElementById('edit-emp-phone').value, rate: parseFloat(document.getElementById('edit-emp-rate').value) || 0, pin: pin, accessRole: deriveAccessRole(roleText) }); 
+                teamDB.push({ id: Date.now(), name: n, role: roleText, phone: document.getElementById('edit-emp-phone').value, rate: parseFloat(document.getElementById('edit-emp-rate').value) || 0, pin: pin, accessRole: accessRole }); 
             }
             markDirty();
             renderTeamList(); closeModal('employee-edit-modal'); showNotification(t('notif_emp_saved'));

@@ -332,6 +332,7 @@
             'emp_pin': { ru: 'Личный PIN', en: 'Personal PIN' },
             'emp_pin_hint': { ru: '4 цифры. Пусто — вход только по ролевому PIN.', en: '4 digits. Empty — role PIN login only.' },
             'emp_access_role': { ru: 'Уровень доступа', en: 'Access level' },
+            'emp_access_hint': { ru: 'Подставляется из должности, шеф может изменить вручную.', en: 'Suggested from job title; the chef can override it.' },
             'team_tab_requests': { ru: 'Запросы', en: 'Requests' },
             'notif_title': { ru: 'Уведомления', en: 'Notifications' },
             'notif_incoming': { ru: 'Входящие', en: 'Inbox' },

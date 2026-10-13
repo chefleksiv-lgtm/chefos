@@ -409,11 +409,13 @@
             renderRequests();
         }
 
-        // --- Карточка сотрудника: личный PIN и предпросмотр accessRole (поля — в index.html) ---
+        // --- Карточка сотрудника: личный PIN и уровень доступа (шеф может менять вручную) ---
         function refreshEmpAccessRolePreview() {
             const el = document.getElementById('edit-emp-accessrole');
             if (!el) return;
             const role = (document.getElementById('edit-emp-role') || {}).value || '';
             const ar = deriveAccessRole(role);
-            el.textContent = t('role_' + ar) + ' (' + ar + ')';
+            // Должность подсказывает уровень; ручной выбор шефа — в приоритете до следующего ввода должности
+            if (!refreshEmpAccessRolePreview._touched) el.value = ar;
         }
+        function markEmpAccessTouched() { refreshEmpAccessRolePreview._touched = true; }
