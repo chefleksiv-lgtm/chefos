@@ -144,11 +144,11 @@
             const screen = document.getElementById('pin-screen');
             screen.classList.remove('hidden');
             setTimeout(() => screen.classList.remove('opacity-0'), 10);
-            clearPin();
             currentAppRole = null;
             currentEmployeeId = null;
-            pinLoginMode = 'role';
-            pinSelectedEmployeeId = null;
+            // Полный сброс PIN-экрана в ролевой режим (иначе остаётся старый UI: список сотрудников/скрытые точки)
+            if (typeof pinShowRoleMode === 'function') pinShowRoleMode();
+            else { pinLoginMode = 'role'; pinSelectedEmployeeId = null; clearPin(); }
         }
 
         function applyRolePermissions() {
