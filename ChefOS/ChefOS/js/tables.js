@@ -240,7 +240,7 @@
         // Кнопка статуса: занят/свободен
         function toggleTableStatus() {
             const tab = activeTab();
-            if (!tab) { seatTableGuests(); return; }
+            if (!tab) return;
             const hasItems = Object.keys(tab.items || {}).length > 0;
             if (hasItems) { showNotification(t('table_cannot_free')); return; }
             const i = tableTabsDB.findIndex(x => x.id === tab.id);
@@ -297,16 +297,19 @@
                 const off = ['bg-emerald-500/15', 'text-emerald-300', 'border-emerald-500/40'];
                 stBtn.classList.remove(...(occupied ? off : on));
                 stBtn.classList.add(...(occupied ? on : off));
+                // В свободном состоянии это индикатор, а не кнопка — действие одно: «Посадить гостей»
+                stBtn.classList.toggle('pointer-events-none', !occupied);
             }
+            const subEl = document.querySelector('#table-tab-modal [data-i18n="table_tab_subtitle"]');
             if (!tab) {
                 const title = document.getElementById('table-tab-title');
                 if (title) title.textContent = (t('table_prefix') + ' ' + (tb ? tb.name : '')) + (tb ? ` · ${tb.seats} ${t('table_seats_short')}` : '');
+                if (subEl) subEl.textContent = t('table_is_free');
                 return;
             }
             const title = document.getElementById('table-tab-title');
             if (title) title.textContent = (t('table_prefix') + ' ' + (tb ? tb.name : '')) + (tb ? ` · ${tb.seats} ${t('table_seats_short')}` : '');
-            const sub = document.querySelector('#table-tab-modal [data-i18n="table_tab_subtitle"]');
-            if (sub) sub.textContent = `${t('table_tab_subtitle')} · ${tableElapsedMin(tab)} ${t('table_min_short')}`;
+            if (subEl) subEl.textContent = `${t('table_tab_subtitle')} · ${tableElapsedMin(tab)} ${t('table_min_short')}`;
             const { total, count } = tableTabTotals();
 
             // Позиции счёта
