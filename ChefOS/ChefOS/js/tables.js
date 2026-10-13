@@ -70,7 +70,7 @@
                     ${occupied && !floorEditMode ? `<div class="text-amber-300 text-[11px] font-bold pointer-events-none">${currentCurrency}${tabSum}</div>
                     <div class="text-gray-500 text-[9px] pointer-events-none">${elapsed} ${t('table_min_short')}</div>` : ''}
                     ${occupied && !floorEditMode ? `<div class="absolute -top-2 -right-2 min-w-[24px] h-6 px-1 rounded-full bg-amber-400 text-black text-xs font-bold flex items-center justify-center pointer-events-none">${itemCount}</div>` : ''}
-                    ${(tb.allergies && tb.allergies.length) ? `<div class="absolute -bottom-2 -left-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center pointer-events-none" title="${t('table_allergies')}">!</div>` : ''}
+                    ${((tab && tab.allergies && tab.allergies.length) || (tb.allergies && tb.allergies.length)) ? `<div class="absolute -bottom-2 -left-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center pointer-events-none" title="${t('table_allergies')}">!</div>` : ''}
                 </div>`;
             }).join('');
 
@@ -114,7 +114,6 @@
             document.getElementById('table-edit-seats').value = tb ? tb.seats : 2;
             renderTableShapeBtns();
             renderTableSizeBtns();
-            renderTableAllergenCheckboxes(tb ? tb.allergies : []);
             document.getElementById('table-edit-delete').style.display = tb ? '' : 'none';
             document.getElementById('table-edit-title').textContent = tb ? t('table_edit_title') : t('table_add_title');
             openModal('table-edit-modal');
@@ -143,27 +142,15 @@
             }
         }
         function setTableSize(size) { pendingTableSize = size; renderTableSizeBtns(); }
-        function renderTableAllergenCheckboxes(selected) {
-            const box = document.getElementById('table-edit-allergens'); if (!box) return;
-            const list = (typeof ALLERGENS !== 'undefined') ? ALLERGENS : [];
-            box.innerHTML = list.map(a => {
-                const on = (selected || []).includes(a);
-                return `<label class="flex items-center gap-1.5 h-9 px-2 bg-[#2C2C2E] rounded-lg text-[11px] text-gray-300 cursor-pointer whitespace-nowrap ${on ? 'ring-1 ring-red-500/60' : ''}"><input type="checkbox" data-allergen="${a}" ${on ? 'checked' : ''} class="accent-red-500 w-3.5 h-3.5 shrink-0">${t('alg_' + a)}</label>`;
-            }).join('');
-        }
-        function getSelectedTableAllergens() {
-            return [...document.querySelectorAll('#table-edit-allergens input[data-allergen]:checked')].map(el => el.dataset.allergen);
-        }
         function saveTableEdit() {
             const name = document.getElementById('table-edit-name').value.trim();
             const seats = Math.max(1, Math.min(20, parseInt(document.getElementById('table-edit-seats').value) || 2));
             if (!name) { showNotification(t('table_name_needed')); return; }
-            const allergies = getSelectedTableAllergens();
             if (editingTableId) {
                 const tb = tablesDB.find(v => v.id === editingTableId);
-                if (tb) { tb.name = name; tb.seats = seats; tb.shape = pendingTableShape; tb.size = pendingTableSize; tb.allergies = allergies; }
+                if (tb) { tb.name = name; tb.seats = seats; tb.shape = pendingTableShape; tb.size = pendingTableSize; }
             } else {
-                tablesDB.push({ id: Date.now(), name, seats, shape: pendingTableShape, size: pendingTableSize, allergies, x: pendingTableXY ? Math.round(pendingTableXY.x * 10) / 10 : 50, y: pendingTableXY ? Math.round(pendingTableXY.y * 10) / 10 : 50 });
+                tablesDB.push({ id: Date.now(), name, seats, shape: pendingTableShape, size: pendingTableSize, x: pendingTableXY ? Math.round(pendingTableXY.x * 10) / 10 : 50, y: pendingTableXY ? Math.round(pendingTableXY.y * 10) / 10 : 50 });
             }
             markDirty();
             closeModal('table-edit-modal');
@@ -235,7 +222,10 @@
         // Посадить гостей: открыть пустой счёт = стол занят
         function seatTableGuests() {
             if (!activeTableId || tableTabFor(activeTableId)) return;
-            tableTabsDB.push({ id: Date.now(), tableId: activeTableId, items: {}, sent: {}, ts: new Date().toISOString() });
+            const stb = tablesDB.find(v => v.id === activeTableId);
+            const legacyAlg = (stb && stb.allergies) ? stb.allergies.slice() : [];
+            if (stb) stb.allergies = [];
+            tableTabsDB.push({ id: Date.now(), tableId: activeTableId, items: {}, sent: {}, ts: new Date().toISOString(), allergies: legacyAlg });
             activeTableTabId = tableTabsDB[tableTabsDB.length - 1].id;
             markDirty();
             renderTableTab();
@@ -314,6 +304,7 @@
             const title = document.getElementById('table-tab-title');
             if (title) title.textContent = (t('table_prefix') + ' ' + (tb ? tb.name : '')) + (tb ? ` · ${tb.seats} ${t('table_seats_short')}` : '');
             if (subEl) subEl.textContent = `${t('table_tab_subtitle')} · ${tableElapsedMin(tab)} ${t('table_min_short')}`;
+            renderTableTabAllergens();
             const { total, count } = tableTabTotals();
 
             // Позиции счёта
@@ -373,6 +364,26 @@
                         </div>`).join('');
             }
         }
+        function renderTableTabAllergens() {
+            const box = document.getElementById('table-tab-allergens');
+            const tab = activeTab();
+            if (!box || !tab) { if (box) box.innerHTML = ''; return; }
+            const list = (typeof ALLERGENS !== 'undefined') ? ALLERGENS : [];
+            const sel = Array.isArray(tab.allergies) ? tab.allergies : [];
+            box.innerHTML = list.map(a => {
+                const on = sel.includes(a);
+                return `<button onclick="toggleTableTabAllergen('${a}')" class="h-9 px-2.5 rounded-lg text-[11px] font-medium border transition-all active:scale-95 ${on ? 'bg-red-500/20 text-red-300 border-red-500/60' : 'bg-[#2C2C2E] text-gray-400 border-white/10'}">${on ? '⚠ ' : ''}${t('alg_' + a)}</button>`;
+            }).join('');
+        }
+        function toggleTableTabAllergen(a) {
+            const tab = activeTab(); if (!tab) return;
+            if (!Array.isArray(tab.allergies)) tab.allergies = [];
+            const i = tab.allergies.indexOf(a);
+            if (i >= 0) tab.allergies.splice(i, 1); else tab.allergies.push(a);
+            markDirty();
+            renderTableTabAllergens();
+            renderFloorPlan();
+        }
         function filterTableTabDishes() {
             const si = document.getElementById('table-tab-search');
             tableDishQuery = si ? si.value : '';
@@ -395,7 +406,8 @@
                 items: fresh.map(id => { const d = menuDB.find(x => x.id == id); return { name: d ? d.name : '?', qty: tab.items[id] - (tab.sent[id] || 0) }; }),
                 status: 'new'
             };
-            if (tb && tb.allergies && tb.allergies.length) ticket.allergies = tb.allergies.slice();
+            const tAlg = Array.isArray(tab.allergies) ? tab.allergies : [];
+            if (tAlg.length) ticket.allergies = tAlg.slice();
             kdsDB.unshift(ticket);
             fresh.forEach(id => { tab.sent[id] = tab.items[id]; });
             markDirty();
@@ -411,7 +423,7 @@
             if (count === 0) { showNotification(t('sales_empty')); return; }
             const tb = tablesDB.find(v => v.id === tab.tableId);
             const tableName = t('table_prefix') + ' ' + (tb ? tb.name : '');
-            commitSale(Object.assign({}, tab.items), { tableId: tab.tableId, tableName, allergies: (tb && tb.allergies) ? tb.allergies.slice() : [] });
+            commitSale(Object.assign({}, tab.items), { tableId: tab.tableId, tableName, allergies: Array.isArray(tab.allergies) ? tab.allergies.slice() : [] });
             const i = tableTabsDB.findIndex(x => x.id === tab.id);
             if (i >= 0) tableTabsDB.splice(i, 1);
             markDirty();
