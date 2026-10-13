@@ -168,6 +168,22 @@
             accountApplyStorageKey(user.userId);
             accountMigrateLegacyStorage(user.userId);
             try { if (typeof loadState === 'function') loadState(); } catch (e) {}
+            // Привязка аккаунта к сотруднику: расписание подсвечивает «свои» смены
+            // в зависимости от того, кто зашёл. 1) сотрудник с именем = логину;
+            // 2) если такого нет — единственный сотрудник с ролью шефа.
+            try {
+                let meId = null;
+                const alogin = user && user.login ? String(user.login).toLowerCase() : '';
+                if (typeof teamDB !== 'undefined' && teamDB && teamDB.length) {
+                    const byName = alogin ? teamDB.find(e => (e.name || '').toLowerCase() === alogin) : null;
+                    if (byName) meId = byName.id;
+                    else {
+                        const chefs = teamDB.filter(e => e.accessRole === 'chef');
+                        if (chefs.length === 1) meId = chefs[0].id;
+                    }
+                }
+                currentEmployeeId = meId;
+            } catch (e) {}
             try { if (typeof syncResetHashBaseline === 'function') syncResetHashBaseline(); } catch (e) {}
             accountHide();
             // PIN-экран не показываем: владелец входит сразу шефом
