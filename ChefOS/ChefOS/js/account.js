@@ -168,6 +168,7 @@
             accountApplyStorageKey(user.userId);
             accountMigrateLegacyStorage(user.userId);
             try { if (typeof loadState === 'function') loadState(); } catch (e) {}
+            try { if (typeof renderLocationSelector === 'function') renderLocationSelector(); } catch (e) {}
             // Привязка аккаунта к сотруднику: расписание подсвечивает «свои» смены
             // в зависимости от того, кто зашёл. 1) сотрудник с именем = логину;
             // 2) если такого нет — единственный сотрудник с ролью шефа.

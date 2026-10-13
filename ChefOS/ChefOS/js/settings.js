@@ -4,6 +4,7 @@
             const s = document.getElementById('pin-change-section');
             if (s) s.style.display = currentAppRole === 'chef' ? 'block' : 'none';
             refreshCurrencyUI();
+            if (typeof renderLocationManager === 'function') renderLocationManager();
             openModal('settings-modal');
         }
         function setCurrency(c) { 

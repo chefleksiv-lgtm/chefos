@@ -101,6 +101,7 @@
         <div class="flex justify-between items-end">
             <div><div class="flex items-center gap-3"><img src="img/logo.png" alt="ChefOS" class="w-11 h-11 rounded-full shadow-lg shadow-black/50"><div><h1 class="text-3xl font-semibold tracking-tight">ChefOS</h1><p id="current-kitchen-label" class="text-sm text-orange-500 mt-1 font-medium">Основная кухня</p></div></div></div>
             <div class="flex items-center gap-3">
+                <select id="location-selector" onchange="switchLocation(this.value)" class="h-10 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-full pl-4 pr-8 text-xs font-medium outline-none cursor-pointer appearance-none max-w-[160px] truncate" style="display:none"></select>
                 <span id="role-badge" class="px-3 py-1 bg-white/10 rounded-full text-xs font-medium text-white shadow-sm border border-white/5">Роль</span>
                 <button id="notif-bell-btn" onclick="openNotificationsModal()" class="relative w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-colors shadow-sm" title="Уведомления"><i class="fa-solid fa-bell"></i><span id="notif-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center"></span></button>
                 <button onclick="logout()" class="w-10 h-10 rounded-full bg-white/5 hover:bg-red-500/20 hover:text-red-400 text-gray-400 flex items-center justify-center transition-colors shadow-sm" title="Выйти"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
@@ -300,6 +301,14 @@
                     <div class="flex gap-2">
                         <input type="password" id="new-pin-input" inputmode="numeric" maxlength="4" data-i18n="pin_placeholder" placeholder="Новый PIN (4 цифры)" class="flex-1 min-w-0 h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500 text-center tracking-[0.5em]">
                         <button onclick="changePin()" class="h-11 px-5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all font-medium flex-shrink-0" data-i18n="pin_save">Сменить</button>
+                    </div>
+                </div>
+                <div id="locations-section" class="pt-6 border-t border-white/5">
+                    <label class="block text-sm text-gray-400 mb-3" data-i18n="loc_title">Локации</label>
+                    <div id="locations-list" class="flex flex-col gap-2 mb-3"></div>
+                    <div id="loc-add-block" class="flex gap-2">
+                        <input type="text" id="loc-new-name" data-i18n="loc_new_ph" placeholder="Новая локация…" class="flex-1 min-w-0 h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500 text-sm">
+                        <button onclick="addLocation()" class="h-11 w-11 rounded-xl bg-teal-500/20 text-teal-400 hover:bg-teal-500 hover:text-white transition-colors flex-shrink-0"><i class="fa-solid fa-plus"></i></button>
                     </div>
                 </div>
                 <button onclick="closeModal('settings-modal')" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all font-medium" data-i18n="save">Сохранить</button>
@@ -987,6 +996,7 @@
     <script src="js/labels.js"></script>
     <script src="js/orders.js"></script>
     <script src="js/kds.js"></script>
+    <script src="js/locations.js"></script>
     <script src="js/sync.js"></script>
     <script src="js/main.js"></script>
 </body>

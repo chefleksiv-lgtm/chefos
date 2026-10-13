@@ -20,8 +20,64 @@ const PERSISTED_KEYS = [
     'menuDB', 'suppliersDB', 'inventoryDB', 'teamDB', 'scheduleDB', 'financeDB', 'wasteDB',
     'payrollDB', 'timeclockDB', 'salesDB', 'kdsDB', 'tipsDB', 'ordersDB', 'v17migrated',
     'invoicesDB', 'syncMeta', 'syncLog',
-    'swapRequestsDB', 'notificationsDB', 'dayOffRequestsDB', 'dayOffDB', 'v19migrated'
+    'swapRequestsDB', 'notificationsDB', 'dayOffRequestsDB', 'dayOffDB', 'v19migrated',
+    'locationsDB', 'activeLocationId', 'locationData'
 ];
+
+// --- МУЛЬТИ-ЛОКАЦИИ (v2.2) ---
+// Ключи, живущие отдельно у каждой локации. Остальные (валюта, язык, PIN,
+// locationsDB, activeLocationId, locationData, флаги миграций, syncMeta) — общие на аккаунт.
+const LOCATION_KEYS = [
+    'kitchens', 'activeKitchen',
+    'currentFoodCosts', 'targetFoodCosts',
+    'chefNotes',
+    'activeTabs', 'activeMenuFilters', 'activeTTKFilter',
+    'menuDB', 'suppliersDB', 'inventoryDB', 'teamDB', 'scheduleDB', 'financeDB', 'wasteDB',
+    'payrollDB', 'timeclockDB', 'salesDB', 'kdsDB', 'tipsDB', 'ordersDB',
+    'invoicesDB', 'syncLog',
+    'swapRequestsDB', 'notificationsDB', 'dayOffRequestsDB', 'dayOffDB'
+];
+// Дефолтное (пустое) состояние новой локации — снимок дефолтов data.js до loadState().
+const DEFAULT_LOCATION_STATE = (() => {
+    const snap = {};
+    for (const key of LOCATION_KEYS) {
+        try { snap[key] = JSON.parse(JSON.stringify(eval(key))); } catch (e) { snap[key] = undefined; }
+    }
+    return snap;
+})();
+function deepCopy(v) { return JSON.parse(JSON.stringify(v)); }
+// Сохранить рабочий набор в locationData[activeLocationId]
+function stashLocationState() {
+    try {
+        if (!activeLocationId) return;
+        if (!locationData || typeof locationData !== 'object') locationData = {};
+        const snap = {};
+        for (const key of LOCATION_KEYS) {
+            try { snap[key] = deepCopy(eval(key)); } catch (e) { /* пропускаем */ }
+        }
+        locationData[activeLocationId] = snap;
+    } catch (e) { console.error('[ChefOS] stashLocationState failed:', e); }
+}
+// Загрузить состояние локации в рабочие переменные (in-place, как loadState)
+function applyLocationState(locId) {
+    const st = (locationData && locationData[locId]) || null;
+    const src = st || DEFAULT_LOCATION_STATE;
+    for (const key of LOCATION_KEYS) {
+        if (src[key] === undefined) continue;
+        const incoming = deepCopy(src[key]);
+        let current;
+        try { current = eval(key); } catch (e) { continue; }
+        if (Array.isArray(current) && Array.isArray(incoming)) {
+            current.length = 0;
+            current.push(...incoming);
+        } else if (isPlainObject(current) && isPlainObject(incoming)) {
+            for (const k of Object.keys(current)) delete current[k];
+            Object.assign(current, incoming);
+        } else {
+            try { eval(key + ' = incoming'); } catch (e) { /* пропускаем */ }
+        }
+    }
+}
 
 let _storageDirty = false;
 let _autosaveStarted = false;
@@ -35,6 +91,7 @@ function markDirty() {
 // Собрать текущее состояние в объект и записать в localStorage.
 function saveState() {
     try {
+        stashLocationState();
         const state = {};
         for (const key of PERSISTED_KEYS) {
             // Переменные объявлены через let в data.js — в обычных (не модульных)
@@ -95,6 +152,10 @@ function loadState() {
         restored++;
     }
     console.log('[ChefOS] loadState: восстановлено ключей:', restored + '/' + PERSISTED_KEYS.length);
+    // ensureLocations при миграции сам stash'ит текущий (восстановленный) набор как main,
+    // поэтому applyLocationState вызываем только если для локации есть сохранённое состояние.
+    if (typeof ensureLocations === 'function') ensureLocations();
+    if (activeLocationId && locationData && locationData[activeLocationId]) applyLocationState(activeLocationId);
     return true;
 }
 

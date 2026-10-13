@@ -9,6 +9,8 @@
             migrateV17();
             migrateV18();
             migrateV19();
+            if (typeof ensureLocations === 'function') ensureLocations();
+            if (typeof renderLocationSelector === 'function') renderLocationSelector();
             refreshCurrencyUI();
             applyTileOrder();
             initTileSorting();

@@ -204,6 +204,12 @@
         // KDS (v2.2): кухонные тикеты — {id, num, ts: ISO, items:[{name, qty}], status:'new'|'done'}
         let kdsDB = [];
 
+        // Мульти-локации (v2.2): несколько ресторанов под одним аккаунтом.
+        // locationsDB: [{id, name}]; activeLocationId — текущая; locationData: {locId: {key: value}} — данные остальных.
+        let locationsDB = [];
+        let activeLocationId = null;
+        let locationData = {};
+
         // Чаевые (v2.2): {id, date:'YYYY-MM-DD', employeeId, employeeName, amount, note}
         let tipsDB = [];
 
