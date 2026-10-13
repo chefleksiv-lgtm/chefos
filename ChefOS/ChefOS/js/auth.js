@@ -50,14 +50,20 @@
         }
         function checkPin() {
             setTimeout(() => {
-                // 1) Классические ролевые PIN (1111/2222/3333) — всегда работают, как раньше.
-                const role = Object.keys(pinCodes).find(r => pinCodes[r] === currentPin);
-                if (role) { loginAs(role); return; }
-                // 2) Личный PIN сотрудника (режим 'employee-pin').
+                // Режим личного PIN сотрудника: его код проверяется ПЕРВЫМ.
+                // Иначе ролевой PIN с тем же значением перехватывал вход и «свой» сотрудник не определялся.
                 if (pinLoginMode === 'employee-pin' && pinSelectedEmployeeId != null) {
                     const emp = teamDB.find(e => e.id === pinSelectedEmployeeId);
                     if (emp && emp.pin && String(emp.pin) === currentPin) { loginAsEmployee(emp); return; }
+                    document.getElementById('pin-msg').textContent = t('auth_pin_wrong');
+                    document.getElementById('pin-msg').className = 'text-sm text-red-500 mb-10 font-medium';
+                    currentPin = '';
+                    updatePinDots();
+                    return;
                 }
+                // Классические ролевые PIN.
+                const role = Object.keys(pinCodes).find(r => pinCodes[r] === currentPin);
+                if (role) { loginAs(role); return; }
                 document.getElementById('pin-msg').textContent = t('auth_pin_wrong');
                 document.getElementById('pin-msg').className = 'text-sm text-red-500 mb-10 font-medium';
                 currentPin = '';
