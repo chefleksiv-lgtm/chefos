@@ -17,6 +17,21 @@
             document.getElementById('pin-msg').textContent = pinLoginMode === 'employee-pin' ? t('auth_emp_pin_msg') : t('auth_pin_msg');
             document.getElementById('pin-msg').className = 'text-sm text-gray-400 mb-10';
         }
+        function backspacePin() {
+            if (currentPin.length > 0) { currentPin = currentPin.slice(0, -1); updatePinDots(); }
+        }
+        // Ввод PIN с физической клавиатуры: цифры, Backspace — стереть, Esc — очистить
+        document.addEventListener('keydown', function (e) {
+            const ae = document.activeElement;
+            if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
+            const screen = document.getElementById('pin-screen');
+            if (!screen || screen.classList.contains('hidden')) return;
+            const keypad = document.getElementById('pin-keypad');
+            if (!keypad || keypad.classList.contains('hidden')) return; // выбор сотрудника из списка — цифры не нужны
+            if (/^[0-9]$/.test(e.key)) { addPin(e.key); e.preventDefault(); }
+            else if (e.key === 'Backspace') { backspacePin(); e.preventDefault(); }
+            else if (e.key === 'Escape') { clearPin(); }
+        });
         function updatePinDots() {
             for (let i = 1; i <= 4; i++) {
                 const dot = document.getElementById(`dot-${i}`);

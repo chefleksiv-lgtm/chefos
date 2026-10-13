@@ -271,6 +271,6 @@
             const s = document.getElementById('account-screen');
             if (s && !s.classList.contains('hidden') && !document.getElementById('account-form').classList.contains('hidden')) {
                 const ae = document.activeElement;
-                if (ae && (ae.id === 'account-login' || ae.id === 'account-password' || ae.id === 'account-server')) accountSubmit();
+                if (ae && (ae.id === 'account-login' || ae.id === 'account-password' || ae.id === 'account-password2' || ae.id === 'account-server')) accountSubmit();
             }
         });
