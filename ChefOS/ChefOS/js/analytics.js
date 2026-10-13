@@ -37,12 +37,15 @@
             });
         }
 
-        // Фактический фудкост = теоретический (продажи × себестоимость) + списания/недостачи
+        // Фактический фудкост: берём доход и себестоимость из financeDB (те же цифры,
+        // что видит шеф на вкладке «Финансы», зафиксированные в момент продажи).
+        // Пересчёт по текущим ценам здесь был бы неверным: после смены цены блюда
+        // выручка аналитики расходилась бы с доходом в финансах.
         function factVsTheory(monthKey) {
-            const stats = dishSalesStats(monthKey);
-            const theoryCogs = stats.reduce((s, x) => s + x.cost * x.qty, 0);
-            const income = stats.reduce((s, x) => s + x.revenue, 0);
-            const losses = ((financeDB[monthKey] || {}).losses) || 0;
+            const fin = (financeDB && financeDB[monthKey]) || {};
+            const income = fin.income || 0;
+            const theoryCogs = fin.cogs || 0;
+            const losses = fin.losses || 0;
             const actualCogs = theoryCogs + losses;
             return {
                 theoryCogs, actualCogs, losses, income,

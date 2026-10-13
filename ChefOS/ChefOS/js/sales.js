@@ -127,8 +127,10 @@
 
                 const curMonth = getCurrentMonthKey();
                 if (!financeDB[curMonth]) financeDB[curMonth] = { income: 0, cogs: 0, payroll: 0, losses: 0 };
-                financeDB[curMonth].income += sessionIncome;
-                financeDB[curMonth].cogs += sessionCOGS;
+                // Округление до центов на уровне итога месяца — иначе float-дрейф (0.1+0.2)
+                // накапливается и цифры перестают сходиться с чеками.
+                financeDB[curMonth].income = Math.round((financeDB[curMonth].income + sessionIncome) * 100) / 100;
+                financeDB[curMonth].cogs = Math.round((financeDB[curMonth].cogs + sessionCOGS) * 100) / 100;
                 // Продажи по блюдам для ABC-аналитики (v1.7)
                 if (!salesDB[curMonth]) salesDB[curMonth] = {};
                 ids.forEach(id => {

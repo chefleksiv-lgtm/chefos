@@ -41,7 +41,7 @@
                             if (diff < 0) {
                                 const curMonth = getCurrentMonthKey();
                                 if (!financeDB[curMonth]) financeDB[curMonth] = { income: 0, cogs: 0, payroll: 0, losses: 0 };
-                                financeDB[curMonth].losses += Math.abs(diff) * i.price;
+                                financeDB[curMonth].losses = Math.round((financeDB[curMonth].losses + Math.abs(diff) * i.price) * 100) / 100;
                             }
                             i.quantity = act;
                             updatedCount++;
