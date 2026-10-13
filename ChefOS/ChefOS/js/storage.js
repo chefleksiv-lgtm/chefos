@@ -18,7 +18,7 @@ const PERSISTED_KEYS = [
     'chefNotes', 'pinCodes', 'tileOrder',
     'activeTabs', 'activeMenuFilters', 'activeTTKFilter',
     'menuDB', 'suppliersDB', 'inventoryDB', 'teamDB', 'scheduleDB', 'financeDB', 'wasteDB',
-    'payrollDB', 'salesDB', 'ordersDB', 'v17migrated',
+    'payrollDB', 'timeclockDB', 'salesDB', 'ordersDB', 'v17migrated',
     'invoicesDB', 'syncMeta', 'syncLog',
     'swapRequestsDB', 'notificationsDB', 'dayOffRequestsDB', 'dayOffDB', 'v19migrated'
 ];

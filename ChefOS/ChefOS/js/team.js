@@ -27,7 +27,7 @@
 
         function switchTeamTab(tabName) {
             activeTabs.team = tabName;
-            ['staff', 'schedule', 'requests'].forEach(i => { 
+            ['staff', 'schedule', 'requests', 'timeclock'].forEach(i => { 
                 const btn = document.getElementById(`team-tab-btn-${i}`);
                 const content = document.getElementById(`team-tab-${i}`);
                 if(btn) btn.className = `px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${i === tabName ? 'border-teal-500 text-teal-500' : 'border-transparent text-gray-500 hover:text-gray-300'}`;
@@ -39,6 +39,110 @@
             if (tabName === 'staff') renderTeamList(); 
             if (tabName === 'schedule') renderSchedule();
             if (tabName === 'requests' && typeof renderRequests === 'function') renderRequests();
+            if (tabName === 'timeclock') renderTimeclock();
+        }
+
+        // --- ТАБЕЛЬ (v2.2): отметки прихода/ухода, факт vs план ---
+        function timeclockDateKey() {
+            const inp = document.getElementById('timeclock-date');
+            if (inp && inp.value) return inp.value;
+            return new Date().toISOString().slice(0, 10);
+        }
+        function shiftDurationHours(start, end) {
+            const [sh, sm] = String(start || '0:0').split(':').map(Number);
+            const [eh, em] = String(end || '0:0').split(':').map(Number);
+            let d = (eh + em / 60) - (sh + sm / 60);
+            if (d < 0) d += 24;
+            return Math.max(0, d);
+        }
+        function scheduledDayHours(empId, dateKey) {
+            const d = new Date(dateKey + 'T12:00:00');
+            const wd = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][d.getDay()];
+            const dayArr = (scheduleDB[activeKitchen] && scheduleDB[activeKitchen][wd]) || [];
+            return dayArr.filter(s => String(s.id) === String(empId))
+                .reduce((sum, s) => sum + shiftDurationHours(s.start, s.end), 0);
+        }
+        function clockedDayHours(entries) {
+            return entries.reduce((s, e) => {
+                if (!e.clockIn) return s;
+                const out = e.clockOut ? new Date(e.clockOut) : new Date();
+                return s + Math.max(0, (out - new Date(e.clockIn)) / 3600000);
+            }, 0);
+        }
+        function fmtClockTime(iso) {
+            if (!iso) return '—';
+            const d = new Date(iso);
+            return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        }
+        function clockToggle(empId) {
+            if (!Array.isArray(timeclockDB)) timeclockDB = [];
+            const key = timeclockDateKey();
+            const today = new Date().toISOString().slice(0, 10);
+            if (key !== today) return; // отметки — только за сегодня, история только для просмотра
+            const open = timeclockDB.find(e => String(e.employeeId) === String(empId) && e.date === key && !e.clockOut);
+            const now = new Date().toISOString();
+            if (open) {
+                open.clockOut = now;
+            } else {
+                const emp = (teamDB || []).find(e => String(e.id) === String(empId));
+                timeclockDB.unshift({ id: Date.now(), employeeId: empId, employeeName: emp ? emp.name : '', date: key, clockIn: now, clockOut: null });
+            }
+            markDirty();
+            renderTimeclock();
+        }
+        function deleteClockEntry(id) {
+            timeclockDB = timeclockDB.filter(e => e.id !== id);
+            markDirty();
+            renderTimeclock();
+        }
+        function renderTimeclock() {
+            if (!Array.isArray(timeclockDB)) timeclockDB = [];
+            const key = timeclockDateKey();
+            const today = new Date().toISOString().slice(0, 10);
+            const isToday = key === today;
+            const dateInp = document.getElementById('timeclock-date');
+            if (dateInp && !dateInp.value) dateInp.value = today;
+            const list = document.getElementById('timeclock-list');
+            const isChef = currentAppRole === 'chef';
+            const meId = (typeof currentEmployeeId !== 'undefined') ? currentEmployeeId : null;
+            let totPlan = 0, totFact = 0;
+            const rows = (teamDB || []).map(e => {
+                const entries = timeclockDB.filter(x => String(x.employeeId) === String(e.id) && x.date === key);
+                const plan = scheduledDayHours(e.id, key);
+                const fact = clockedDayHours(entries);
+                totPlan += plan; totFact += fact;
+                const open = entries.find(x => !x.clockOut);
+                const canClock = isToday && (isChef || String(meId) === String(e.id));
+                const btn = canClock
+                    ? (open
+                        ? `<button onclick="clockToggle(${e.id})" class="h-10 px-5 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white font-medium text-sm transition-colors">${t('tc_clock_out')} · ${fmtClockTime(open.clockIn)}</button>`
+                        : `<button onclick="clockToggle(${e.id})" class="h-10 px-5 rounded-xl bg-teal-500/20 text-teal-400 hover:bg-teal-500 hover:text-white font-medium text-sm transition-colors">${t('tc_clock_in')}</button>`)
+                    : (open ? `<span class="text-xs font-medium text-teal-400">${t('tc_on_shift')}</span>` : `<span class="text-xs text-gray-600">—</span>`);
+                const initials = e.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                const entriesHtml = entries.map(x => `
+                    <div class="flex items-center gap-2 text-xs text-gray-400">
+                        <i class="fa-regular fa-clock"></i>
+                        <span>${fmtClockTime(x.clockIn)} → ${x.clockOut ? fmtClockTime(x.clockOut) : '…'}</span>
+                        ${isChef ? `<button onclick="deleteClockEntry(${x.id})" class="text-red-400/60 hover:text-red-400"><i class="fa-solid fa-xmark"></i></button>` : ''}
+                    </div>`).join('');
+                const delta = fact - plan;
+                const deltaCls = plan > 0 ? (Math.abs(delta) < 0.25 ? 'text-gray-500' : (delta > 0 ? 'text-amber-400' : 'text-sky-400')) : 'text-gray-600';
+                return `
+                <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <div class="w-10 h-10 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center font-bold text-sm shrink-0">${initials}</div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-white truncate">${e.name}</p>
+                            <p class="text-xs text-gray-500">${t('tc_plan')}: ${plan.toFixed(1)} ${t('unit_h')} · ${t('tc_fact')}: <span class="text-white font-medium">${fact.toFixed(1)} ${t('unit_h')}</span> <span class="${deltaCls}">(${delta >= 0 ? '+' : ''}${delta.toFixed(1)})</span></p>
+                            ${entriesHtml ? `<div class="mt-1 flex flex-col gap-1">${entriesHtml}</div>` : ''}
+                        </div>
+                    </div>
+                    <div class="shrink-0">${btn}</div>
+                </div>`;
+            }).join('');
+            document.getElementById('timeclock-summary').innerHTML =
+                `<span class="text-gray-400">${t('tc_day_total')}:</span> <span class="text-white font-bold">${t('tc_plan')} ${totPlan.toFixed(1)} ${t('unit_h')}</span> <span class="text-gray-600">/</span> <span class="text-teal-400 font-bold">${t('tc_fact')} ${totFact.toFixed(1)} ${t('unit_h')}</span>`;
+            list.innerHTML = rows || `<p class="text-center text-gray-500 text-sm py-8">${t('team_no_staff')}</p>`;
         }
 
         function renderTeamList() {

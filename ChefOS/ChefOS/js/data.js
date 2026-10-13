@@ -187,6 +187,10 @@
             [getCurrentMonthKey()]: { income: 9200, cogs: 2600, payroll: 0, losses: 120 }
         };
 
+        // Табель: отметки прихода/ухода (v2.2).
+        // [{id, employeeId, employeeName, date:'YYYY-MM-DD', clockIn: ISO, clockOut: ISO|null}]
+        let timeclockDB = [];
+
         // Журнал зарплаты (v2.1): точный учёт вместо оценки «неделя×4».
         // [{id, date:'YYYY-MM-DD', employeeId, employeeName, hours, rate, amount, note}]
         let payrollDB = [];
