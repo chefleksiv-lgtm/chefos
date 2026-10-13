@@ -187,6 +187,10 @@
             [getCurrentMonthKey()]: { income: 9200, cogs: 2600, payroll: 0, losses: 120 }
         };
 
+        // Журнал зарплаты (v2.1): точный учёт вместо оценки «неделя×4».
+        // [{id, date:'YYYY-MM-DD', employeeId, employeeName, hours, rate, amount, note}]
+        let payrollDB = [];
+
         // Журнал списаний / отходов (v1.6): {id, date, ingredient, qty, unit, cost, reason}
         let wasteDB = [];
 

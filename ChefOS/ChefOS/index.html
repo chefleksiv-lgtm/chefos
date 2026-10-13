@@ -548,9 +548,10 @@
                         <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_cogs">Фуд-кост (Сырье)</p>
                         <p id="finance-cogs" class="text-2xl font-bold text-orange-400">0</p>
                     </div>
-                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
+                    <div onclick="openPayrollModal()" class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm cursor-pointer hover:border-blue-500/40 transition-colors">
                         <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_payroll">Зарплатный фонд</p>
                         <p id="finance-payroll" class="text-2xl font-bold text-blue-400">0</p>
+                        <p class="text-[11px] text-blue-400/70 mt-1" data-i18n="fin_payroll_open">Журнал выплат →</p>
                     </div>
                     <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
                         <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_losses">Списания (Убытки)</p>
@@ -574,6 +575,29 @@
                 <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-semibold text-white" data-i18n="waste_tab">Списания</h3><div id="waste-total-line" class="text-sm text-gray-400"></div></div>
                 <div id="waste-top-block" class="mb-6"></div>
                 <div id="waste-list" class="flex flex-col gap-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="payroll-modal" onclick="if(event.target === this) closeModal('payroll-modal')" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-lg p-6 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-y-auto hide-scrollbar">
+            <div class="flex justify-between items-center mb-1">
+                <h3 class="text-xl font-semibold text-white" data-i18n="payroll_title">Журнал зарплаты</h3>
+                <button onclick="closeModal('payroll-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-gray-500 mb-4"><span data-i18n="payroll_month">Месяц</span>: <span id="payroll-month-label" class="text-gray-300 font-medium"></span> · <span data-i18n="payroll_total">Итого</span>: <span id="payroll-total" class="text-blue-400 font-bold"></span></p>
+            <div id="payroll-list" class="flex flex-col gap-2 mb-6"></div>
+            <div class="border-t border-white/10 pt-4 space-y-3">
+                <p class="text-sm font-semibold text-white" data-i18n="payroll_add">Новая выплата</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <select id="payroll-emp" onchange="payrollPrefill()" class="h-11 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-blue-500 col-span-2"></select>
+                    <input id="payroll-date" type="date" class="h-11 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-blue-500">
+                    <input id="payroll-note" type="text" data-i18n="payroll_note_ph" placeholder="Заметка (необязательно)" class="h-11 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-blue-500 placeholder-gray-500">
+                    <input id="payroll-hours" type="number" min="0" step="0.5" data-i18n="payroll_hours_ph" placeholder="Часы" oninput="payrollRecalc()" class="h-11 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-blue-500 placeholder-gray-500">
+                    <input id="payroll-rate" type="number" min="0" step="0.5" data-i18n="payroll_rate_ph" placeholder="Ставка C$/ч" oninput="payrollRecalc()" class="h-11 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-blue-500 placeholder-gray-500">
+                    <input id="payroll-amount" type="number" min="0" step="0.01" data-i18n="payroll_amount_ph" placeholder="Сумма C$" class="h-11 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-blue-500 placeholder-gray-500 col-span-2 font-bold">
+                </div>
+                <button onclick="addPayrollEntry()" class="w-full h-12 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-colors" data-i18n="payroll_save">Записать выплату</button>
             </div>
         </div>
     </div>
