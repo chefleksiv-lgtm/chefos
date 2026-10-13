@@ -41,8 +41,6 @@
             return (sel && sel.value) || getCurrentMonthKey();
         }
 
-        function openPayrollModal() {
-
         // v2.2: Экспорт P&L в CSV для бухгалтера (все месяцы, UTF-8 BOM для Excel)
         function exportFinanceCSV() {
             const months = Object.keys(financeDB || {}).sort();
@@ -65,6 +63,7 @@
             setTimeout(() => URL.revokeObjectURL(a.href), 1000);
             showNotification(t('fin_export_done'));
         }
+        function openPayrollModal() {
             if (!Array.isArray(payrollDB)) payrollDB = [];
             const sel = document.getElementById('payroll-emp');
             sel.innerHTML = (teamDB || []).map(e =>
