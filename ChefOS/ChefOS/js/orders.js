@@ -32,7 +32,19 @@
         function toggleOrderStatus(id) {
             if (currentAppRole !== 'chef') { showNotification(t('chef_only')); return; }
             const o = ordersDB.find(x => x.id === id); if (!o) return;
-            o.status = o.status === 'new' ? 'done' : 'new';
+            if (o.status === 'new') {
+                // Приёмка: товар приходит на склад (один раз)
+                if (!o.received) {
+                    o.items.forEach(it => {
+                        const inv = (inventoryDB || []).find(x => x.name.trim().toLowerCase() === String(it.name).trim().toLowerCase());
+                        if (inv && inv.unit === it.unit) inv.quantity = Math.round(((inv.quantity || 0) + (it.qty || 0)) * 100) / 100;
+                    });
+                    o.received = true;
+                }
+                o.status = 'done';
+            } else {
+                o.status = 'new';
+            }
             markDirty();
             renderOrdersList();
         }
@@ -44,6 +56,19 @@
                 renderOrdersList();
                 showNotification(t('notif_deleted'));
             });
+        }
+
+        // v2.2: сравнение цен — ищем поставщика дешевле для позиции заказа
+        function cheaperSupplierHint(itemName, orderSupplier) {
+            const inv = (inventoryDB || []).find(x => x.name.trim().toLowerCase() === String(itemName).trim().toLowerCase());
+            if (!inv) return '';
+            const all = [{ supplier: inv.supplier, price: inv.price }, ...((inv.altPrices || []).map(a => ({ supplier: a.supplier, price: a.price })))].filter(p => p.supplier && p.price > 0);
+            if (all.length < 2) return '';
+            const best = all.reduce((m, p) => p.price < m.price ? p : m, all[0]);
+            const cur = all.find(p => p.supplier === orderSupplier);
+            if (best.supplier === orderSupplier) return '';
+            if (cur && best.price >= cur.price) return '';
+            return `<div class="text-xs text-green-400 mt-0.5"><i class="fa-solid fa-arrow-trend-down mr-1"></i>${t('orders_cheaper_at')} ${best.supplier}: ${currentCurrency}${best.price}</div>`;
         }
 
         function renderOrdersList() {
@@ -61,7 +86,7 @@
                         <span class="text-xs font-bold px-2.5 py-1 rounded-md ${o.status === 'new' ? 'bg-orange-500/20 text-orange-400' : 'bg-green-500/20 text-green-400'}">${t('order_' + o.status)}</span>
                     </div>
                     <div class="text-sm text-gray-300 space-y-1 mb-3">
-                        ${o.items.map(i => `<div class="flex justify-between border-b border-white/5 py-1"><span>${i.name}</span><span class="font-medium text-white">${i.qty} ${t('unit_' + i.unit) || i.unit}</span></div>`).join('')}
+                        ${o.items.map(i => `<div class="border-b border-white/5 py-1"><div class="flex justify-between"><span>${i.name}</span><span class="font-medium text-white">${i.qty} ${t('unit_' + i.unit) || i.unit}</span></div>${cheaperSupplierHint(i.name, o.supplier)}</div>`).join('')}
                     </div>
                     ${currentAppRole === 'chef' ? `
                     <div class="flex gap-2">

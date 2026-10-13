@@ -105,8 +105,8 @@
             return [...document.querySelectorAll('#edit-ing-allergens input[data-allergen]:checked')].map(el => el.dataset.allergen);
         }
         function openIngredientEditModal(id) {
-            if(id === null) { editingIngredientId = null; document.getElementById('delete-ing-btn').classList.add('hidden'); document.getElementById('edit-ing-name').value = ''; document.getElementById('edit-ing-qty').value = ''; document.getElementById('edit-ing-minqty').value = ''; document.getElementById('edit-ing-price').value = ''; document.getElementById('edit-ing-yield').value = 100; renderAllergenCheckboxes([]); document.getElementById('edit-ing-price-history-block').classList.add('hidden'); document.getElementById('edit-ing-waste-block').classList.add('hidden'); } 
-            else { const i = inventoryDB.find(item => item.id === id); if (!i) return; editingIngredientId = id; document.getElementById('delete-ing-btn').classList.remove('hidden'); document.getElementById('edit-ing-name').value = i.name; document.getElementById('edit-ing-category').value = i.category; document.getElementById('edit-ing-qty').value = i.quantity; document.getElementById('edit-ing-minqty').value = i.minQty || ''; document.getElementById('edit-ing-unit').value = i.unit; document.getElementById('edit-ing-price').value = i.price; document.getElementById('edit-ing-supplier').value = i.supplier || ''; document.getElementById('edit-ing-yield').value = i.yieldPct || 100; renderAllergenCheckboxes(i.allergens); renderPriceHistory(i); document.getElementById('edit-ing-waste-block').classList.remove('hidden'); document.getElementById('waste-qty').value = ''; }
+            if(id === null) { editingIngredientId = null; document.getElementById('delete-ing-btn').classList.add('hidden'); document.getElementById('edit-ing-name').value = ''; document.getElementById('edit-ing-qty').value = ''; document.getElementById('edit-ing-minqty').value = ''; document.getElementById('edit-ing-price').value = ''; document.getElementById('edit-ing-yield').value = 100; renderAllergenCheckboxes([]); document.getElementById('edit-ing-price-history-block').classList.add('hidden'); document.getElementById('edit-ing-waste-block').classList.add('hidden'); editingAltPrices = []; fillAltSupplierSelect(''); renderAltPrices(); } 
+            else { const i = inventoryDB.find(item => item.id === id); if (!i) return; editingIngredientId = id; document.getElementById('delete-ing-btn').classList.remove('hidden'); document.getElementById('edit-ing-name').value = i.name; document.getElementById('edit-ing-category').value = i.category; document.getElementById('edit-ing-qty').value = i.quantity; document.getElementById('edit-ing-minqty').value = i.minQty || ''; document.getElementById('edit-ing-unit').value = i.unit; document.getElementById('edit-ing-price').value = i.price; document.getElementById('edit-ing-supplier').value = i.supplier || ''; document.getElementById('edit-ing-yield').value = i.yieldPct || 100; renderAllergenCheckboxes(i.allergens); renderPriceHistory(i); document.getElementById('edit-ing-waste-block').classList.remove('hidden'); document.getElementById('waste-qty').value = ''; editingAltPrices = (i.altPrices || []).map(a => ({ supplier: a.supplier, price: a.price })); fillAltSupplierSelect(i.supplier || ''); renderAltPrices(); }
             document.getElementById('edit-ing-currency').textContent = currentCurrency; openModal('ingredient-edit-modal');
         }
         function renderPriceHistory(i) {
@@ -117,6 +117,33 @@
             list.innerHTML = h.map(e => `<div class="flex justify-between text-xs bg-black/30 rounded-lg px-3 py-1.5"><span class="text-gray-500">${e.date}</span><span class="text-gray-300 font-medium">${currentCurrency}${e.price}</span></div>`).join('');
         }
         function deleteIngredient() { showConfirm(t('confirm_title'), t('confirm_msg'), () => { inventoryDB = inventoryDB.filter(i => i.id !== editingIngredientId); markDirty(); closeModal('ingredient-edit-modal'); filterInventory(); showNotification(t('notif_deleted')); }); }
+        // --- ЦЕНЫ ДРУГИХ ПОСТАВЩИКОВ (v2.2): сравнение цен для заказов ---
+        let editingAltPrices = [];
+        function renderAltPrices() {
+            const list = document.getElementById('edit-ing-altprices'); if (!list) return;
+            list.innerHTML = editingAltPrices.length ? editingAltPrices.map((a, idx) => `
+                <div class="flex justify-between items-center text-xs bg-black/30 rounded-lg px-3 py-1.5">
+                    <span class="text-gray-400 truncate mr-2">${a.supplier}</span>
+                    <span class="flex items-center gap-2"><span class="text-gray-300 font-medium">${currentCurrency}${a.price}</span>
+                    <button type="button" onclick="removeAltPrice(${idx})" class="text-red-400/60 hover:text-red-400"><i class="fa-solid fa-xmark"></i></button></span>
+                </div>`).join('') : `<p class="text-xs text-gray-600">${t('ing_alt_empty')}</p>`;
+        }
+        function addAltPrice() {
+            const sup = document.getElementById('edit-ing-alt-supplier').value;
+            const p = parseFloat(document.getElementById('edit-ing-alt-price').value) || 0;
+            if (!sup || p <= 0) return;
+            const ex = editingAltPrices.findIndex(a => a.supplier === sup);
+            if (ex >= 0) editingAltPrices[ex].price = Math.round(p * 100) / 100;
+            else editingAltPrices.push({ supplier: sup, price: Math.round(p * 100) / 100 });
+            document.getElementById('edit-ing-alt-price').value = '';
+            renderAltPrices();
+        }
+        function removeAltPrice(idx) { editingAltPrices.splice(idx, 1); renderAltPrices(); }
+        function fillAltSupplierSelect(current) {
+            const sel = document.getElementById('edit-ing-alt-supplier'); if (!sel) return;
+            const opts = (suppliersDB || []).filter(s => s.name && s.name !== current).map(s => s.name);
+            sel.innerHTML = opts.map(n => `<option value="${n}">${n}</option>`).join('');
+        }
         function saveIngredientChanges() {
             const n = document.getElementById('edit-ing-name').value.trim(); if(!n) { showNotification(t('notif_enter_name')); return; } const p = parseFloat(document.getElementById('edit-ing-price').value) || 0;
             const yieldPct = Math.min(100, Math.max(1, parseInt(document.getElementById('edit-ing-yield').value) || 100));
@@ -128,7 +155,7 @@
                 if (i) {
                     const oldPrice = i.price;
                     i.name = n; i.category = document.getElementById('edit-ing-category').value; i.quantity = parseFloat(document.getElementById('edit-ing-qty').value) || 0; i.unit = document.getElementById('edit-ing-unit').value;
-                    i.yieldPct = yieldPct; i.allergens = allergens; i.minQty = minQty;
+                    i.yieldPct = yieldPct; i.allergens = allergens; i.minQty = minQty; i.altPrices = editingAltPrices.map(a => ({ supplier: a.supplier, price: a.price }));
                     if (p !== oldPrice) {
                         if (!Array.isArray(i.priceHistory)) i.priceHistory = [];
                         i.priceHistory.push({ date: new Date().toISOString().slice(0, 10), price: p, supplier: i.supplier });
@@ -138,7 +165,7 @@
                     i.supplier = document.getElementById('edit-ing-supplier').value;
                 }
             } 
-            else { inventoryDB.push({ id: Date.now(), name: n, category: document.getElementById('edit-ing-category').value, quantity: parseFloat(document.getElementById('edit-ing-qty').value) || 0, unit: document.getElementById('edit-ing-unit').value, price: p, previousPrice: p, supplier: document.getElementById('edit-ing-supplier').value, yieldPct, minQty, allergens, priceHistory: [] }); }
+            else { inventoryDB.push({ id: Date.now(), name: n, category: document.getElementById('edit-ing-category').value, quantity: parseFloat(document.getElementById('edit-ing-qty').value) || 0, unit: document.getElementById('edit-ing-unit').value, price: p, previousPrice: p, supplier: document.getElementById('edit-ing-supplier').value, yieldPct, minQty, allergens, priceHistory: [], altPrices: editingAltPrices.map(a => ({ supplier: a.supplier, price: a.price })) }); }
             markDirty();
             filterInventory(); closeModal('ingredient-edit-modal'); showNotification(t('notif_saved'));
             if (priceRiseInfo) setTimeout(() => showPriceRiseAlert(priceRiseInfo), 350);
