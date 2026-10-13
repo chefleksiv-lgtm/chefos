@@ -26,9 +26,9 @@
             }
             document.getElementById('print-area').innerHTML = `
                 <div style="font-family:Arial,sans-serif;color:#000;background:#fff;padding:16px;max-width:320px;border:2px solid #000;">
-                    <div style="font-size:18px;font-weight:bold;margin-bottom:4px;">${title}</div>
-                    <div style="font-size:12px;color:#333;margin-bottom:8px;">${sub}</div>
-                    <div style="font-size:12px;">${t('label_made')}: ${made}</div>
+                    <div style="font-size:18px;font-weight:bold;margin-bottom:4px;">${escapeHtml(title)}</div>
+                    <div style="font-size:12px;color:#333;margin-bottom:8px;">${escapeHtml(sub)}</div>
+                    <div style="font-size:12px;">${t('label_made')}: ${escapeHtml(made)}</div>
                     <div style="font-size:14px;font-weight:bold;">${t('label_exp')}: ${exp}</div>
                     ${extra}
                     <div style="font-size:10px;color:#555;margin-top:8px;">ChefOS</div>

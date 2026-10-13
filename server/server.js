@@ -282,11 +282,34 @@ async function restoreSessions() {
         if (n) console.log('[chefos] restored ' + n + ' session(s)');
     } catch (e) { console.error('[chefos] restoreSessions failed:', e.message); }
 }
+// --- rate limit в памяти: защита логина/регистрации от брутфорса ---
+const _rlBuckets = new Map();
+function rateLimit(key, max, windowMs) {
+    const now = Date.now();
+    let b = _rlBuckets.get(key);
+    if (!b || now - b.start > windowMs) { b = { n: 0, start: now }; _rlBuckets.set(key, b); }
+    b.n++;
+    if (_rlBuckets.size > 5000) {
+        for (const [k, v] of _rlBuckets) if (now - v.start > windowMs) _rlBuckets.delete(k);
+    }
+    return b.n <= max;
+}
+function clientIp(req) {
+    return (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '?';
+}
+const TOKEN_TTL = 180 * 24 * 3600 * 1000; // токены живут 180 дней
 function authUser(req) {
     const h = req.headers['authorization'] || '';
     const m = /^Bearer\s+(.+)$/.exec(String(h).trim());
     if (!m) return null;
-    return tokens.get(m[1]) || null;
+    const sess = tokens.get(m[1]);
+    if (!sess) return null;
+    if (Date.now() - (sess.createdAt || 0) > TOKEN_TTL) {
+        tokens.delete(m[1]);
+        revokeToken(m[1]).catch(() => {});
+        return null;
+    }
+    return sess;
 }
 
 // ============================================================================
@@ -348,7 +371,7 @@ const CORS = {
 };
 function send(res, status, obj) {
     const body = JSON.stringify(obj);
-    res.writeHead(status, Object.assign({ 'Content-Type': 'application/json' }, CORS));
+    res.writeHead(status, Object.assign({ 'Content-Type': 'application/json', 'X-Content-Type-Options': 'nosniff' }, CORS));
     res.end(body);
 }
 function readBody(req) {
@@ -406,7 +429,7 @@ function serveStatic(req, res, pathname) {
     fs.stat(file, (err, st) => {
         if (err || !st.isFile()) { send(res, 404, { ok: false, error: 'not found' }); return; }
         const type = MIME[path.extname(file).toLowerCase()] || 'application/octet-stream';
-        res.writeHead(200, Object.assign({ 'Content-Type': type, 'Cache-Control': 'no-cache' }, CORS));
+        res.writeHead(200, Object.assign({ 'Content-Type': type, 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' }, CORS));
         fs.createReadStream(file).pipe(res);
     });
 }
@@ -434,6 +457,7 @@ const server = http.createServer(async (req, res) => {
 
         // --- register ---
         if (req.method === 'POST' && p === '/api/register') {
+            if (!rateLimit('reg:' + clientIp(req), 10, 3600 * 1000)) { send(res, 429, { ok: false, error: 'rate_limited' }); return; }
             const body = await readJsonBody(req, res);
             if (!body) return;
             const login = String(body.login || '').trim().toLowerCase();
@@ -454,6 +478,7 @@ const server = http.createServer(async (req, res) => {
 
         // --- login ---
         if (req.method === 'POST' && p === '/api/login') {
+            if (!rateLimit('login:' + clientIp(req), 20, 10 * 60 * 1000)) { send(res, 429, { ok: false, error: 'rate_limited' }); return; }
             const body = await readJsonBody(req, res);
             if (!body) return;
             const login = String(body.login || '').trim().toLowerCase();

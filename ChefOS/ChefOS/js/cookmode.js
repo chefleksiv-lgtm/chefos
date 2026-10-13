@@ -36,10 +36,10 @@
                 const rows = (d.ingredients || []).map((ing, i) => `
                     <button onclick="cookToggleCheck(${i})" class="w-full flex items-center gap-4 p-4 rounded-2xl border text-left transition-colors ${st.checks[i] ? 'border-green-500/50 bg-green-500/10' : 'border-white/10 bg-white/5 hover:bg-white/10'}">
                         <span class="w-7 h-7 rounded-full flex items-center justify-center border-2 ${st.checks[i] ? 'border-green-500 bg-green-500 text-black' : 'border-gray-600 text-transparent'}"><i class="fa-solid fa-check text-sm"></i></span>
-                        <span class="flex-1"><span class="text-white font-medium">${ing.name}</span><span class="text-gray-400 ml-2">${ing.weight || ''}</span></span>
+                        <span class="flex-1"><span class="text-white font-medium">${escapeHtml(ing.name)}</span><span class="text-gray-400 ml-2">${escapeHtml(ing.weight || '')}</span></span>
                     </button>`).join('');
                 box.innerHTML = `
-                    <h3 class="text-xl font-bold text-white mb-1">${d.name}</h3>
+                    <h3 class="text-xl font-bold text-white mb-1">${escapeHtml(d.name)}</h3>
                     <p class="text-sm text-gray-500 mb-6">${t('cook_checklist_tip')}</p>
                     <div class="space-y-3 max-w-xl mx-auto text-left">${rows || `<p class="text-gray-500 text-center">${t('cook_no_ingr')}</p>`}</div>`;
             } else if (st.idx >= n) {
@@ -47,13 +47,13 @@
                     <div class="text-center py-10">
                         <div class="w-20 h-20 mx-auto rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-4xl mb-6"><i class="fa-solid fa-check"></i></div>
                         <h3 class="text-3xl font-bold text-white mb-2">${t('cook_done')}</h3>
-                        <p class="text-gray-400">${d.name} · ${t('cook_done_sub')}</p>
+                        <p class="text-gray-400">${escapeHtml(d.name)} · ${t('cook_done_sub')}</p>
                     </div>`;
             } else {
                 box.innerHTML = `
                     <div class="max-w-2xl mx-auto text-center">
                         <p class="text-sm font-semibold text-orange-400 uppercase tracking-widest mb-6">${t('cook_step')} ${st.idx + 1}</p>
-                        <p class="text-2xl sm:text-3xl text-white leading-relaxed font-medium">${st.steps[st.idx]}</p>
+                        <p class="text-2xl sm:text-3xl text-white leading-relaxed font-medium">${escapeHtml(st.steps[st.idx])}</p>
                     </div>`;
             }
         }

@@ -18,7 +18,7 @@
             f.forEach(d => {
                 const badge = d.isTTKActive ? `<div class="absolute top-3 right-3 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded border border-blue-700">${t('ttk_badge_menu')}</div>` : `<div class="absolute top-3 right-3 bg-gray-500 text-white text-[10px] font-bold px-2 py-0.5 rounded border border-gray-700">${t('ttk_badge_prep')}</div>`;
                 const fcInfo = currentAppRole === 'chef' ? `<span class="${d.targetFoodCost > 0 && (d.costPrice/d.menuPrice)*100 > d.targetFoodCost ? 'text-red-400' : 'text-green-400'}">FC: ${d.menuPrice>0?((d.costPrice/d.menuPrice)*100).toFixed(1):0}%</span>` : '';
-                grid.innerHTML += `<div class="bg-[#1C1C1E] border border-white/5 rounded-2xl overflow-hidden cursor-pointer hover:border-blue-500/50 transition-colors group" onclick="openTTKDetails(${d.id})"><div class="h-32 w-full relative overflow-hidden"><img src="${d.img}" class="w-full h-full object-cover opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-500">${badge}</div><div class="p-4"><h3 class="font-semibold text-white leading-tight mb-2 truncate">${d.name}</h3><div class="flex justify-between text-xs text-gray-400"><span>${t('ttk_yield')} ${d.yield}${t('unit_g')}</span>${fcInfo}</div></div></div>`;
+                grid.innerHTML += `<div class="bg-[#1C1C1E] border border-white/5 rounded-2xl overflow-hidden cursor-pointer hover:border-blue-500/50 transition-colors group" onclick="openTTKDetails(${d.id})"><div class="h-32 w-full relative overflow-hidden"><img src="${escapeHtml(d.img)}" class="w-full h-full object-cover opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-500">${badge}</div><div class="p-4"><h3 class="font-semibold text-white leading-tight mb-2 truncate">${escapeHtml(d.name)}</h3><div class="flex justify-between text-xs text-gray-400"><span>${t('ttk_yield')} ${d.yield}${t('unit_g')}</span>${fcInfo}</div></div></div>`;
             });
         }
 
@@ -57,7 +57,7 @@
                 ab.innerHTML = `<button onclick="openCookMode(${d.id})" class="h-10 px-4 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 text-sm font-medium transition-colors"><i class="fa-solid fa-kitchen-set mr-1"></i> ${t('cook_mode')}</button><button class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors" onclick="openLabelModal('ttk', ${d.id})"><i class="fa-solid fa-tag mr-1"></i> ${t('label_btn')}</button><button onclick="printTTKSheet(${d.id})" class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"><i class="fa-solid fa-print mr-1"></i> ${t('print')}</button>`;
             }
             
-            c.innerHTML = `<div><div class="h-48 sm:h-64 w-full rounded-3xl overflow-hidden relative shadow-2xl"><img src="${d.img}" class="w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-6"><div class="flex flex-col gap-2 items-start">${badge}<h2 class="text-3xl font-bold text-white shadow-sm">${d.name}</h2>${allergenBadgesHTML(d, false)}</div></div></div>${techPanel}${costPanel}</div>${tHtml}<div id="ttk-tab-assembly" class="${activeTabs.ttk === 'assembly' ? '' : 'hidden'} grid grid-cols-1 md:grid-cols-2 gap-8"><div class="bg-[#1C1C1E] rounded-2xl p-6 border border-white/5"><h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${t('ttk_ingr')}</h3>${ingHtml}</div><div><h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${t('ttk_steps')}</h3>${stpHtml}</div></div>${subHtml}`;
+            c.innerHTML = `<div><div class="h-48 sm:h-64 w-full rounded-3xl overflow-hidden relative shadow-2xl"><img src="${escapeHtml(d.img)}" class="w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-6"><div class="flex flex-col gap-2 items-start">${badge}<h2 class="text-3xl font-bold text-white shadow-sm">${escapeHtml(d.name)}</h2>${allergenBadgesHTML(d, false)}</div></div></div>${techPanel}${costPanel}</div>${tHtml}<div id="ttk-tab-assembly" class="${activeTabs.ttk === 'assembly' ? '' : 'hidden'} grid grid-cols-1 md:grid-cols-2 gap-8"><div class="bg-[#1C1C1E] rounded-2xl p-6 border border-white/5"><h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${t('ttk_ingr')}</h3>${ingHtml}</div><div><h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${t('ttk_steps')}</h3>${stpHtml}</div></div>${subHtml}`;
             openModal('ttk-details-modal');
             if (currentAppRole === 'chef') renderScaledLines(id);
             if(hasSub && currentAppRole === 'chef') new Sortable(document.getElementById('ttk-tabs-container'), { animation: 150, delay: 200, delayOnTouchOnly: true });
@@ -171,7 +171,7 @@
             const rows = dishes.map(d => `
                 <div class="flex items-center gap-3 bg-[#1C1C1E] border border-white/5 rounded-xl p-3">
                     <input type="checkbox" id="shift-dish-${d.id}" ${shiftPrepPortions[d.id] > 0 ? 'checked' : ''} onchange="toggleShiftDish(${d.id})" class="w-4 h-4 accent-blue-500 shrink-0 cursor-pointer">
-                    <span class="flex-1 text-sm text-white truncate">${d.name}</span>
+                    <span class="flex-1 text-sm text-white truncate">${escapeHtml(d.name)}</span>
                     <input type="number" min="0" id="shift-portions-${d.id}" value="${shiftPrepPortions[d.id] || ''}" placeholder="0" oninput="setShiftPortions(${d.id}, this.value)" class="w-20 h-9 bg-[#2C2C2E] text-white rounded-lg px-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-center">
                     <span class="text-xs text-gray-500 w-14 shrink-0">${t('shift_portions')}</span>
                 </div>`).join('');
@@ -222,7 +222,7 @@
                 <div class="flex flex-col">${items.map(it => `
                     <label class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0 cursor-pointer">
                         <input type="checkbox" class="w-4 h-4 accent-green-500 shrink-0 cursor-pointer">
-                        <span class="flex-1 text-sm text-gray-300">${it.name}</span>
+                        <span class="flex-1 text-sm text-gray-300">${escapeHtml(it.name)}</span>
                         <span class="text-sm font-semibold text-white whitespace-nowrap">${formatQty(it.qty, it.unit)}</span>
                     </label>`).join('')}
                 </div></div>`;
@@ -294,7 +294,7 @@
                 <div style="font-family:Arial,sans-serif;color:#000;background:#fff;padding:20px;max-width:700px;">
                     ${photoHtml}
                     <div style="border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:12px;">
-                        <div style="font-size:22px;font-weight:bold;">${d.name}</div>
+                        <div style="font-size:22px;font-weight:bold;">${escapeHtml(d.name)}</div>
                         <div style="font-size:12px;color:#333;">${t('ttk_yield_lbl')}: ${d.yield} ${t('unit_g')} · ${t('ttk_portions')}: ${d.portions || 1} · ${today}</div>
                     </div>
                     ${alg.length ? `<div style="font-size:12px;margin-bottom:10px;"><b>${t('label_allergens')}:</b> ${alg.map(a => t('alg_' + a)).join(', ')}</div>` : ''}

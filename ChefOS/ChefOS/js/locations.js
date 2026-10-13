@@ -78,7 +78,7 @@
             if (!loc) return;
             const row = document.getElementById('loc-row-' + id);
             row.innerHTML = `<div class="flex gap-2 flex-1">
-                <input type="text" id="loc-rename-${id}" value="${loc.name}" class="flex-1 h-10 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-teal-500">
+                <input type="text" id="loc-rename-${id}" value="${escapeHtml(loc.name)}" class="flex-1 h-10 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-teal-500">
                 <button onclick="saveRenameLocation('${id}')" class="h-10 px-4 rounded-xl bg-teal-500 text-white text-sm font-medium">${t('save')}</button>
             </div>`;
             document.getElementById('loc-rename-' + id).focus();
