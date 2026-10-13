@@ -826,6 +826,15 @@
                     <h4 class="text-sm font-bold text-white mb-4" data-i18n="an_fvt_title">Факт vs теория фудкоста</h4>
                     <div id="analytics-fvt"></div>
                 </div>
+                <div>
+                    <h4 class="text-sm font-bold text-white mb-1" data-i18n="fc_title">Прогноз спроса</h4>
+                    <p class="text-xs text-gray-500 mb-4" data-i18n="fc_sub">Средние продажи × горизонт → что докупить</p>
+                    <div class="flex gap-2 mb-4">
+                        <button data-fh="7" onclick="setForecastHorizon(7)" class="h-9 px-4 rounded-xl text-sm font-medium transition-colors bg-teal-500 text-white">7 <span data-i18n="fc_days">дней</span></button>
+                        <button data-fh="14" onclick="setForecastHorizon(14)" class="h-9 px-4 rounded-xl text-sm font-medium transition-colors bg-white/5 text-gray-400 hover:bg-white/10">14 <span data-i18n="fc_days2">дней</span></button>
+                    </div>
+                    <div id="analytics-forecast"></div>
+                </div>
             </div>
         </div>
     </div>

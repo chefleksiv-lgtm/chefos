@@ -119,4 +119,80 @@
                         <div><p class="text-[11px] text-gray-500 mb-1">${l}</p><p class="text-xl font-bold ${c}">${v}</p></div>`).join('')}
                 </div>
                 ${f.losses > 0 ? `<p class="text-xs text-gray-500 mt-3"><i class="fa-solid fa-circle-info mr-1"></i>${t('an_fvt_tip')}</p>` : ''}`;
+            if (typeof renderForecast === 'function') renderForecast();
+        }
+
+        // --- ПРОГНОЗ СПРОСА (v2.2): средние продажи × горизонт → что докупить ---
+        let forecastHorizon = 7;
+        function setForecastHorizon(d) { forecastHorizon = d; renderForecast(); }
+        function forecastDishNeeds(dish, portions) {
+            const needs = {};
+            const add = (name, weightStr) => {
+                const r = (typeof parseIngredientAmount === 'function') ? parseIngredientAmount(name, weightStr) : null;
+                if (!r) return;
+                if (!needs[r.item.id]) needs[r.item.id] = { item: r.item, amount: 0 };
+                needs[r.item.id].amount += r.amount * portions;
+            };
+            (dish.ingredients || []).forEach(ing => add(ing.name, ing.weight));
+            (dish.subRecipes || []).forEach(sub => {
+                (sub.ingredients || []).forEach(si => {
+                    const p = (typeof parseSubIngredient === 'function') ? parseSubIngredient(si) : null;
+                    if (p && p.name && p.qty > 0) add(p.name, String(p.qty) + (p.unit || ''));
+                });
+            });
+            return Object.values(needs);
+        }
+        function forecastData() {
+            const mk = analyticsMonth || getCurrentMonthKey();
+            const sales = (salesDB[mk] || {});
+            const parts = String(mk).split('-'); const y = parseInt(parts[0]), m = parseInt(parts[1]);
+            const now = new Date();
+            const daysElapsed = (y === now.getFullYear() && m === now.getMonth() + 1) ? now.getDate() : new Date(y, m, 0).getDate();
+            const dishes = [];
+            Object.keys(sales).forEach(id => {
+                const d = (menuDB || []).find(x => String(x.id) === String(id));
+                if (!d) return;
+                const qty = sales[id] || 0;
+                const avg = daysElapsed > 0 ? qty / daysElapsed : 0;
+                const fqty = Math.ceil(avg * forecastHorizon);
+                if (fqty > 0) dishes.push({ dish: d, sold: qty, avg, fqty });
+            });
+            dishes.sort((a, b) => b.fqty - a.fqty);
+            const needs = {};
+            dishes.forEach(({ dish, fqty }) => {
+                forecastDishNeeds(dish, fqty).forEach(n => {
+                    if (!needs[n.item.id]) needs[n.item.id] = { item: n.item, amount: 0 };
+                    needs[n.item.id].amount += n.amount;
+                });
+            });
+            const shopping = Object.values(needs)
+                .map(n => ({ item: n.item, amount: n.amount, stock: n.item.quantity || 0, deficit: Math.max(0, n.amount - (n.item.quantity || 0)) }))
+                .filter(n => n.deficit > 0.0005)
+                .sort((a, b) => (b.deficit * (b.item.price || 0)) - (a.deficit * (a.item.price || 0)));
+            return { dishes, shopping };
+        }
+        function renderForecast() {
+            const box = document.getElementById('analytics-forecast');
+            if (!box) return;
+            document.querySelectorAll('[data-fh]').forEach(b => {
+                const on = parseInt(b.dataset.fh) === forecastHorizon;
+                b.className = 'h-9 px-4 rounded-xl text-sm font-medium transition-colors ' + (on ? 'bg-teal-500 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10');
+            });
+            const { dishes, shopping } = forecastData();
+            if (!dishes.length) { box.innerHTML = '<p class="text-sm text-gray-500">' + t('fc_empty') + '</p>'; return; }
+            const fmt = (v) => (typeof trimNum === 'function') ? trimNum(Math.round(v * 100) / 100) : (Math.round(v * 100) / 100);
+            box.innerHTML =
+                '<p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">' + t('fc_dishes_title') + '</p>' +
+                '<div class="space-y-1 mb-6">' + dishes.slice(0, 12).map(x =>
+                    '<div class="flex justify-between items-center bg-black/30 rounded-xl px-3 py-2 text-sm">' +
+                    '<span class="text-gray-200 truncate mr-2">' + x.dish.name + '</span>' +
+                    '<span class="text-xs text-gray-500 whitespace-nowrap">' + t('fc_sold') + ' ' + x.sold + ' · ~' + x.avg.toFixed(1) + '/' + t('fc_day') + ' → <span class="text-teal-400 font-bold">' + x.fqty + '</span></span></div>'
+                ).join('') + '</div>' +
+                '<p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">' + t('fc_shop_title') + '</p>' +
+                (shopping.length ? '<div class="space-y-1">' + shopping.map(n =>
+                    '<div class="flex justify-between items-center bg-black/30 rounded-xl px-3 py-2 text-sm">' +
+                    '<span class="text-gray-200 truncate mr-2">' + n.item.name + '</span>' +
+                    '<span class="text-xs whitespace-nowrap"><span class="text-gray-500">' + t('fc_need') + ' ' + fmt(n.amount) + ' ' + (t('unit_' + n.item.unit) || n.item.unit) + '</span> <span class="text-orange-400 font-bold">+ ' + fmt(n.deficit) + '</span></span></div>'
+                ).join('') + '</div>'
+                : '<p class="text-sm text-gray-500">' + t('fc_shop_ok') + '</p>');
         }

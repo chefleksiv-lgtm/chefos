@@ -89,39 +89,43 @@
         // 2) вес «по вкусу» давал NaN — quantity склада превращалось в NaN и портило стоимость запасов.
         // Теперь: честный разбор «100g» / «1,5 кг» / «2 шт» / «2» (без единиц — в единицах склада),
         // конверсия через convertQty; не распарсилось или несовместимые единицы — склад не трогаем.
-        function deductFromInventory(ingredientName, weightStr, portionsStr) {
+        // v2.2: чистый парсер «имя + вес → количество в единицах склада» (на 1 порцию).
+        // Используется и списанием при продаже, и прогнозом спроса.
+        function parseIngredientAmount(ingredientName, weightStr) {
             const invItem = (typeof findInventoryByName === 'function')
                 ? findInventoryByName(ingredientName)
                 : (inventoryDB || []).find(i => String(i.name || '').toLowerCase() === String(ingredientName || '').toLowerCase());
-            if (!invItem) return;
-            const portions = parseInt(portionsStr) || 1;
+            if (!invItem) return null;
             const m = String(weightStr || '').trim().match(/^([\d.,]+)\s*([a-zA-Zа-яА-Я]*)$/);
-            if (!m) return;
+            if (!m) return null;
             const qty = parseFloat(m[1].replace(',', '.'));
-            if (!(qty >= 0)) return;
+            if (!(qty >= 0)) return null;
             let inInvUnit;
             if (!m[2]) {
-                // Единицы не указаны: кухонная конвенция — граммы (плейсхолдер «Вес (100g)», parseQtyUnit тоже даёт 'g').
-                // Исключение — штучный товар на складе: «2» значит 2 штуки.
-                // (Раньше без единиц считалось в единицах склада: «100» для муки в кг списывало 100 кг за порцию!)
                 const invU = (typeof normUnit === 'function') ? normUnit(invItem.unit) : String(invItem.unit || '').toLowerCase();
                 const asUnit = (invU === 'pcs') ? 'pcs' : 'g';
                 if (typeof convertQty === 'function') {
                     const c = convertQty(qty, asUnit, invItem.unit);
-                    if (c === null || !(c >= 0)) return;
+                    if (c === null || !(c >= 0)) return null;
                     inInvUnit = c;
                 } else {
                     inInvUnit = (asUnit === 'pcs') ? qty : qty / 1000;
                 }
             } else if (typeof convertQty === 'function') {
                 const c = convertQty(qty, m[2], invItem.unit);
-                if (c === null || !(c >= 0)) return;
+                if (c === null || !(c >= 0)) return null;
                 inInvUnit = c;
             } else {
                 inInvUnit = qty;
             }
-            invItem.quantity = Math.round((invItem.quantity - inInvUnit * portions) * 1000) / 1000;
-            if (invItem.quantity < 0) invItem.quantity = 0;
+            return { item: invItem, amount: inInvUnit };
+        }
+        function deductFromInventory(ingredientName, weightStr, portionsStr) {
+            const r = parseIngredientAmount(ingredientName, weightStr);
+            if (!r) return;
+            const portions = parseInt(portionsStr) || 1;
+            r.item.quantity = Math.round((r.item.quantity - r.amount * portions) * 1000) / 1000;
+            if (r.item.quantity < 0) r.item.quantity = 0;
         }
 
         function processSales(event) {
