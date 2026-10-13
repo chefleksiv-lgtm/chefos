@@ -154,6 +154,8 @@
             
             // Initialization
             initDropdowns(); applyTranslations();
+            // v2.1: заметки/задачи дня грузим сразу при входе, а не только по клику на день
+            if (typeof loadWidgetNote === 'function') loadWidgetNote();
         }
         function logout() {
             const screen = document.getElementById('pin-screen');

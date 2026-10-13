@@ -143,7 +143,17 @@
         function saveTTKChanges() {
             const n = document.getElementById('edit-ttk-name').value.trim(); if(!n) { showNotification(t('notif_enter_name')); return; }
             const img = currentTTKImageBase64 || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800'; 
-            const data = { name: n, type: document.getElementById('edit-ttk-type').value, category: document.getElementById('edit-ttk-category').value, portions: parseInt(document.getElementById('edit-ttk-portions').value)||1, yield: parseInt(document.getElementById('edit-ttk-yield').value)||0, costPrice: parseFloat(document.getElementById('edit-ttk-cost').value)||0, menuPrice: parseFloat(document.getElementById('edit-ttk-price').value)||0, targetFoodCost: parseFloat(document.getElementById('edit-ttk-target-fc').value)||30, calories: parseInt(document.getElementById('edit-ttk-cal').value)||0, protein: parseInt(document.getElementById('edit-ttk-prot').value)||0, fat: parseInt(document.getElementById('edit-ttk-fat').value)||0, carbs: parseInt(document.getElementById('edit-ttk-carb').value)||0, img: img, ingredients: [...tempEditIngredients], steps: [...tempEditSteps] };
+            const type = document.getElementById('edit-ttk-type').value;
+            const portions = parseInt(document.getElementById('edit-ttk-portions').value)||1;
+            let costInput = parseFloat(document.getElementById('edit-ttk-cost').value) || 0;
+            // v2.1: себестоимость не введена вручную — считаем автоматически из ингредиентов.
+            // Раньше новая ТТК сохранялась с C$0 (FC 0.0%) до ручного «Применить».
+            if (!(costInput > 0) && typeof costPerPortion === 'function') {
+                const existing = editingTTKId ? menuDB.find(i => i.id === editingTTKId) : null;
+                const auto = costPerPortion({ type, portions, ingredients: [...tempEditIngredients], subRecipes: (existing && existing.subRecipes) || [] }).perPortion;
+                if (auto > 0) costInput = Math.round(auto * 100) / 100;
+            }
+            const data = { name: n, type: type, category: document.getElementById('edit-ttk-category').value, portions: portions, yield: parseInt(document.getElementById('edit-ttk-yield').value)||0, costPrice: costInput, menuPrice: parseFloat(document.getElementById('edit-ttk-price').value)||0, targetFoodCost: parseFloat(document.getElementById('edit-ttk-target-fc').value)||30, calories: parseInt(document.getElementById('edit-ttk-cal').value)||0, protein: parseInt(document.getElementById('edit-ttk-prot').value)||0, fat: parseInt(document.getElementById('edit-ttk-fat').value)||0, carbs: parseInt(document.getElementById('edit-ttk-carb').value)||0, img: img, ingredients: [...tempEditIngredients], steps: [...tempEditSteps] };
             if (editingTTKId) { const d = menuDB.find(i => i.id === editingTTKId); if(d) Object.assign(d, data); openTTKDetails(editingTTKId); } 
             else { menuDB.push({ id: Date.now(), isTTKActive: false, status: 'in_stock', glutenFree: false, lactoseFree: false, subRecipes: [], ...data }); }
             markDirty();

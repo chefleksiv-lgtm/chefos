@@ -93,7 +93,15 @@
             if(!document.getElementById('sales-modal').classList.contains('hidden')) filterSalesList();
         }
         
-        function getCurrentFC(k) { if (!currentFoodCosts[k]) currentFoodCosts[k] = (Math.random()*10+25).toFixed(1); return parseFloat(currentFoodCosts[k]); }
+        // v2.1: РЕАЛЬНЫЙ фактический фуд-кост за текущий месяц из аналитики.
+        // Раньше здесь был (Math.random()*10+25) — плитка показывала случайные 25–35%, никак не связанные с продажами.
+        function getCurrentFC(k) {
+            if (typeof factVsTheory === 'function' && typeof getCurrentMonthKey === 'function') {
+                const f = factVsTheory(getCurrentMonthKey());
+                if (f.income > 0) return Math.round(f.actualFc * 10) / 10;
+            }
+            return 0;
+        }
         function getTargetFC(k) { return targetFoodCosts[k] || 30; }
         function openFoodCostModal() { document.getElementById('foodcost-modal-kitchen').textContent = t(activeKitchen); document.getElementById('target-fc-input').value = getTargetFC(activeKitchen); updateFoodCostModalVisuals(getCurrentFC(activeKitchen), getTargetFC(activeKitchen)); openModal('foodcost-modal'); }
         function updateFoodCostModalVisuals(cur, tar) {

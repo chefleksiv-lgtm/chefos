@@ -101,7 +101,18 @@
             if (!(qty >= 0)) return;
             let inInvUnit;
             if (!m[2]) {
-                inInvUnit = qty; // единицы не указаны — считаем в единицах склада
+                // Единицы не указаны: кухонная конвенция — граммы (плейсхолдер «Вес (100g)», parseQtyUnit тоже даёт 'g').
+                // Исключение — штучный товар на складе: «2» значит 2 штуки.
+                // (Раньше без единиц считалось в единицах склада: «100» для муки в кг списывало 100 кг за порцию!)
+                const invU = (typeof normUnit === 'function') ? normUnit(invItem.unit) : String(invItem.unit || '').toLowerCase();
+                const asUnit = (invU === 'pcs') ? 'pcs' : 'g';
+                if (typeof convertQty === 'function') {
+                    const c = convertQty(qty, asUnit, invItem.unit);
+                    if (c === null || !(c >= 0)) return;
+                    inInvUnit = c;
+                } else {
+                    inInvUnit = (asUnit === 'pcs') ? qty : qty / 1000;
+                }
             } else if (typeof convertQty === 'function') {
                 const c = convertQty(qty, m[2], invItem.unit);
                 if (c === null || !(c >= 0)) return;
