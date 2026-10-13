@@ -402,6 +402,7 @@
             'notif_kitchen_renamed': { ru: 'Цех переименован', en: 'Kitchen renamed' },
             'notif_ttk_saved': { ru: 'ТТК сохранена!', en: 'Recipe saved!' },
             'notif_book_loaded': { ru: 'Книга успешно загружена!', en: 'Book successfully uploaded!' },
+            'notif_book_fail': { ru: 'Не удалось открыть файл', en: 'Could not open the file' },
             'notif_invoice_scanned': { ru: 'Накладная проведена!', en: 'Invoice processed!' },
             'notif_stock_updated': { ru: 'Склад обновлен. Позиций: ', en: 'Inventory updated. Items: ' },
             'notif_emp_saved': { ru: 'Сотрудник сохранен', en: 'Employee saved' },
