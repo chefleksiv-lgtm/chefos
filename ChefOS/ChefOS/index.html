@@ -138,6 +138,9 @@
             <div id="tile-kds" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openKDSModal()">
                 <div class="text-orange-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-fire-burner"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_kds">Кухня<br>(KDS)</h2>
             </div>
+            <div id="tile-foodsafety" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openFoodSafetyModal()">
+                <div class="text-lime-400 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-clipboard-check"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_foodsafety">Конт-<br>роль</h2>
+            </div>
             <div id="tile-stocktake" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openInventoryCheck()">
                 <div class="text-indigo-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-clipboard-list"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_stocktake">Инвентари-<br>зация</h2>
             </div>
@@ -980,6 +983,56 @@
         </div>
     </div>
 
+    <!-- Food safety: температурный журнал + HACCP (v2.2) -->
+    <div id="food-safety-modal" onclick="if(event.target === this) closeModal('food-safety-modal')" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300">
+        <div class="bg-[#1C1C1E] rounded-3xl w-[94%] max-w-3xl border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-hidden">
+            <div class="flex justify-between items-center p-6 pb-0 shrink-0">
+                <h3 class="text-xl font-semibold text-white" data-i18n="fs_title">Контроль качества</h3>
+                <button onclick="closeModal('food-safety-modal')" class="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="flex border-b border-white/10 px-6 pt-2 shrink-0">
+                <button id="fs-tab-btn-temp" onclick="switchFSTab('temp')" class="px-6 py-3 text-sm font-medium border-b-2 border-lime-500 text-lime-400 transition-colors whitespace-nowrap" data-i18n="fs_tab_temp">Температура</button>
+                <button id="fs-tab-btn-check" onclick="switchFSTab('check')" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-300 transition-colors whitespace-nowrap" data-i18n="fs_tab_check">Чек-лист</button>
+            </div>
+            <div class="p-6 overflow-y-auto hide-scrollbar">
+                <div id="fs-tab-temp">
+                    <div class="flex justify-between items-center mb-4">
+                        <p class="text-sm text-gray-400" data-i18n="fs_temp_sub">Замеры по точкам контроля</p>
+                        <input type="date" id="fs-temp-date" onchange="renderFSTemp()" class="h-10 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-lime-500 cursor-pointer">
+                    </div>
+                    <div id="fs-points" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6"></div>
+                    <div id="fs-add-point-block" class="border-t border-white/10 pt-4 mb-6">
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2" data-i18n="fs_add_point">Новая точка контроля</p>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input type="text" id="fs-point-name" data-i18n="fs_point_name_ph" placeholder="Название (напр. Холодильник 1)" class="flex-1 h-11 bg-[#2C2C2E] border border-white/10 rounded-xl px-4 text-white text-sm outline-none focus:border-lime-500">
+                            <input type="number" id="fs-point-min" step="0.1" placeholder="Мин °C" class="w-full sm:w-24 h-11 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-lime-500">
+                            <input type="number" id="fs-point-max" step="0.1" placeholder="Макс °C" class="w-full sm:w-24 h-11 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-lime-500">
+                            <button onclick="addFSPoint()" class="h-11 w-11 rounded-xl bg-lime-500/20 text-lime-400 hover:bg-lime-500 hover:text-white transition-colors shrink-0"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2" data-i18n="fs_history">История замеров</p>
+                    <div id="fs-temp-history" class="flex flex-col gap-1"></div>
+                </div>
+                <div id="fs-tab-check" class="hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <p class="text-sm text-gray-400" data-i18n="fs_check_sub">Ежедневный HACCP-контроль</p>
+                        <input type="date" id="fs-check-date" onchange="renderFSCheck()" class="h-10 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-lime-500 cursor-pointer">
+                    </div>
+                    <div id="fs-check-progress" class="mb-4"></div>
+                    <div id="fs-check-list" class="flex flex-col gap-2 mb-6"></div>
+                    <div id="fs-template-block" class="border-t border-white/10 pt-4">
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2" data-i18n="fs_template">Шаблон чек-листа</p>
+                        <div id="fs-template-list" class="flex flex-col gap-1 mb-2"></div>
+                        <div class="flex gap-2">
+                            <input type="text" id="fs-tpl-new" data-i18n="fs_tpl_new_ph" placeholder="Новый пункт…" class="flex-1 h-10 bg-[#2C2C2E] border border-white/10 rounded-xl px-4 text-white text-sm outline-none focus:border-lime-500">
+                            <button onclick="addFSTemplateItem()" class="h-10 w-10 rounded-xl bg-lime-500/20 text-lime-400 hover:bg-lime-500 hover:text-white transition-colors shrink-0"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="js/settings.js"></script>
     <script src="js/sales.js"></script>
     <script src="js/menu.js"></script>
@@ -997,6 +1050,7 @@
     <script src="js/orders.js"></script>
     <script src="js/kds.js"></script>
     <script src="js/locations.js"></script>
+    <script src="js/foodsafety.js"></script>
     <script src="js/sync.js"></script>
     <script src="js/main.js"></script>
 </body>

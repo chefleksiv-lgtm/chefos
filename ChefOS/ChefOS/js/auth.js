@@ -182,6 +182,7 @@
                 team: document.getElementById('tile-team'),
                 settings: document.getElementById('tile-settings'),
                 kds: document.getElementById('tile-kds'),
+                foodsafety: document.getElementById('tile-foodsafety'),
                 widget: document.getElementById('dashboard-widget')
             };
             

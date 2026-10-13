@@ -9,7 +9,7 @@
         const PERMISSIONS = {
             chef: {
                 label: 'chef',
-                tiles: ['menu', 'ttk', 'fc', 'analytics', 'inv', 'sales', 'stocktake', 'books', 'team', 'settings', 'widget', 'kds'],
+                tiles: ['menu', 'ttk', 'fc', 'analytics', 'inv', 'sales', 'stocktake', 'books', 'team', 'settings', 'widget', 'kds', 'foodsafety'],
                 seePrices: true,          // цены блюд/ТТК/склада
                 seeMenuPrices: true,       // цена блюда в меню
                 finance: true,             // фуд-кост, аналитика, отчёты
@@ -27,7 +27,7 @@
             },
             souschef: {
                 label: 'souschef',
-                tiles: ['menu', 'ttk', 'inv', 'stocktake', 'team', 'widget', 'kds'],
+                tiles: ['menu', 'ttk', 'inv', 'stocktake', 'team', 'widget', 'kds', 'foodsafety'],
                 seePrices: false,
                 seeMenuPrices: false,
                 finance: false,
@@ -45,7 +45,7 @@
             },
             cook: {
                 label: 'cook',
-                tiles: ['menu', 'ttk', 'stocktake', 'team', 'widget', 'kds'],
+                tiles: ['menu', 'ttk', 'stocktake', 'team', 'widget', 'kds', 'foodsafety'],
                 seePrices: false,
                 seeMenuPrices: false,
                 finance: false,
@@ -97,7 +97,7 @@
         let pinCodes = { chef: '1111', cook: '2222', cashier: '3333' };
 
         // Порядок плиток на главном экране (перетаскивание, сохраняется в localStorage)
-        let tileOrder = ['tile-menu', 'tile-ttk', 'tile-fc', 'tile-analytics', 'tile-inv', 'tile-sales', 'tile-kds', 'tile-stocktake', 'tile-books', 'tile-team', 'tile-settings'];
+        let tileOrder = ['tile-menu', 'tile-ttk', 'tile-fc', 'tile-analytics', 'tile-inv', 'tile-sales', 'tile-kds', 'tile-foodsafety', 'tile-stocktake', 'tile-books', 'tile-team', 'tile-settings'];
 
         let kitchens = ['Основная кухня', 'Горячий цех', 'Бар'];
         let activeKitchen = 'Основная кухня';
@@ -209,6 +209,20 @@
         let locationsDB = [];
         let activeLocationId = null;
         let locationData = {};
+
+        // Food safety (v2.2): точки контроля температуры, журнал замеров, HACCP-чеклисты.
+        // fsPointsDB: [{id, name, min, max}]; fsTempDB: [{id, date, time, pointId, pointName, temp, note}]
+        // fsCheckTemplate: [{label}]; fsCheckDB: [{id, date, checks:[{label, done}], by}]
+        let fsPointsDB = [];
+        let fsTempDB = [];
+        let fsCheckTemplate = [
+            { label: 'Температура холодильников в норме' },
+            { label: 'Сроки годности проверены' },
+            { label: 'Маркировка и товарное соседство' },
+            { label: 'Чистота поверхностей и инвентаря' },
+            { label: 'Руки и форма персонала' }
+        ];
+        let fsCheckDB = [];
 
         // Чаевые (v2.2): {id, date:'YYYY-MM-DD', employeeId, employeeName, amount, note}
         let tipsDB = [];
