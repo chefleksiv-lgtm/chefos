@@ -204,6 +204,9 @@
         // KDS (v2.2): кухонные тикеты — {id, num, ts: ISO, items:[{name, qty}], status:'new'|'done'}
         let kdsDB = [];
 
+        // Чаевые (v2.2): {id, date:'YYYY-MM-DD', employeeId, employeeName, amount, note}
+        let tipsDB = [];
+
         // Заказы поставщикам (v1.7): [{id, date, supplier, items:[{name, qty, unit}], status}]
         let ordersDB = [];
 

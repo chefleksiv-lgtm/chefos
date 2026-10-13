@@ -27,7 +27,7 @@
 
         function switchTeamTab(tabName) {
             activeTabs.team = tabName;
-            ['staff', 'schedule', 'requests', 'timeclock'].forEach(i => { 
+            ['staff', 'schedule', 'requests', 'timeclock', 'tips'].forEach(i => { 
                 const btn = document.getElementById(`team-tab-btn-${i}`);
                 const content = document.getElementById(`team-tab-${i}`);
                 if(btn) btn.className = `px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${i === tabName ? 'border-teal-500 text-teal-500' : 'border-transparent text-gray-500 hover:text-gray-300'}`;
@@ -40,6 +40,7 @@
             if (tabName === 'schedule') renderSchedule();
             if (tabName === 'requests' && typeof renderRequests === 'function') renderRequests();
             if (tabName === 'timeclock') renderTimeclock();
+            if (tabName === 'tips') renderTips();
         }
 
         // --- ТАБЕЛЬ (v2.2): отметки прихода/ухода, факт vs план ---
@@ -143,6 +144,65 @@
             document.getElementById('timeclock-summary').innerHTML =
                 `<span class="text-gray-400">${t('tc_day_total')}:</span> <span class="text-white font-bold">${t('tc_plan')} ${totPlan.toFixed(1)} ${t('unit_h')}</span> <span class="text-gray-600">/</span> <span class="text-teal-400 font-bold">${t('tc_fact')} ${totFact.toFixed(1)} ${t('unit_h')}</span>`;
             list.innerHTML = rows || `<p class="text-center text-gray-500 text-sm py-8">${t('team_no_staff')}</p>`;
+        }
+
+
+        // --- ЧАЕВЫЕ (v2.2): журнал чаевых по сотрудникам ---
+        function tipsDateKey() {
+            const inp = document.getElementById('tips-date');
+            if (inp && inp.value) return inp.value;
+            return new Date().toISOString().slice(0, 10);
+        }
+        function addTip(empId) {
+            if (currentAppRole !== 'chef') { showNotification(t('chef_only')); return; }
+            const inp = document.getElementById('tip-amt-' + empId);
+            const amt = Math.round((parseFloat(inp.value) || 0) * 100) / 100;
+            if (amt <= 0) return;
+            if (!Array.isArray(tipsDB)) tipsDB = [];
+            const emp = (teamDB || []).find(e => String(e.id) === String(empId));
+            tipsDB.unshift({ id: Date.now(), date: tipsDateKey(), employeeId: empId, employeeName: emp ? emp.name : '', amount: amt, note: '' });
+            markDirty();
+            renderTips();
+        }
+        function deleteTip(id) {
+            if (currentAppRole !== 'chef') { showNotification(t('chef_only')); return; }
+            tipsDB = tipsDB.filter(x => x.id !== id);
+            markDirty();
+            renderTips();
+        }
+        function renderTips() {
+            if (!Array.isArray(tipsDB)) tipsDB = [];
+            const key = tipsDateKey();
+            const today = new Date().toISOString().slice(0, 10);
+            const monthKey = key.slice(0, 7);
+            const dateInp = document.getElementById('tips-date');
+            if (dateInp && !dateInp.value) dateInp.value = today;
+            const isChef = currentAppRole === 'chef';
+            let monthTotal = 0;
+            const rows = (teamDB || []).map(e => {
+                const dayTips = tipsDB.filter(x => String(x.employeeId) === String(e.id) && x.date === key);
+                const daySum = dayTips.reduce((s, x) => s + (x.amount || 0), 0);
+                const mSum = tipsDB.filter(x => String(x.employeeId) === String(e.id) && (x.date || '').slice(0, 7) === monthKey)
+                    .reduce((s, x) => s + (x.amount || 0), 0);
+                monthTotal += mSum;
+                const initials = e.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                const entriesHtml = dayTips.map(x =>
+                    '<div class="flex items-center gap-2 text-xs text-gray-400"><i class="fa-solid fa-coins text-yellow-500/70"></i>' +
+                    '<span>' + currentCurrency + x.amount.toFixed(2) + '</span>' +
+                    (isChef ? '<button onclick="deleteTip(' + x.id + ')" class="text-red-400/60 hover:text-red-400"><i class="fa-solid fa-xmark"></i></button>' : '') + '</div>').join('');
+                return '<div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">' +
+                    '<div class="flex items-center gap-3 flex-1 min-w-0">' +
+                    '<div class="w-10 h-10 rounded-full bg-yellow-500/15 text-yellow-400 flex items-center justify-center font-bold text-sm shrink-0">' + initials + '</div>' +
+                    '<div class="min-w-0"><p class="text-sm font-semibold text-white truncate">' + e.name + '</p>' +
+                    '<p class="text-xs text-gray-500">' + t('tips_today') + ': <span class="text-yellow-400 font-medium">' + currentCurrency + daySum.toFixed(2) + '</span> · ' + t('tips_month') + ': <span class="text-white font-medium">' + currentCurrency + mSum.toFixed(2) + '</span></p>' +
+                    (entriesHtml ? '<div class="mt-1 flex flex-col gap-1">' + entriesHtml + '</div>' : '') + '</div></div>' +
+                    (isChef ? '<div class="flex gap-2 shrink-0"><input type="number" id="tip-amt-' + e.id + '" min="0" step="0.01" placeholder="0.00" class="w-28 h-10 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-yellow-500">' +
+                    '<button onclick="addTip(' + e.id + ')" class="h-10 px-4 rounded-xl bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500 hover:text-white font-medium text-sm transition-colors"><i class="fa-solid fa-plus"></i></button></div>' : '') +
+                    '</div>';
+            }).join('');
+            document.getElementById('tips-summary').innerHTML =
+                '<span class="text-gray-400">' + t('tips_month_total') + ' (' + monthKey + '):</span> <span class="text-yellow-400 font-bold">' + currentCurrency + monthTotal.toFixed(2) + '</span>';
+            document.getElementById('tips-list').innerHTML = rows || '<p class="text-center text-gray-500 text-sm py-8">' + t('team_no_staff') + '</p>';
         }
 
         function renderTeamList() {

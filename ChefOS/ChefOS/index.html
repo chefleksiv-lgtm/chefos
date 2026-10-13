@@ -736,6 +736,7 @@
                 <button id="team-tab-btn-schedule" onclick="switchTeamTab('schedule')" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-300 transition-colors whitespace-nowrap" data-i18n="team_tab_sched">График смен</button>
                 <button id="team-tab-btn-requests" onclick="switchTeamTab('requests')" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-300 transition-colors whitespace-nowrap" data-i18n="team_tab_requests">Запросы</button>
                 <button id="team-tab-btn-timeclock" onclick="switchTeamTab('timeclock')" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-300 transition-colors whitespace-nowrap" data-i18n="team_tab_timeclock">Табель</button>
+                <button id="team-tab-btn-tips" onclick="switchTeamTab('tips')" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-300 transition-colors whitespace-nowrap" data-i18n="team_tab_tips">Чаевые</button>
             </div>
             <div id="team-tab-staff">
                 <div class="flex justify-between items-center mb-6">
@@ -763,6 +764,14 @@
                 </div>
                 <div id="timeclock-summary" class="mb-4 text-sm"></div>
                 <div id="timeclock-list" class="flex flex-col gap-3"></div>
+            </div>
+            <div id="team-tab-tips" class="hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    <h3 class="text-xl font-semibold text-white" data-i18n="tips_title">Чаевые</h3>
+                    <input type="date" id="tips-date" onchange="renderTips()" class="h-11 bg-[#2C2C2E] border border-white/10 rounded-xl px-4 text-white text-sm outline-none focus:border-teal-500 cursor-pointer">
+                </div>
+                <div id="tips-summary" class="mb-4 text-sm"></div>
+                <div id="tips-list" class="flex flex-col gap-3"></div>
             </div>
         </div>
     </div>
