@@ -108,7 +108,9 @@
             const tb = id ? tablesDB.find(v => v.id === id) : null;
             pendingTableShape = tb ? tb.shape : 'round';
             pendingTableSize = (tb && tb.size) ? tb.size : 'm';
-            document.getElementById('table-edit-name').value = tb ? tb.name : String(tablesDB.length + 1);
+            let defName = String(tablesDB.length + 1);
+            if (!tb) { let n = tablesDB.length + 1; while (tablesDB.some(v => v.name === String(n))) n++; defName = String(n); }
+            document.getElementById('table-edit-name').value = tb ? tb.name : defName;
             document.getElementById('table-edit-seats').value = tb ? tb.seats : 2;
             renderTableShapeBtns();
             renderTableSizeBtns();
@@ -201,6 +203,7 @@
             const up = () => {
                 document.removeEventListener('pointermove', move);
                 document.removeEventListener('pointerup', up);
+                document.removeEventListener('pointercancel', up);
                 document.removeEventListener('touchmove', move);
                 document.removeEventListener('touchend', up);
                 if (dragMoved) markDirty();
@@ -211,6 +214,7 @@
             };
             document.addEventListener('pointermove', move);
             document.addEventListener('pointerup', up);
+            document.addEventListener('pointercancel', up);
             document.addEventListener('touchmove', move, { passive: true });
             document.addEventListener('touchend', up);
         }
@@ -251,7 +255,7 @@
             showNotification(t('table_freed'));
         }
         function activeTab() {
-            return (tableTabsDB || []).find(x => x.id === activeTableTabId) || null;
+            return (typeof tableTabsDB !== 'undefined' && Array.isArray(tableTabsDB) ? tableTabsDB : []).find(x => x.id === activeTableTabId) || null;
         }
         function tableTabAddDish(dishId) {
             const tab = activeTab();

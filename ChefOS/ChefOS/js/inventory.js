@@ -251,12 +251,12 @@
             else { const s = suppliersDB.find(i => i.id === id); if(!s) return; editingSupplierId = id; document.getElementById('delete-sup-btn').classList.remove('hidden'); document.getElementById('edit-sup-name').value = s.name; document.getElementById('edit-sup-category').value = s.category; document.getElementById('edit-sup-manager').value = s.manager; document.getElementById('edit-sup-phone').value = s.phone; document.getElementById('edit-sup-email').value = s.email; }
             openModal('supplier-edit-modal');
         }
-        function deleteSupplier() { showConfirm(t('confirm_title'), t('confirm_msg'), () => { suppliersDB = suppliersDB.filter(i => i.id !== editingSupplierId); markDirty(); updateSupplierDropdowns(); closeModal('supplier-edit-modal'); renderSuppliersList(); showNotification(t('notif_deleted')); }); }
+        function deleteSupplier() { showConfirm(t('confirm_title'), t('confirm_msg'), () => { suppliersDB = suppliersDB.filter(i => i.id !== editingSupplierId); markDirty(); updateSupplierDropdowns(); closeModal('supplier-edit-modal'); renderSuppliersList(); if (typeof renderAutoOrderSettings === 'function') renderAutoOrderSettings(); if (typeof renderOrdersList === 'function') renderOrdersList(); showNotification(t('notif_deleted')); }); }
         function saveSupplierChanges() {
             const n = document.getElementById('edit-sup-name').value.trim(); if(!n) return;
             if(editingSupplierId) { const s = suppliersDB.find(i => i.id === editingSupplierId); if(s) { s.name=n; s.category=document.getElementById('edit-sup-category').value; s.manager=document.getElementById('edit-sup-manager').value; s.phone=document.getElementById('edit-sup-phone').value; s.email=document.getElementById('edit-sup-email').value; } } 
             else suppliersDB.push({ id: Date.now(), name: n, category: document.getElementById('edit-sup-category').value, manager: document.getElementById('edit-sup-manager').value, phone: document.getElementById('edit-sup-phone').value, email: document.getElementById('edit-sup-email').value, status: 'active' });
             markDirty();
-            updateSupplierDropdowns(); renderSuppliersList(); closeModal('supplier-edit-modal'); showNotification(t('notif_saved'));
+            updateSupplierDropdowns(); renderSuppliersList(); if (typeof renderAutoOrderSettings === 'function') renderAutoOrderSettings(); if (typeof renderOrdersList === 'function') renderOrdersList(); closeModal('supplier-edit-modal'); showNotification(t('notif_saved'));
         }
 

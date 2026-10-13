@@ -5,7 +5,39 @@
             return inventoryDB.filter(i => (i.minQty || 0) > 0 && (i.quantity || 0) <= i.minQty && i.supplier);
         }
         function suggestedOrderQty(i) {
-            return Math.max(0, Math.ceil((i.minQty * 2 - (i.quantity || 0)) * 100) / 100);
+            const base = Math.max(0, Math.ceil((i.minQty * 2 - (i.quantity || 0)) * 100) / 100);
+            // v2.4: если у поставщика настроен график — запаса должно хватить
+            // до следующего дня заказа + срок поставки (+1 день запаса)
+            const sup = i.supplier ? supplierByName(i.supplier) : null;
+            if (!sup || !Array.isArray(sup.orderDays) || !sup.orderDays.length) return base;
+            const daily = ingredientDailyUse(i);
+            if (!(daily > 0)) return base;
+            const cover = daysToNextOrderDay(i.supplier) + (sup.leadDays || 0) + 1;
+            const need = Math.max(0, Math.ceil((daily * cover - (i.quantity || 0)) * 100) / 100);
+            return Math.max(base, need);
+        }
+        // Средний расход ингредиента в день — по истории продаж и ТТК
+        function ingredientDailyUse(item) {
+            try {
+                const mk = (typeof analyticsMonth !== 'undefined' && analyticsMonth) ? analyticsMonth : getCurrentMonthKey();
+                const sales = ((typeof salesDB !== 'undefined' ? salesDB[mk] : null) || {});
+                const parts = String(mk).split('-');
+                const now = new Date();
+                const daysElapsed = (parseInt(parts[0]) === now.getFullYear() && parseInt(parts[1]) === now.getMonth() + 1) ? now.getDate() : new Date(parseInt(parts[0]), parseInt(parts[1]), 0).getDate();
+                if (!(daysElapsed > 0)) return 0;
+                let use = 0;
+                const mdb = (typeof menuDB !== 'undefined' && Array.isArray(menuDB)) ? menuDB : [];
+                for (const id in sales) {
+                    const d = mdb.find(x => String(x.id) === String(id));
+                    if (!d) continue;
+                    const perDay = sales[id] / daysElapsed;
+                    if (typeof forecastDishNeeds !== 'function') continue;
+                    const needs = forecastDishNeeds(d, 1);
+                    const n = needs.find(x => x.item && x.item.id === item.id);
+                    if (n) use += perDay * n.amount;
+                }
+                return use;
+            } catch (e) { return 0; }
         }
 
         function generateOrders() {
@@ -60,8 +92,9 @@
 
         // --- НАСТРОЙКИ АВТОЗАКАЗА (v2.4): дни работы поставщика, лид-тайм ---
         // supplier.orderDays: [0..6] (0=вс), supplier.leadDays: дней до поставки
+        function allSuppliers() { return (typeof suppliersDB !== 'undefined' && Array.isArray(suppliersDB)) ? suppliersDB : []; }
         function supplierByName(name) {
-            return (suppliersDB || []).find(x => String(x.name || '').trim().toLowerCase() === String(name || '').trim().toLowerCase()) || null;
+            return allSuppliers().find(x => String(x.name || '').trim().toLowerCase() === String(name || '').trim().toLowerCase()) || null;
         }
         function supplierWorkdays(sup) {
             const r = supplierByName(sup);
@@ -90,7 +123,7 @@
         }
         function toggleSupplierDay(id, day) {
             if (currentAppRole !== 'chef') { showNotification(t('chef_only')); return; }
-            const s = (suppliersDB || []).find(x => x.id === id); if (!s) return;
+            const s = allSuppliers().find(x => x.id === id); if (!s) return;
             if (!Array.isArray(s.orderDays)) s.orderDays = [0, 1, 2, 3, 4, 5, 6];
             const i = s.orderDays.indexOf(day);
             if (i >= 0) { if (s.orderDays.length > 1) s.orderDays.splice(i, 1); }
@@ -101,7 +134,7 @@
         }
         function changeSupplierLead(id, delta) {
             if (currentAppRole !== 'chef') { showNotification(t('chef_only')); return; }
-            const s = (suppliersDB || []).find(x => x.id === id); if (!s) return;
+            const s = allSuppliers().find(x => x.id === id); if (!s) return;
             s.leadDays = Math.max(0, Math.min(14, (s.leadDays || 0) + delta));
             markDirty();
             renderAutoOrderSettings();
@@ -110,7 +143,7 @@
         function renderAutoOrderSettings() {
             const box = document.getElementById('autoorder-settings'); if (!box) return;
             const isChef = currentAppRole === 'chef';
-            const list = suppliersDB || [];
+            const list = allSuppliers();
             box.innerHTML = list.length ? list.map(s => {
                 const days = supplierWorkdays(s.name);
                 const chips = [1, 2, 3, 4, 5, 6, 0].map(d => {
@@ -146,10 +179,11 @@
         function emailOrder(id) {
             const o = (ordersDB || []).find(x => x.id === id); if (!o) return;
             const s = supplierByName(o.supplier);
-            if (!s || !s.email) { showNotification(t('no_supplier_email')); return; }
+            const email = String(s.email || '').trim();
+            if (!s || !email) { showNotification(t('no_supplier_email')); return; }
             const subject = encodeURIComponent(`${t('order_mail_subject')} ${o.date} — ${o.supplier}`);
             const body = encodeURIComponent(orderText(o));
-            window.location.href = `mailto:${s.email}?subject=${subject}&body=${body}`;
+            window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
         }
         function copyOrder(id) {
             const o = (ordersDB || []).find(x => x.id === id); if (!o) return;

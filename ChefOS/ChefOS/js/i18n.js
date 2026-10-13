@@ -198,6 +198,7 @@
             'no_supplier_email': { ru: 'email не указан', en: 'no email' },
             'sup_empty': { ru: 'Нет поставщиков. Добавьте первого выше.', en: 'No suppliers yet.' },
             'next_order_today': { ru: 'Заказ: сегодня', en: 'Order: today' },
+            'next_order_tomorrow': { ru: 'Заказ: завтра', en: 'Order: tomorrow' },
             'next_order_day': { ru: 'Ближайший день заказа', en: 'Next order day' },
             'order_email': { ru: 'Отправить email', en: 'Send email' },
             'order_copy': { ru: 'Скопировать текст', en: 'Copy text' },

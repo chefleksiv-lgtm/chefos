@@ -125,6 +125,7 @@
         // --- ПРОГНОЗ СПРОСА (v2.2): средние продажи × горизонт → что докупить ---
         // v2.4: сезонный индекс — корректирует прогноз по истории продаж
         function seasonalFactor(dishId, monthKey) {
+            if (typeof salesDB === 'undefined' || !salesDB) return 1;
             const clamp = (v) => Math.max(0.5, Math.min(2, v));
             const parts = String(monthKey).split('-');
             const y = parseInt(parts[0]), m = parseInt(parts[1]);
