@@ -9,7 +9,7 @@
         const PERMISSIONS = {
             chef: {
                 label: 'chef',
-                tiles: ['menu', 'ttk', 'fc', 'analytics', 'inv', 'sales', 'stocktake', 'books', 'team', 'settings', 'widget'],
+                tiles: ['menu', 'ttk', 'fc', 'analytics', 'inv', 'sales', 'stocktake', 'books', 'team', 'settings', 'widget', 'kds'],
                 seePrices: true,          // цены блюд/ТТК/склада
                 seeMenuPrices: true,       // цена блюда в меню
                 finance: true,             // фуд-кост, аналитика, отчёты
@@ -27,7 +27,7 @@
             },
             souschef: {
                 label: 'souschef',
-                tiles: ['menu', 'ttk', 'inv', 'stocktake', 'team', 'widget'],
+                tiles: ['menu', 'ttk', 'inv', 'stocktake', 'team', 'widget', 'kds'],
                 seePrices: false,
                 seeMenuPrices: false,
                 finance: false,
@@ -45,7 +45,7 @@
             },
             cook: {
                 label: 'cook',
-                tiles: ['menu', 'ttk', 'stocktake', 'team', 'widget'],
+                tiles: ['menu', 'ttk', 'stocktake', 'team', 'widget', 'kds'],
                 seePrices: false,
                 seeMenuPrices: false,
                 finance: false,
@@ -97,7 +97,7 @@
         let pinCodes = { chef: '1111', cook: '2222', cashier: '3333' };
 
         // Порядок плиток на главном экране (перетаскивание, сохраняется в localStorage)
-        let tileOrder = ['tile-menu', 'tile-ttk', 'tile-fc', 'tile-analytics', 'tile-inv', 'tile-sales', 'tile-stocktake', 'tile-books', 'tile-team', 'tile-settings'];
+        let tileOrder = ['tile-menu', 'tile-ttk', 'tile-fc', 'tile-analytics', 'tile-inv', 'tile-sales', 'tile-kds', 'tile-stocktake', 'tile-books', 'tile-team', 'tile-settings'];
 
         let kitchens = ['Основная кухня', 'Горячий цех', 'Бар'];
         let activeKitchen = 'Основная кухня';
@@ -200,6 +200,9 @@
 
         // Продажи по блюдам (v1.7): { 'YYYY-MM': { dishId: qty } } — для ABC-анализа меню
         let salesDB = {};
+
+        // KDS (v2.2): кухонные тикеты — {id, num, ts: ISO, items:[{name, qty}], status:'new'|'done'}
+        let kdsDB = [];
 
         // Заказы поставщикам (v1.7): [{id, date, supplier, items:[{name, qty, unit}], status}]
         let ordersDB = [];

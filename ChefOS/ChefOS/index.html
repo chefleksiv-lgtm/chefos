@@ -134,6 +134,9 @@
             <div id="tile-sales" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openSalesModal()">
                 <div class="text-emerald-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-cash-register"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_sales">Внести<br>продажи</h2>
             </div>
+            <div id="tile-kds" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openKDSModal()">
+                <div class="text-orange-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-fire-burner"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_kds">Кухня<br>(KDS)</h2>
+            </div>
             <div id="tile-stocktake" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openInventoryCheck()">
                 <div class="text-indigo-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-clipboard-list"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_stocktake">Инвентари-<br>зация</h2>
             </div>
@@ -928,6 +931,25 @@
         </div>
     </div>
 
+    <!-- KDS: экран кухни (v2.2) -->
+    <div id="kds-modal" onclick="if(event.target === this) closeModal('kds-modal')" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300">
+        <div class="bg-[#1C1C1E] rounded-3xl w-[94%] max-w-6xl border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-hidden">
+            <div class="flex justify-between items-center p-6 pb-4 border-b border-white/5 shrink-0">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-xl font-semibold text-white" data-i18n="kds_title">Кухня — заказы</h3>
+                    <span class="bg-orange-500/20 text-orange-400 text-sm font-bold px-3 py-1 rounded-full"><span id="kds-active-count">0</span></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="kds-clear-btn" onclick="clearDoneTickets()" class="h-9 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white text-xs font-medium transition-colors" data-i18n="kds_clear_done">Очистить готовые</button>
+                    <button onclick="closeModal('kds-modal')" class="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+            <div class="p-6 overflow-y-auto hide-scrollbar">
+                <div id="kds-tickets" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+        </div>
+    </div>
+
     <script src="js/settings.js"></script>
     <script src="js/sales.js"></script>
     <script src="js/menu.js"></script>
@@ -943,6 +965,7 @@
     <script src="js/cookmode.js"></script>
     <script src="js/labels.js"></script>
     <script src="js/orders.js"></script>
+    <script src="js/kds.js"></script>
     <script src="js/sync.js"></script>
     <script src="js/main.js"></script>
 </body>

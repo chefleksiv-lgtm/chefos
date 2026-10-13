@@ -171,6 +171,14 @@
                     const qty = salesCart[id];
                     if (qty > 0) salesDB[curMonth][id] = (salesDB[curMonth][id] || 0) + qty;
                 });
+                // KDS (v2.2): кухонный тикет — кухня видит, что готовить
+                const kdsItems = ids.map(id => { const d = menuDB.find(x => x.id == id); const q = salesCart[id]; return (d && q > 0) ? { name: d.name, qty: q } : null; }).filter(Boolean);
+                if (kdsItems.length) {
+                    if (!Array.isArray(kdsDB)) kdsDB = [];
+                    const todayKey = new Date().toISOString().slice(0, 10);
+                    const num = kdsDB.filter(x => (x.ts || '').slice(0, 10) === todayKey).length + 1;
+                    kdsDB.unshift({ id: Date.now(), num, ts: new Date().toISOString(), items: kdsItems, status: 'new' });
+                }
                 markDirty();
 
                 btn.innerHTML = `<i class="fa-solid fa-check mr-2"></i> <span>${t('sales_success')}</span>`;

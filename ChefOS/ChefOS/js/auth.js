@@ -181,6 +181,7 @@
                 books: document.getElementById('tile-books'),
                 team: document.getElementById('tile-team'),
                 settings: document.getElementById('tile-settings'),
+                kds: document.getElementById('tile-kds'),
                 widget: document.getElementById('dashboard-widget')
             };
             
