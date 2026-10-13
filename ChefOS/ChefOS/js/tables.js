@@ -153,44 +153,60 @@
             vp._floorGest = true;
             vp.addEventListener('pointerdown', (e) => {
                 if (e.target.closest('button')) return;
-                vp.setPointerCapture(e.pointerId);
-                _floorPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                // ВАЖНО: не делаем setPointerCapture здесь — он перетаргетирует click
+                // на вьюпорт и ломает тапы по столам/канвасу. Захват не нужен:
+                // панорама идёт через pointermove на вьюпорте.
+                _floorPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY });
                 _floorPanMoved = false;
                 if (_floorPtrs.size === 2) {
                     _floorPinchD = floorPinchDist();
                     _floorPanOn = false;
                 } else if (_floorPtrs.size === 1 && !floorEditMode && !e.target.closest('.floor-table')) {
-                    _floorPanOn = true;
+                    _floorPanArmed = true; // панорама разрешена, но стартует только после порога
+                    _floorPanOn = false;
                 } else {
+                    _floorPanArmed = false;
                     _floorPanOn = false;
                 }
             });
             vp.addEventListener('pointermove', (e) => {
                 if (!_floorPtrs.has(e.pointerId)) return;
-                const prev = _floorPtrs.get(e.pointerId);
-                _floorPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                const pt = _floorPtrs.get(e.pointerId);
+                const prevX = pt.x, prevY = pt.y;
+                pt.x = e.clientX; pt.y = e.clientY;
                 if (_floorPtrs.size === 2) {
                     const d = floorPinchDist();
-                    if (_floorPinchD > 0 && d > 0) {
+                    if (_floorPinchD > 0 && d > 0 && Math.abs(d - _floorPinchD) > 2) {
                         const p = [..._floorPtrs.values()];
                         floorZoomAt((p[0].x + p[1].x) / 2, (p[0].y + p[1].y) / 2, d / _floorPinchD);
+                        _floorPanMoved = true;
                     }
                     _floorPinchD = d;
-                } else if (_floorPtrs.size === 1 && _floorPanOn) {
-                    floorPanX += e.clientX - prev.x;
-                    floorPanY += e.clientY - prev.y;
-                    _floorPanMoved = true;
-                    clampFloorPan();
-                    applyFloorTransform();
+                } else if (_floorPtrs.size === 1 && _floorPanArmed) {
+                    // порог 10px: микро-движения мыши не считаются панорамой и не глотают клик
+                    if (!_floorPanOn && Math.hypot(e.clientX - pt.sx, e.clientY - pt.sy) > 10) _floorPanOn = true;
+                    if (_floorPanOn) {
+                        floorPanX += e.clientX - prevX;
+                        floorPanY += e.clientY - prevY;
+                        _floorPanMoved = true;
+                        clampFloorPan();
+                        applyFloorTransform();
+                    }
                 }
             });
             const end = (e) => {
                 _floorPtrs.delete(e.pointerId);
                 if (_floorPtrs.size < 2) _floorPinchD = 0;
-                if (_floorPtrs.size === 0) _floorPanOn = false;
+                if (_floorPtrs.size === 0) { _floorPanOn = false; _floorPanArmed = false; }
             };
             vp.addEventListener('pointerup', end);
             vp.addEventListener('pointercancel', end);
+            // страховка: pointerup мимо вьюпорта (без capture) — чистим зависшие указатели
+            if (!vp._floorWinEnd) {
+                vp._floorWinEnd = true;
+                window.addEventListener('pointerup', end);
+                window.addEventListener('pointercancel', end);
+            }
             vp.addEventListener('wheel', (e) => {
                 e.preventDefault();
                 floorZoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.15 : 0.87);

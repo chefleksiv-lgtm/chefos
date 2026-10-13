@@ -60,3 +60,6 @@
         }
         .tile-drop-hint > * { visibility: hidden; }
         .tile-chosen { }
+
+/* Подписи плиток дашборда: без автопереносов со знаком дефиса */
+#tiles-grid h2 { -webkit-hyphens: manual; hyphens: manual; overflow-wrap: break-word; }

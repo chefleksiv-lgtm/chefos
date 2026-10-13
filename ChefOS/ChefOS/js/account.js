@@ -44,13 +44,18 @@
         }
         // Одноразовая миграция: существующая локальная кухня (legacy-ключ) переезжает
         // в персональный ключ пользователя при первом входе.
+        // НЕ мигрируем, если на устройстве уже есть данные другого аккаунта —
+        // иначе новый пользователь унаследует чужую кухню.
         function accountMigrateLegacyStorage(userId) {
             try {
                 const nsKey = storageKeyForUser(userId);
-                if (!localStorage.getItem(nsKey)) {
-                    const legacy = localStorage.getItem('chefos_state_v1');
-                    if (legacy) localStorage.setItem(nsKey, legacy);
+                if (localStorage.getItem(nsKey)) return;
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (k && k.indexOf('chefos_state_v1_') === 0 && k !== nsKey) return;
                 }
+                const legacy = localStorage.getItem('chefos_state_v1');
+                if (legacy) localStorage.setItem(nsKey, legacy);
             } catch (e) {}
         }
 
@@ -157,16 +162,16 @@
                     user = { userId: lr.data.userId, login: lr.data.login || login };
                 }
                 accountSaveSession(token, user);
-                accountEnterApp(user);
+                accountEnterApp(user, accountMode === 'register');
             } catch (e) {
                 accountSetError(e && e.message === 'no_api_base' ? 'acc_err_server' : 'acc_err_network');
             } finally {
                 accountSetLoading(false);
             }
         }
-        function accountEnterApp(user) {
+        function accountEnterApp(user, isRegister) {
             accountApplyStorageKey(user.userId);
-            accountMigrateLegacyStorage(user.userId);
+            if (!isRegister) accountMigrateLegacyStorage(user.userId);
             try { if (typeof loadState === 'function') loadState(); } catch (e) {}
             try { if (typeof renderLocationSelector === 'function') renderLocationSelector(); } catch (e) {}
             // Привязка аккаунта к сотруднику: расписание подсвечивает «свои» смены
