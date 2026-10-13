@@ -83,15 +83,34 @@
             }
         }
 
+        // Списание ингредиента со склада при продаже.
+        // Было два бага, из-за которых цифры не сходились:
+        // 1) '1kg'/'1 кг' при единице склада «кг»: 'kg'.includes('g') === true — делило на 1000, списывало в 1000 раз меньше.
+        // 2) вес «по вкусу» давал NaN — quantity склада превращалось в NaN и портило стоимость запасов.
+        // Теперь: честный разбор «100g» / «1,5 кг» / «2 шт» / «2» (без единиц — в единицах склада),
+        // конверсия через convertQty; не распарсилось или несовместимые единицы — склад не трогаем.
         function deductFromInventory(ingredientName, weightStr, portionsStr) {
-            let invItem = inventoryDB.find(i => i.name.toLowerCase() === ingredientName.toLowerCase());
-            if (invItem) {
-                let amount = parseFloat(weightStr);
-                let portions = parseInt(portionsStr) || 1;
-                if ((weightStr.includes('g') || weightStr.includes('г') || weightStr.includes('ml') || weightStr.includes('мл')) && (invItem.unit === 'кг' || invItem.unit === 'л' || invItem.unit === 'kg' || invItem.unit === 'l' || invItem.unit === 'L')) amount = amount / 1000;
-                invItem.quantity -= (amount * portions);
-                if(invItem.quantity < 0) invItem.quantity = 0;
+            const invItem = (typeof findInventoryByName === 'function')
+                ? findInventoryByName(ingredientName)
+                : (inventoryDB || []).find(i => String(i.name || '').toLowerCase() === String(ingredientName || '').toLowerCase());
+            if (!invItem) return;
+            const portions = parseInt(portionsStr) || 1;
+            const m = String(weightStr || '').trim().match(/^([\d.,]+)\s*([a-zA-Zа-яА-Я]*)$/);
+            if (!m) return;
+            const qty = parseFloat(m[1].replace(',', '.'));
+            if (!(qty >= 0)) return;
+            let inInvUnit;
+            if (!m[2]) {
+                inInvUnit = qty; // единицы не указаны — считаем в единицах склада
+            } else if (typeof convertQty === 'function') {
+                const c = convertQty(qty, m[2], invItem.unit);
+                if (c === null || !(c >= 0)) return;
+                inInvUnit = c;
+            } else {
+                inInvUnit = qty;
             }
+            invItem.quantity = Math.round((invItem.quantity - inInvUnit * portions) * 1000) / 1000;
+            if (invItem.quantity < 0) invItem.quantity = 0;
         }
 
         function processSales(event) {
@@ -115,11 +134,15 @@
                     if (d.ingredients) d.ingredients.forEach(ing => deductFromInventory(ing.name, ing.weight, qty));
                     if (d.subRecipes) d.subRecipes.forEach(sub => {
                         if (sub.ingredients) sub.ingredients.forEach(subIng => {
-                            let parts = subIng.trim().split(' ');
-                            if (parts.length >= 2) {
-                                let weightStr = parts.pop();
-                                let name = parts.join(' ');
-                                deductFromInventory(name, weightStr, qty);
+                            // Единый robust-парсер («Майонез 40g», «Чеснок 5 г»), как в costing.js.
+                            // Старый split(' ') ломался на «5 г» (единица отдельно): имя становилось «Чеснок 5»,
+                            // склад не находился и ингредиент тихо НЕ списывался — остатки не сходились.
+                            const p = (typeof parseSubIngredient === 'function') ? parseSubIngredient(subIng) : null;
+                            if (p && p.name && p.qty > 0) {
+                                deductFromInventory(p.name, p.qty + p.unit, qty);
+                            } else if (!p) {
+                                const parts = String(subIng).trim().split(' ');
+                                if (parts.length >= 2) deductFromInventory(parts.slice(0, -1).join(' '), parts[parts.length - 1], qty);
                             }
                         });
                     });
