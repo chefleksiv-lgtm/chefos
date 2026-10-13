@@ -106,7 +106,7 @@
         }
         function openIngredientEditModal(id) {
             if(id === null) { editingIngredientId = null; document.getElementById('delete-ing-btn').classList.add('hidden'); document.getElementById('edit-ing-name').value = ''; document.getElementById('edit-ing-qty').value = ''; document.getElementById('edit-ing-minqty').value = ''; document.getElementById('edit-ing-price').value = ''; document.getElementById('edit-ing-yield').value = 100; renderAllergenCheckboxes([]); document.getElementById('edit-ing-price-history-block').classList.add('hidden'); document.getElementById('edit-ing-waste-block').classList.add('hidden'); editingAltPrices = []; fillAltSupplierSelect(''); renderAltPrices(); } 
-            else { const i = inventoryDB.find(item => item.id === id); if (!i) return; editingIngredientId = id; document.getElementById('delete-ing-btn').classList.remove('hidden'); document.getElementById('edit-ing-name').value = i.name; document.getElementById('edit-ing-category').value = i.category; document.getElementById('edit-ing-qty').value = i.quantity; document.getElementById('edit-ing-minqty').value = i.minQty || ''; document.getElementById('edit-ing-unit').value = i.unit; document.getElementById('edit-ing-price').value = i.price; document.getElementById('edit-ing-supplier').value = i.supplier || ''; document.getElementById('edit-ing-yield').value = i.yieldPct || 100; renderAllergenCheckboxes(i.allergens); renderPriceHistory(i); document.getElementById('edit-ing-waste-block').classList.remove('hidden'); document.getElementById('waste-qty').value = ''; editingAltPrices = (i.altPrices || []).map(a => ({ supplier: a.supplier, price: a.price })); fillAltSupplierSelect(i.supplier || ''); renderAltPrices(); }
+            else { const i = inventoryDB.find(item => item.id === id); if (!i) return; editingIngredientId = id; document.getElementById('delete-ing-btn').classList.remove('hidden'); document.getElementById('edit-ing-name').value = i.name; document.getElementById('edit-ing-category').value = i.category; document.getElementById('edit-ing-qty').value = Math.round(i.quantity * 1000) / 1000; document.getElementById('edit-ing-minqty').value = i.minQty || ''; document.getElementById('edit-ing-unit').value = i.unit; document.getElementById('edit-ing-price').value = i.price; document.getElementById('edit-ing-supplier').value = i.supplier || ''; document.getElementById('edit-ing-yield').value = i.yieldPct || 100; renderAllergenCheckboxes(i.allergens); renderPriceHistory(i); document.getElementById('edit-ing-waste-block').classList.remove('hidden'); document.getElementById('waste-qty').value = ''; editingAltPrices = (i.altPrices || []).map(a => ({ supplier: a.supplier, price: a.price })); fillAltSupplierSelect(i.supplier || ''); renderAltPrices(); }
             document.getElementById('edit-ing-currency').textContent = currentCurrency; openModal('ingredient-edit-modal');
         }
         function renderPriceHistory(i) {
@@ -144,7 +144,10 @@
             const opts = (suppliersDB || []).filter(s => s.name && s.name !== current).map(s => s.name);
             sel.innerHTML = opts.map(n => `<option value="${n}">${n}</option>`).join('');
         }
+        let _savingIngredient = false;
         function saveIngredientChanges() {
+            if (_savingIngredient) return; _savingIngredient = true;
+            try {
             const n = document.getElementById('edit-ing-name').value.trim(); if(!n) { showNotification(t('notif_enter_name')); return; } const p = parseFloat(document.getElementById('edit-ing-price').value) || 0;
             const yieldPct = Math.min(100, Math.max(1, parseInt(document.getElementById('edit-ing-yield').value) || 100));
             const minQty = Math.max(0, parseFloat(document.getElementById('edit-ing-minqty').value) || 0);
@@ -154,7 +157,7 @@
                 const i = inventoryDB.find(item => item.id === editingIngredientId);
                 if (i) {
                     const oldPrice = i.price;
-                    i.name = n; i.category = document.getElementById('edit-ing-category').value; i.quantity = parseFloat(document.getElementById('edit-ing-qty').value) || 0; i.unit = document.getElementById('edit-ing-unit').value;
+                    i.name = n; i.category = document.getElementById('edit-ing-category').value; i.quantity = Math.round((parseFloat(document.getElementById('edit-ing-qty').value) || 0) * 1000) / 1000; i.unit = document.getElementById('edit-ing-unit').value;
                     i.yieldPct = yieldPct; i.allergens = allergens; i.minQty = minQty; i.altPrices = editingAltPrices.map(a => ({ supplier: a.supplier, price: a.price }));
                     if (p !== oldPrice) {
                         if (!Array.isArray(i.priceHistory)) i.priceHistory = [];
@@ -165,10 +168,11 @@
                     i.supplier = document.getElementById('edit-ing-supplier').value;
                 }
             } 
-            else { inventoryDB.push({ id: Date.now(), name: n, category: document.getElementById('edit-ing-category').value, quantity: parseFloat(document.getElementById('edit-ing-qty').value) || 0, unit: document.getElementById('edit-ing-unit').value, price: p, previousPrice: p, supplier: document.getElementById('edit-ing-supplier').value, yieldPct, minQty, allergens, priceHistory: [], altPrices: editingAltPrices.map(a => ({ supplier: a.supplier, price: a.price })) }); }
+            else { inventoryDB.push({ id: Date.now(), name: n, category: document.getElementById('edit-ing-category').value, quantity: Math.round((parseFloat(document.getElementById('edit-ing-qty').value) || 0) * 1000) / 1000, unit: document.getElementById('edit-ing-unit').value, price: p, previousPrice: p, supplier: document.getElementById('edit-ing-supplier').value, yieldPct, minQty, allergens, priceHistory: [], altPrices: editingAltPrices.map(a => ({ supplier: a.supplier, price: a.price })) }); }
             markDirty();
             filterInventory(); closeModal('ingredient-edit-modal'); showNotification(t('notif_saved'));
             if (priceRiseInfo) setTimeout(() => showPriceRiseAlert(priceRiseInfo), 350);
+            } finally { _savingIngredient = false; }
         }
 
         // --- АЛЕРТ РОСТА ЦЕНЫ (v1.6) ---
@@ -219,7 +223,7 @@
             if (!financeDB[key]) financeDB[key] = { income: 0, cogs: 0, payroll: 0, losses: 0 };
             financeDB[key].losses = Math.round((financeDB[key].losses + cost) * 100) / 100;
             markDirty();
-            document.getElementById('edit-ing-qty').value = i.quantity;
+            document.getElementById('edit-ing-qty').value = Math.round(i.quantity * 1000) / 1000;
             document.getElementById('waste-qty').value = '';
             filterInventory();
             showNotification(`${t('waste_done')}: ${currentCurrency}${cost}`);
