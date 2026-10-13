@@ -81,6 +81,7 @@
             document.getElementById('pin-dots').classList.add('hidden');
             document.getElementById('pin-role-btn').classList.remove('hidden');
             document.getElementById('pin-emp-btn').classList.add('hidden');
+            pinSyncAccountBtn();
             sec.classList.remove('hidden');
             const list = document.getElementById('pin-emp-list');
             if (list) {
@@ -108,6 +109,13 @@
             document.getElementById('pin-msg').textContent = t('auth_emp_pin_msg');
             document.getElementById('pin-msg').className = 'text-sm text-gray-400 mb-10';
         }
+        // Кнопка «Сменить аккаунт» на PIN-экране: видна, только если есть сессия аккаунта
+        function pinSyncAccountBtn() {
+            const b = document.getElementById('pin-account-btn');
+            if (!b) return;
+            const hasSession = (typeof accountUser === 'function') && !!accountUser();
+            b.classList.toggle('hidden', !hasSession);
+        }
         function pinShowRoleMode() {
             pinLoginMode = 'role';
             pinSelectedEmployeeId = null;
@@ -118,6 +126,7 @@
             document.getElementById('pin-dots').classList.remove('hidden');
             document.getElementById('pin-role-btn').classList.add('hidden');
             document.getElementById('pin-emp-btn').classList.remove('hidden');
+            pinSyncAccountBtn();
             clearPin();
         }
         function loginAsEmployee(emp) {

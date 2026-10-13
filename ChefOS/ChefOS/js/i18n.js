@@ -297,6 +297,7 @@
             'acc_password_ph': { ru: 'Пароль (минимум 6 символов)', en: 'Password (min 6 chars)' },
             'acc_password2_ph': { ru: 'Повторите пароль', en: 'Repeat password' },
             'acc_err_mismatch': { ru: 'Пароли не совпадают', en: 'Passwords do not match' },
+            'auth_switch_account': { ru: 'Сменить аккаунт', en: 'Switch account' },
             'acc_go_login': { ru: 'Войти', en: 'Sign in' },
             'acc_go_register': { ru: 'Создать аккаунт', en: 'Create account' },
             'acc_server_toggle': { ru: 'Настройки сервера', en: 'Server settings' },
