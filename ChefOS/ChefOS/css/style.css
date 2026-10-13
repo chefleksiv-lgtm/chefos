@@ -1,0 +1,32 @@
+        body { font-family: 'Inter', sans-serif; background-color: #000000; color: #FFFFFF; }
+        /* Нативные контролы (селекты, календари) рисуем в тёмной схеме, чтобы не белели */
+        :root { color-scheme: dark; }
+        select, input, textarea { color-scheme: dark; }
+        select option { background-color: #2C2C2E; color: #fff; }
+        .font-serif { font-family: 'Lora', serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        .ios-tile {
+            background: rgba(44, 44, 46, 0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+            cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation;
+        }
+        @media (hover: hover) { .ios-tile:hover { background: rgba(65, 65, 68, 0.85); border-color: rgba(255, 255, 255, 0.25); box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.1); } }
+        .ios-tile:active { transform: scale(0.95); background: rgba(44, 44, 46, 0.9); }
+        .sortable-chosen { transform: scale(1.05) !important; box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.4) !important; border-color: rgba(245, 158, 11, 0.8) !important; z-index: 50; }
+        .sortable-ghost { opacity: 0.3; transform: scale(0.95) !important; box-shadow: none !important; }
+        .ios-widget { background: rgba(44, 44, 46, 0.5); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        
+        #pin-screen { backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); }
+        .pin-dot { transition: all 0.2s; }
+        .pin-dot.filled { background-color: #ffffff; border-color: #ffffff; transform: scale(1.2); }
+
+        /* Печать этикеток: на бумагу уходит только #print-area */
+        @media print {
+            body > *:not(#print-area) { display: none !important; }
+            #print-area { display: block !important; }
+        }

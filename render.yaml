@@ -1,0 +1,14 @@
+# ChefOS v2.0 — Render deploy (free tier)
+# TURSO_URL / TURSO_AUTH_TOKEN задаются вручную в Render Dashboard -> Environment
+# (без них сервер работает на файловом хранилище).
+services:
+  - type: web
+    name: chefos
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/ping
+    envVars:
+      - key: NODE_VERSION
+        value: "20"

@@ -1,0 +1,1 @@
+{"description":"ChefOS v2.0 sync server — accounts + per-user offline-first sync, Node built-ins only","engines":{"node":">=18"},"name":"chefos-sync-server","private":true,"scripts":{"start":"node server.js"},"version":"2.0.0"}

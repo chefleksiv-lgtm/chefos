@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChefOS Professional</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="min-h-screen p-6 sm:p-10 flex flex-col items-center relative overflow-x-hidden">
+
+<body class="min-h-screen p-6 sm:p-10 flex flex-col items-center relative overflow-x-hidden">
+
+    <!-- ЭКРАН БЛОКИРОВКИ (PIN) -->
+    <!-- v2.0: экран входа/регистрации (до PIN-экрана; z выше) -->
+    <div id="account-screen" class="fixed inset-0 z-[300] bg-black/90 hidden flex-col items-center justify-center transition-opacity duration-500 opacity-0">
+        <div class="flex flex-col items-center max-w-xs w-full px-6">
+            <h1 class="text-4xl font-bold mb-2 tracking-tight text-white">ChefOS</h1>
+            <p class="text-sm text-gray-400 mb-6" data-i18n="acc_title">Вход в ChefOS</p>
+
+            <div id="account-loading" class="hidden flex-col items-center py-8">
+                <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p class="text-sm text-gray-400" data-i18n="acc_loading">Проверяю вход…</p>
+            </div>
+
+            <div id="account-form" class="w-full">
+                <div class="flex gap-2 mb-4 bg-white/5 rounded-xl p-1">
+                    <button id="account-tab-login" onclick="accountSwitchTab('login')" class="flex-1 h-10 rounded-xl text-sm font-medium transition-colors bg-blue-500 text-white" data-i18n="acc_tab_login">Вход</button>
+                    <button id="account-tab-register" onclick="accountSwitchTab('register')" class="flex-1 h-10 rounded-xl text-sm font-medium transition-colors bg-white/5 text-gray-400 hover:bg-white/10" data-i18n="acc_tab_register">Регистрация</button>
+                </div>
+                <input type="text" id="account-login" data-i18n="acc_login_ph" placeholder="Логин (a-z, 0-9, _)" autocapitalize="off" autocomplete="username" spellcheck="false"
+                    class="w-full h-12 bg-[#2C2C2E] text-white rounded-xl px-4 mb-3 outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="password" id="account-password" data-i18n="acc_password_ph" placeholder="Пароль (минимум 6 символов)" autocomplete="current-password"
+                    class="w-full h-12 bg-[#2C2C2E] text-white rounded-xl px-4 mb-3 outline-none focus:ring-2 focus:ring-blue-500">
+                <p id="account-error" class="hidden text-sm text-red-500 font-medium mb-3 text-center"></p>
+                <button onclick="accountSubmit()" class="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors mb-3"><span id="account-submit-btn-text" data-i18n="acc_go_login">Войти</span></button>
+                <button onclick="accountToggleServer()" class="w-full text-xs text-gray-500 hover:text-gray-300 mb-2" data-i18n="acc_server_toggle">Настройки сервера</button>
+                <div id="account-server-box" class="hidden">
+                    <input type="text" id="account-server" data-i18n="acc_server_ph" placeholder="Адрес сервера (пусто = тот же, что и приложение)" autocapitalize="off" spellcheck="false"
+                        class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pin-screen" class="fixed inset-0 z-[200] bg-black/80 flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="flex flex-col items-center max-w-xs w-full px-6">
+            <h1 class="text-4xl font-bold mb-2 tracking-tight text-white">ChefOS</h1>
+            <p class="text-sm text-gray-400 mb-10" id="pin-msg">Введите PIN-код для входа</p>
+            
+            <div class="flex gap-4 mb-10">
+                <div class="pin-dot w-4 h-4 rounded-full border-2 border-gray-600" id="dot-1"></div>
+                <div class="pin-dot w-4 h-4 rounded-full border-2 border-gray-600" id="dot-2"></div>
+                <div class="pin-dot w-4 h-4 rounded-full border-2 border-gray-600" id="dot-3"></div>
+                <div class="pin-dot w-4 h-4 rounded-full border-2 border-gray-600" id="dot-4"></div>
+            </div>
+
+            <div id="pin-keypad" class="grid grid-cols-3 gap-4 sm:gap-6 w-full">
+                <button onclick="addPin(1)" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 hover:bg-white/20 text-2xl font-medium flex items-center justify-center transition-colors active:scale-95 mx-auto">1</button>
+                <button onclick="addPin(2)" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 hover:bg-white/20 text-2xl font-medium flex items-center justify-center transition-colors active:scale-95 mx-auto">2</button>
+                <button onclick="addPin(3)" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 hover:bg-white/20 text-2xl font-medium flex items-center justify-center transition-colors active:scale-95 mx-auto">3</button>
+                <button onclick="addPin(4)" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 hover:bg-white/20 text-2xl font-medium flex items-center justify-center transition-colors active:scale-95 mx-auto">4</button>
+                <button onclick="addPin(5)" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 hover:bg-white/20 text-2xl font-medium flex items-center justify-center transition-colors active:scale-95 mx-auto">5</button>
+                <button onclick="addPin(6)" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 hover:bg-white/20 text-2xl font-medium flex items-center justify-center transition-colors active:scale-95 mx-auto">6</button>
+                <button onclick="addPin(7)" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 hover:bg-white/20 text-2xl font-medium flex items-center justify-center transition-colors active:scale-95 mx-auto">7</button>
+                <button onclick="addPin(8)" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 hover:bg-white/20 text-2xl font-medium flex items-center justify-center transition-colors active:scale-95 mx-auto">8</button>
+                <button onclick="addPin(9)" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 hover:bg-white/20 text-2xl font-medium flex items-center justify-center transition-colors active:scale-95 mx-auto">9</button>
+                <div></div>
+                <button onclick="addPin(0)" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 hover:bg-white/20 text-2xl font-medium flex items-center justify-center transition-colors active:scale-95 mx-auto">0</button>
+                <button onclick="clearPin()" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-transparent hover:bg-white/10 text-gray-400 flex items-center justify-center transition-colors active:scale-95 mx-auto"><i class="fa-solid fa-delete-left text-xl"></i></button>
+            </div>
+            
+            <div id="pin-hint" class="mt-8 text-xs text-gray-500 text-center">
+                Подсказка: Шеф: 1111 | Повар: 2222 | Касса: 3333
+            </div>
+            <button id="pin-emp-btn" onclick="pinShowEmployeeSelect()" class="mt-6 h-11 px-6 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors" data-i18n="auth_i_am_employee">Я — сотрудник</button>
+            <button id="pin-role-btn" onclick="pinShowRoleMode()" class="mt-6 h-11 px-6 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors hidden" data-i18n="auth_back_roles">← ролевые PIN</button>
+            <div id="pin-employee-section" class="hidden w-full mt-2">
+                <div id="pin-emp-list" class="w-full max-h-[40vh] overflow-y-auto hide-scrollbar"></div>
+            </div>
+        </div>
+    </div>
+
+    <header class="w-full max-w-4xl mb-8 flex flex-col gap-4">
+        <div class="flex justify-between items-end">
+            <div><h1 class="text-3xl font-semibold tracking-tight">ChefOS</h1><p id="current-kitchen-label" class="text-sm text-orange-500 mt-1 font-medium">Основная кухня</p></div>
+            <div class="flex items-center gap-3">
+                <span id="role-badge" class="px-3 py-1 bg-white/10 rounded-full text-xs font-medium text-white shadow-sm border border-white/5">Роль</span>
+                <button id="notif-bell-btn" onclick="openNotificationsModal()" class="relative w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-colors shadow-sm" title="Уведомления"><i class="fa-solid fa-bell"></i><span id="notif-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center"></span></button>
+                <button onclick="logout()" class="w-10 h-10 rounded-full bg-white/5 hover:bg-red-500/20 hover:text-red-400 text-gray-400 flex items-center justify-center transition-colors shadow-sm" title="Выйти"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+            </div>
+        </div>
+        <div class="flex items-center w-full mt-2 relative">
+            <div id="kitchen-tabs" class="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-2 w-full pr-16"></div>
+            <div class="absolute right-0 top-0 bottom-2 bg-gradient-to-l from-black via-black to-transparent w-16 flex justify-end items-start pointer-events-none">
+                <button onclick="showAddKitchenModal()" id="btn-add-kitchen" class="w-8 h-8 rounded-full bg-[#2C2C2E] flex items-center justify-center text-orange-500 hover:bg-[#3A3A3C] active:scale-95 transition-all pointer-events-auto shadow-lg shadow-black"><i class="fa-solid fa-plus text-sm"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <div class="w-full max-w-4xl flex flex-col gap-6">
+        <main id="tiles-grid" class="w-full grid grid-cols-3 sm:grid-cols-6 md:grid-cols-8 gap-3 sm:gap-4 relative">
+            <div id="tile-menu" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openMenuModal()">
+                <div class="text-orange-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-utensils"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_menu">Актуальное<br>меню</h2>
+            </div>
+            <div id="tile-ttk" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openTTKModal()">
+                <div class="text-blue-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-book-open"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_ttk">База ТТК</h2>
+            </div>
+            <div id="tile-fc" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openFoodCostModal()">
+                <div id="food-cost-value" class="text-green-400 text-lg sm:text-xl md:text-2xl font-bold flex-shrink-0 transition-colors duration-300">28.5%</div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_fc">Фуд-кост</h2>
+            </div>
+            <div id="tile-analytics" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openAnalyticsModal()">
+                <div class="text-cyan-400 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-chart-column"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_analytics">Аналитика</h2>
+            </div>
+            <div id="tile-inv" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openInventoryModal()">
+                <div class="text-purple-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-boxes-stacked"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_inv">Склад</h2>
+            </div>
+            <div id="tile-sales" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openSalesModal()">
+                <div class="text-emerald-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-cash-register"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_sales">Внести<br>продажи</h2>
+            </div>
+            <div id="tile-stocktake" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openInventoryCheck()">
+                <div class="text-indigo-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-clipboard-list"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_stocktake">Инвентари-<br>зация</h2>
+            </div>
+            <div id="tile-books" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openBooksModal()">
+                <div class="text-rose-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-book"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_books">Книги</h2>
+            </div>
+            <div id="tile-team" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openTeamModal()">
+                <div class="text-teal-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-users-gear"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_team">Команда</h2>
+            </div>
+            <div id="tile-settings" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openSettingsModal()">
+                <div class="text-gray-400 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-gear"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_settings">Настройки</h2>
+            </div>
+        </main>
+
+        <section id="dashboard-widget" class="ios-widget w-full rounded-3xl p-5 sm:p-6 flex flex-col md:flex-row gap-6 sm:gap-8">
+            <div class="w-full md:w-1/2 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="calendar-month-year" class="text-white font-semibold sm:text-lg capitalize flex items-center gap-2"><i class="fa-regular fa-calendar-days text-red-500"></i><span></span></h3>
+                    <div class="flex gap-2">
+                        <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors text-white"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                        <button onclick="changeMonth(1)" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors text-white"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-7 gap-1 text-center text-[10px] sm:text-xs text-gray-500 font-medium mb-2 uppercase" id="calendar-days-header">
+                    <div data-i18n="day_mon">Пн</div><div data-i18n="day_tue">Вт</div><div data-i18n="day_wed">Ср</div><div data-i18n="day_thu">Чт</div><div data-i18n="day_fri">Пт</div><div data-i18n="day_sat">Сб</div><div data-i18n="day_sun">Вс</div>
+                </div>
+                <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center text-sm font-medium"></div>
+            </div>
+
+            <div class="w-full md:w-1/2 flex flex-col">
+                <div class="flex justify-between items-center mb-3">
+                    <div><h3 class="text-white font-semibold sm:text-lg" data-i18n="widget_tasks">Задачи</h3><p id="selected-date-label" class="text-xs text-red-400 capitalize"></p></div>
+                    <button id="widget-save-btn" onclick="saveWidgetNote()" class="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white text-xs sm:text-sm font-medium transition-all active:scale-95" data-i18n="save">Сохранить</button>
+                </div>
+                <div class="flex gap-2 mb-3 overflow-x-auto hide-scrollbar" id="emoji-picker">
+                    <button onclick="toggleEmoji('🚚')" class="emoji-btn w-8 h-8 flex-shrink-0 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-sm" data-emoji="🚚">🚚</button>
+                    <button onclick="toggleEmoji('🎂')" class="emoji-btn w-8 h-8 flex-shrink-0 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-sm" data-emoji="🎂">🎂</button>
+                    <button onclick="toggleEmoji('🧹')" class="emoji-btn w-8 h-8 flex-shrink-0 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-sm" data-emoji="🧹">🧹</button>
+                    <button onclick="toggleEmoji('🔪')" class="emoji-btn w-8 h-8 flex-shrink-0 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-sm" data-emoji="🔪">🔪</button>
+                    <button onclick="toggleEmoji('⭐️')" class="emoji-btn w-8 h-8 flex-shrink-0 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-sm" data-emoji="⭐️">⭐️</button>
+                </div>
+                <textarea id="widget-notes-input" class="w-full flex-grow min-h-[100px] bg-black/30 border border-white/5 rounded-2xl px-4 py-3 text-sm text-white outline-none focus:ring-1 focus:ring-red-500/50 resize-none placeholder-gray-600" data-i18n="widget_placeholder" placeholder="Выберите день и напишите задачи..."></textarea>
+            </div>
+        </section>
+    </div>
+
+    <!-- ГЛОБАЛЬНАЯ МОДАЛКА ПОДТВЕРЖДЕНИЯ -->
+    <div id="confirm-modal" onclick="if(event.target === this) closeConfirmModal()" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 text-center">
+            <h3 class="text-xl font-semibold text-white mb-2" id="confirm-title" data-i18n="confirm_title">Подтвердите действие</h3>
+            <p class="text-gray-400 text-sm mb-6" id="confirm-message" data-i18n="confirm_msg">Вы уверены?</p>
+            <div class="flex gap-3">
+                <button onclick="closeConfirmModal()" class="flex-1 h-11 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-white font-medium transition-all" data-i18n="cancel">Отмена</button>
+                <button id="confirm-action-btn" class="flex-1 h-11 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium transition-all shadow-lg shadow-red-500/20" data-i18n="confirm">Подтвердить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальные окна системные -->
+    <div id="add-kitchen-modal" onclick="if(event.target === this) closeModal('add-kitchen-modal')" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300">
+        <div class="bg-[#1C1C1E] rounded-3xl w-[90%] max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300">
+            <h3 class="text-xl font-semibold mb-5 text-center text-white" data-i18n="add_kitchen_title">Новый цех</h3>
+            <input type="text" id="kitchen-name-input" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500 mb-6 placeholder-gray-500" data-i18n="add_kitchen_placeholder" placeholder="Название (напр. Горячий цех)">
+            <div class="flex gap-3">
+                <button onclick="closeModal('add-kitchen-modal')" class="flex-1 h-11 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-white transition-all" data-i18n="cancel">Отмена</button>
+                <button onclick="addNewKitchen()" class="flex-1 h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all" data-i18n="add">Добавить</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="rename-kitchen-modal" onclick="if(event.target === this) closeModal('rename-kitchen-modal')" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300">
+        <div class="bg-[#1C1C1E] rounded-3xl w-[90%] max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300">
+            <h3 class="text-xl font-semibold mb-5 text-center text-white" data-i18n="rename_kitchen_title">Переименовать цех</h3>
+            <input type="text" id="rename-kitchen-input" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500 mb-6 placeholder-gray-500" data-i18n="rename_kitchen_placeholder" placeholder="Новое название">
+            <div class="flex gap-3">
+                <button onclick="closeModal('rename-kitchen-modal')" class="flex-1 h-11 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-white transition-all" data-i18n="cancel">Отмена</button>
+                <button onclick="applyRenameKitchen()" class="flex-1 h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all" data-i18n="save">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="sales-modal" onclick="if(event.target === this) closeModal('sales-modal')" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300">
+        <div class="bg-[#1C1C1E] rounded-3xl w-[92%] max-w-md sm:max-w-2xl lg:max-w-4xl border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[85vh] lg:max-h-[90vh] overflow-y-auto hide-scrollbar">
+            <div class="flex justify-between items-center sticky top-0 bg-[#1C1C1E] z-10 p-6 pb-4 border-b border-white/5">
+                <div>
+                    <h3 class="text-xl font-semibold text-white" data-i18n="sales_title">Внесение продаж</h3>
+                    <p class="text-xs text-emerald-500 mt-1" data-i18n="sales_subtitle">Списание продуктов по ТТК</p>
+                </div>
+                <button onclick="closeModal('sales-modal')" class="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 pt-4">
+                <p class="text-sm text-gray-400 mb-4" data-i18n="sales_desc">Впишите количество проданных порций. Система автоматически спишет нужные ингредиенты со склада.</p>
+                <div class="relative w-full mb-4">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none text-sm"></i>
+                    <input type="text" id="sales-search" onkeyup="filterSalesList()" data-i18n="sales_search" placeholder="Быстрый поиск блюда..." class="w-full h-10 bg-[#2C2C2E] border border-white/10 text-white rounded-xl pl-9 pr-4 outline-none focus:border-emerald-500 text-sm">
+                </div>
+                <div id="sales-list" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 mb-4"></div>
+                <div class="sticky bottom-0 bg-[#1C1C1E] pt-3 pb-1 -mx-6 px-6 border-t border-white/5">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <div class="text-xs text-gray-400" data-i18n="sales_total">Итого</div>
+                            <div id="sales-total-value" class="text-2xl font-bold text-white">0</div>
+                        </div>
+                        <div id="sales-total-count" class="text-sm text-gray-400"></div>
+                    </div>
+                    <button id="sales-pay-btn" onclick="processSales(event)" class="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-all font-medium flex items-center justify-center shadow-lg shadow-emerald-500/20 opacity-40 pointer-events-none">
+                        <i class="fa-solid fa-cash-register mr-2"></i> <span data-i18n="sales_pay">Оплатить</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" onclick="if(event.target === this) closeModal('settings-modal')" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300">
+        <div class="bg-[#1C1C1E] rounded-3xl w-[90%] max-w-sm border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[85vh] overflow-y-auto hide-scrollbar">
+            <div class="flex justify-between items-center sticky top-0 bg-[#1C1C1E] z-10 p-6 pb-4 border-b border-white/5">
+                <h3 class="text-xl font-semibold cursor-pointer text-white" onclick="closeModal('settings-modal')">ChefOS</h3>
+                <button onclick="closeModal('settings-modal')" class="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 pt-4 space-y-6">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2" data-i18n="settings_country">Страна</label>
+                    <div class="relative">
+                        <select id="country-selector" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500 appearance-none cursor-pointer" onchange="setCountry(this.value)">
+                            <option value="UA">Ukraine</option><option value="US">USA</option><option value="CA">Canada</option><option value="IT">Italy</option><option value="FR">France</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none"></i>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2" data-i18n="settings_lang">Язык интерфейса</label>
+                    <div class="relative">
+                        <select id="language-selector" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500 appearance-none cursor-pointer" onchange="setLanguage(this.value)">
+                            <option value="ru">Русский</option><option value="en">English</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none"></i>
+                    </div>
+                </div>
+                <div class="pt-6 border-t border-white/5">
+                    <label class="block text-sm text-gray-400 mb-3" data-i18n="settings_currency">Основная валюта</label>
+                    <div class="grid grid-cols-5 gap-2" id="currency-selector">
+                        <button onclick="setCurrency('C$')" class="currency-btn h-11 rounded-xl bg-[#2C2C2E] text-gray-300 hover:bg-[#3A3A3C] font-semibold" data-currency="C$">C$</button>
+                        <button onclick="setCurrency('$')" class="currency-btn h-11 rounded-xl bg-[#2C2C2E] text-gray-300 hover:bg-[#3A3A3C] font-semibold" data-currency="$">$</button>
+                        <button onclick="setCurrency('€')" class="currency-btn h-11 rounded-xl bg-[#2C2C2E] text-gray-300 hover:bg-[#3A3A3C] font-semibold" data-currency="€">€</button>
+                        <button onclick="setCurrency('£')" class="currency-btn h-11 rounded-xl bg-[#2C2C2E] text-gray-300 hover:bg-[#3A3A3C] font-semibold" data-currency="£">£</button>
+                        <button onclick="setCurrency('₴')" class="currency-btn h-11 rounded-xl bg-[#2C2C2E] text-gray-300 hover:bg-[#3A3A3C] font-semibold" data-currency="₴">₴</button>
+                    </div>
+                    <div class="flex gap-2 mt-2">
+                        <input type="text" id="custom-currency-input" maxlength="4" data-i18n="cur_custom_ph" placeholder="Свой символ…" class="flex-1 min-w-0 h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500 text-center font-semibold">
+                        <button onclick="setCustomCurrency()" class="h-11 px-5 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-white transition-all font-medium flex-shrink-0" data-i18n="cur_custom_set">Задать</button>
+                    </div>
+                </div>
+                <div id="pin-change-section" class="pt-6 border-t border-white/5">
+                    <label class="block text-sm text-gray-400 mb-3" data-i18n="settings_pin">Смена PIN-кода</label>
+                    <div class="relative mb-3">
+                        <select id="pin-role-selector" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500 appearance-none cursor-pointer">
+                            <option value="chef">Шеф</option><option value="cook">Повар</option><option value="cashier">Касса</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none"></i>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="password" id="new-pin-input" inputmode="numeric" maxlength="4" data-i18n="pin_placeholder" placeholder="Новый PIN (4 цифры)" class="flex-1 min-w-0 h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500 text-center tracking-[0.5em]">
+                        <button onclick="changePin()" class="h-11 px-5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all font-medium flex-shrink-0" data-i18n="pin_save">Сменить</button>
+                    </div>
+                </div>
+                <button onclick="closeModal('settings-modal')" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all font-medium" data-i18n="save">Сохранить</button>
+                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v1.9</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="foodcost-modal" onclick="if(event.target === this) closeModal('foodcost-modal')" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300">
+        <div class="bg-[#1C1C1E] rounded-3xl w-[90%] max-w-sm border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col">
+            <div class="flex justify-between items-center p-6 pb-4 border-b border-white/5">
+                <div><h3 class="text-xl font-semibold cursor-pointer text-white" onclick="closeModal('foodcost-modal')">ChefOS</h3><p id="foodcost-modal-kitchen" class="text-xs text-orange-500 mt-1"></p></div>
+                <button onclick="closeModal('foodcost-modal')" class="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 pt-4 space-y-6">
+                <div class="text-center">
+                    <p class="text-sm text-gray-400 mb-1" data-i18n="fc_current">Текущий показатель</p>
+                    <div id="modal-current-fc" class="text-4xl font-bold text-green-400">28.5%</div>
+                    <p id="modal-fc-status" class="text-xs font-medium text-green-500 mt-2 bg-green-500/10 inline-block px-2 py-1 rounded-md" data-i18n="fc_status_ok">В пределах нормы</p>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs text-gray-400 mb-2"><span>0%</span><span id="progress-target-label" class="text-white"></span></div>
+                    <div class="h-3 w-full bg-gray-700 rounded-full overflow-hidden relative">
+                        <div id="fc-target-marker" class="absolute top-0 bottom-0 w-0.5 bg-white z-10" style="left: 30%;"></div>
+                        <div id="fc-progress-bar" class="h-full bg-green-500" style="width: 28.5%;"></div>
+                    </div>
+                </div>
+                <div class="pt-4 border-t border-white/5">
+                    <label class="block text-sm text-gray-400 mb-3" data-i18n="fc_max">Максимальный фуд-кост (%)</label>
+                    <input type="number" id="target-fc-input" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <button onclick="saveFoodCostSettings(event)" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all flex justify-center items-center gap-2 font-medium">
+                    <i class="fa-solid fa-check"></i> <span data-i18n="fc_save">Сохранить лимит</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="menu-modal" onclick="if(event.target === this) closeModal('menu-modal')" class="hidden fixed inset-0 z-50 bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
+        <div class="max-w-4xl mx-auto p-6 sm:p-10">
+            <button onclick="closeModal('menu-modal')" class="text-gray-400 hover:text-white mb-6 flex items-center gap-2 transition-colors"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                <div><h2 class="text-3xl font-bold cursor-pointer text-white" onclick="closeModal('menu-modal')">ChefOS</h2><p id="menu-kitchen-subtitle" class="text-orange-500 mt-1">Основная кухня</p></div>
+                <div class="relative w-full md:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i>
+                    <input type="text" id="menu-search" onkeyup="filterMenu()" data-i18n="menu_search" placeholder="Поиск блюда..." class="w-full h-11 bg-[#1C1C1E] border border-white/10 text-white rounded-xl pl-10 pr-4 outline-none focus:border-orange-500 text-sm">
+                </div>
+            </div>
+            <div class="flex gap-2 overflow-x-auto hide-scrollbar mb-8 pb-2" id="menu-filters-container">
+                <button onclick="toggleFilter('gluten')" id="filter-gluten" class="h-8 px-4 rounded-full border border-white/20 text-xs font-medium text-gray-300 hover:bg-white/10 transition-colors whitespace-nowrap" data-i18n="menu_gluten">Без глютена</button>
+                <button onclick="toggleFilter('lactose')" id="filter-lactose" class="h-8 px-4 rounded-full border border-white/20 text-xs font-medium text-gray-300 hover:bg-white/10 transition-colors whitespace-nowrap" data-i18n="menu_lactose">Без лактозы</button>
+                <div id="menu-allergen-dd" class="whitespace-nowrap"></div>
+            </div>
+            <div id="menu-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+        </div>
+    </div>
+
+    <div id="ttk-modal" onclick="if(event.target === this) closeModal('ttk-modal')" class="hidden fixed inset-0 z-50 bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
+        <div class="max-w-4xl mx-auto p-6 sm:p-10">
+            <button onclick="closeModal('ttk-modal')" class="text-gray-400 hover:text-white mb-6 flex items-center gap-2 transition-colors"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                <div><h2 class="text-3xl font-bold cursor-pointer text-white" onclick="closeModal('ttk-modal')">ChefOS</h2><p class="text-blue-500 mt-1" data-i18n="ttk_subtitle">База ТТК</p></div>
+                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <div class="relative w-full sm:w-64">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i>
+                        <input type="text" id="ttk-search" onkeyup="filterTTK()" data-i18n="ttk_search" placeholder="Поиск ТТК..." class="w-full h-11 bg-[#1C1C1E] border border-white/10 text-white rounded-xl pl-10 pr-4 outline-none focus:border-blue-500 text-sm">
+                    </div>
+                    <button id="ttk-add-btn" onclick="openTTKEditor(null)" class="w-full sm:w-auto h-11 px-6 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center whitespace-nowrap"><i class="fa-solid fa-plus mr-2"></i> <span data-i18n="create">Создать</span></button>
+                </div>
+            </div>
+            <div class="flex gap-2 overflow-x-auto hide-scrollbar mb-8 pb-2" id="ttk-filters-container">
+                <button onclick="toggleTTKFilter('dishes')" id="filter-ttk-dishes" class="h-8 px-4 rounded-full border border-blue-500 bg-blue-500/20 text-white text-xs font-medium transition-colors whitespace-nowrap" data-i18n="ttk_filter_dish">Готовые блюда</button>
+                <button onclick="toggleTTKFilter('preps')" id="filter-ttk-preps" class="h-8 px-4 rounded-full border border-white/20 text-gray-300 text-xs font-medium hover:bg-white/10 transition-colors whitespace-nowrap" data-i18n="ttk_filter_prep">Заготовки и Соусы</button>
+                <button onclick="toggleTTKFilter('shift')" id="filter-ttk-shift" class="h-8 px-4 rounded-full border border-white/20 text-gray-300 text-xs font-medium hover:bg-white/10 transition-colors whitespace-nowrap" data-i18n="ttk_filter_shift">На смену</button>
+            </div>
+            <div id="ttk-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+            <div id="ttk-shift-panel" class="hidden"></div>
+        </div>
+    </div>
+
+    <div id="dish-modal" onclick="if(event.target === this) closeModal('dish-modal')" class="hidden fixed inset-0 z-[60] bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
+        <div class="max-w-4xl mx-auto p-6 sm:p-10 pb-20">
+            <button onclick="closeModal('dish-modal')" class="text-gray-400 hover:text-white mb-6 flex items-center gap-2"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
+            <div id="dish-content" class="flex flex-col gap-8"></div>
+        </div>
+    </div>
+
+    <div id="ttk-details-modal" onclick="if(event.target === this) closeModal('ttk-details-modal')" class="hidden fixed inset-0 z-[60] bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
+        <div class="max-w-4xl mx-auto p-6 sm:p-10 pb-20">
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="closeModal('ttk-details-modal')" class="text-gray-400 hover:text-white flex items-center gap-2 transition-colors"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
+                <div class="flex gap-2" id="ttk-action-buttons"></div>
+            </div>
+            <div id="ttk-details-content" class="flex flex-col gap-8"></div>
+        </div>
+    </div>
+
+    <div id="ttk-edit-modal" onclick="if(event.target === this) closeModal('ttk-edit-modal')" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-3xl p-6 sm:p-8 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-y-auto hide-scrollbar" id="ttk-edit-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-white" id="ttk-edit-title" data-i18n="ttk_edit_title">Редактирование ТТК</h3>
+                <button onclick="closeModal('ttk-edit-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="mb-6 flex flex-col items-center">
+                <input type="file" id="ttk-img-upload" class="hidden" accept="image/*" onchange="previewTTKImage(event)">
+                <div id="ttk-img-preview-container" class="w-full h-48 sm:h-64 rounded-2xl border-2 border-dashed border-white/20 bg-black/30 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500/50 hover:bg-white/5 transition-all overflow-hidden relative" onclick="document.getElementById('ttk-img-upload').click()">
+                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-gray-400 mb-3" id="ttk-img-icon"></i>
+                    <span class="text-sm text-gray-400 font-medium" id="ttk-img-text" data-i18n="ttk_img_text">Нажмите, чтобы загрузить фото с устройства</span>
+                    <img id="ttk-img-preview" src="" class="hidden absolute inset-0 w-full h-full object-cover">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_name">Название</label><input type="text" id="edit-ttk-name" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_type">Тип</label><div class="relative"><select id="edit-ttk-type" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer"><option value="dish" data-i18n="ttk_type_dish">Готовое блюдо</option><option value="prep" data-i18n="ttk_type_prep">Заготовка (ПФ)</option></select><i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none"></i></div></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_cat">Категория</label><input type="text" id="edit-ttk-category" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_portions">Кол-во порций</label><input type="number" id="edit-ttk-portions" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_yield_lbl">Выход (г)</label><input type="number" id="edit-ttk-yield" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                </div>
+                <div class="grid grid-cols-3 gap-4 md:col-span-2">
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_cost">Себестоимость</label><input type="number" id="edit-ttk-cost" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_price">Цена в меню</label><input type="number" id="edit-ttk-price" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_fc_norm">Норма FC (%)</label><input type="number" id="edit-ttk-target-fc" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 md:col-span-2 mt-2 pt-4 border-t border-white/10">
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_cal">Ккал</label><input type="number" id="edit-ttk-cal" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm text-blue-400 mb-1 font-medium" data-i18n="ttk_prot">Белки</label><input type="number" id="edit-ttk-prot" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm text-yellow-400 mb-1 font-medium" data-i18n="ttk_fat">Жиры</label><input type="number" id="edit-ttk-fat" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm text-green-400 mb-1 font-medium" data-i18n="ttk_carb">Углеводы</label><input type="number" id="edit-ttk-carb" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-white/10">
+                <div class="flex flex-col">
+                    <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2"><i class="fa-solid fa-carrot text-orange-400"></i> <span data-i18n="ttk_ingr">Ингредиенты</span></h4>
+                    <div id="edit-ttk-ingredients-list" class="flex flex-col gap-2 mb-3 max-h-48 overflow-y-auto hide-scrollbar"></div>
+                    <div class="flex gap-2 mt-auto">
+                        <input type="text" id="edit-ttk-ing-name" list="inventory-names-list" data-i18n="ttk_ing_name" placeholder="Название..." class="flex-1 h-10 bg-[#2C2C2E] text-white rounded-xl px-3 outline-none text-sm focus:ring-2 focus:ring-blue-500 transition-shadow">
+                        <datalist id="inventory-names-list"></datalist>
+                        <input type="text" id="edit-ttk-ing-weight" data-i18n="ttk_ing_weight" placeholder="Вес (100g)" class="w-24 h-10 bg-[#2C2C2E] text-white rounded-xl px-3 outline-none text-sm focus:ring-2 focus:ring-blue-500 transition-shadow">
+                        <label class="flex items-center gap-1.5 h-10 px-2.5 bg-[#2C2C2E] rounded-xl text-[10px] text-gray-400 cursor-pointer whitespace-nowrap shrink-0" title="Не масштабировать при ×N"><input type="checkbox" id="edit-ttk-ing-noscale" class="accent-blue-500 w-3.5 h-3.5"><span data-i18n="ttk_no_scale">без ×N</span></label>
+                        <button onclick="addEditIngredient()" class="w-10 h-10 bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white rounded-xl transition-all active:scale-95 flex items-center justify-center shrink-0"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                </div>
+                <div class="flex flex-col">
+                    <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2"><i class="fa-solid fa-list-ol text-blue-400"></i> <span data-i18n="ttk_steps">Как готовить</span></h4>
+                    <div id="edit-ttk-steps-list" class="flex flex-col gap-2 mb-3 max-h-48 overflow-y-auto hide-scrollbar"></div>
+                    <div class="flex gap-2 mt-auto">
+                        <textarea id="edit-ttk-step-text" data-i18n="ttk_step_desc" placeholder="Опишите шаг..." class="flex-1 min-h-[40px] bg-[#2C2C2E] text-white rounded-xl px-3 py-2 outline-none text-sm focus:ring-2 focus:ring-blue-500 transition-shadow resize-y hide-scrollbar"></textarea>
+                        <button onclick="addEditStep()" class="w-10 h-10 bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white rounded-xl transition-all active:scale-95 flex items-center justify-center shrink-0"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="saveTTKChanges()" class="w-full mt-8 h-11 rounded-xl bg-blue-500 text-white font-medium hover:bg-blue-600 active:scale-95 transition-all shadow-lg shadow-blue-500/20" data-i18n="ttk_save">Сохранить ТТК</button>
+        </div>
+    </div>
+
+    <div id="books-modal" onclick="if(event.target === this) closeModal('books-modal')" class="hidden fixed inset-0 z-50 bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
+        <div class="max-w-4xl mx-auto p-6 sm:p-10">
+            <button onclick="closeModal('books-modal')" class="text-gray-400 hover:text-white mb-6 flex items-center gap-2 transition-colors"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
+            <h2 class="text-3xl font-bold mb-8 cursor-pointer text-white" onclick="closeModal('books-modal')">ChefOS <span class="text-rose-500 text-sm ml-2 font-normal" data-i18n="books_subtitle">Библиотека шефа</span></h2>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6" id="books-grid">
+                <div class="aspect-[2/3] bg-[#1C1C1E] border border-dashed border-white/20 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition-colors" onclick="document.getElementById('book-upload-input').click()">
+                    <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center mb-3 text-xl"><i class="fa-solid fa-plus"></i></div>
+                    <span class="text-xs text-gray-400 font-medium" data-i18n="books_upload">Загрузить файл</span>
+                    <input type="file" id="book-upload-input" class="hidden" accept=".pdf,.epub,.txt" onchange="handleBookUpload(event)">
+                </div>
+                <div class="group cursor-pointer" onclick="openReader('The Flavor Equation', 'Ник Шарма', 'Наука о великой кулинарии и вкусах...')">
+                    <div class="aspect-[2/3] bg-zinc-800 rounded-2xl overflow-hidden mb-3 relative shadow-lg">
+                        <img src="https://images.unsplash.com/photo-1589998059171-988d887df646?auto=format&fit=crop&q=80&w=400" class="w-full h-full object-cover opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-500">
+                    </div>
+                    <h3 class="text-sm font-semibold leading-tight text-white">The Flavor Equation</h3><p class="text-xs text-gray-500 mt-1">Ник Шарма</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="reader-modal" onclick="if(event.target === this) closeModal('reader-modal')" class="hidden fixed inset-0 z-[70] bg-[#121212] overflow-y-auto opacity-0 transition-opacity duration-300">
+        <div class="max-w-2xl mx-auto p-8 sm:p-12 min-h-screen relative shadow-2xl bg-[#181818]">
+            <button onclick="closeModal('reader-modal')" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            <div class="mt-10 font-serif">
+                <h1 id="reader-title" class="text-3xl font-bold text-white mb-2 leading-tight">Title</h1>
+                <p id="reader-author" class="text-sm text-gray-400 mb-10 italic">Author</p>
+                <div id="reader-content" class="text-gray-300 text-lg leading-relaxed space-y-6"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="inventory-modal" onclick="if(event.target === this) closeModal('inventory-modal')" class="hidden fixed inset-0 z-50 bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
+        <div class="max-w-5xl mx-auto p-6 sm:p-10 pb-20">
+            <button onclick="closeModal('inventory-modal')" class="text-gray-400 hover:text-white mb-6 flex items-center gap-2 transition-colors"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div><h2 class="text-3xl font-bold cursor-pointer text-white" onclick="closeModal('inventory-modal')">ChefOS</h2><p id="inventory-kitchen-subtitle" class="text-purple-500 mt-1 font-medium">Основная кухня</p></div>
+            </div>
+            <div class="flex border-b border-white/10 mb-6 overflow-x-auto hide-scrollbar" id="inventory-tabs-container">
+                <button id="inv-tab-btn-ingredients" onclick="switchInvTab('ingredients')" class="px-6 py-3 text-sm font-medium border-b-2 border-purple-500 text-purple-500 transition-colors whitespace-nowrap" data-i18n="inv_tab_ing">Ингредиенты</button>
+                <button id="inv-tab-btn-invoices" onclick="switchInvTab('invoices')" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-300 transition-colors whitespace-nowrap" data-i18n="inv_tab_inv">Накладные</button>
+                <button id="inv-tab-btn-suppliers" onclick="switchInvTab('suppliers')" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-300 transition-colors whitespace-nowrap" data-i18n="inv_tab_sup">Поставщики</button>
+                <button id="inv-tab-btn-finance" onclick="switchInvTab('finance')" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-300 transition-colors whitespace-nowrap" data-i18n="inv_tab_fin">Отчеты</button>
+                <button id="inv-tab-btn-waste" onclick="switchInvTab('waste')" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-300 transition-colors whitespace-nowrap" data-i18n="waste_tab">Списания</button>
+            </div>
+            
+            <div id="inv-tab-ingredients">
+                <div class="flex flex-col lg:flex-row gap-3 w-full mb-6 items-center">
+                    <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto flex-shrink-0">
+                        <div class="relative w-full sm:w-48"><select id="inventory-category-filter" onchange="filterInventory()" class="w-full h-11 bg-[#1C1C1E] border border-white/10 text-white rounded-xl pl-4 pr-10 outline-none focus:border-purple-500 text-sm appearance-none cursor-pointer"></select><i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none"></i></div>
+                        <div class="relative w-full sm:w-48"><select id="inventory-supplier-filter" onchange="filterInventory()" class="w-full h-11 bg-[#1C1C1E] border border-white/10 text-white rounded-xl pl-4 pr-10 outline-none focus:border-purple-500 text-sm appearance-none cursor-pointer"></select><i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none"></i></div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full lg:flex-grow">
+                        <div class="relative w-full flex-grow"><i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i><input type="text" id="inventory-search" onkeyup="filterInventory()" data-i18n="inv_search" placeholder="Поиск ингредиента..." class="w-full h-11 bg-[#1C1C1E] text-white border border-white/10 rounded-xl pl-10 pr-4 outline-none focus:border-purple-500 text-sm"></div>
+                        <button id="inv-add-btn" onclick="openIngredientEditModal(null)" class="w-full sm:w-auto h-11 px-6 bg-purple-500 hover:bg-purple-600 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center whitespace-nowrap flex-shrink-0"><i class="fa-solid fa-plus mr-2"></i> <span data-i18n="add">Добавить</span></button>
+                    </div>
+                </div>
+                <div id="inventory-total-header" class="mb-6"></div>
+                <div id="inv-table-header" class="hidden md:grid grid-cols-12 gap-4 px-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-white/5 mb-4 mt-4">
+                    <div class="col-span-5" id="inv-th-name" data-i18n="inv_th_name">Наименование / Категория</div><div class="col-span-2 text-right" data-i18n="inv_th_stock">Остаток</div><div class="col-span-2 text-right inv-price-col" data-i18n="inv_th_price">Цена за ед.</div><div class="col-span-3 text-right inv-sum-col" data-i18n="inv_th_sum">Сумма активов</div>
+                </div>
+                <div id="inventory-list" class="flex flex-col gap-2"></div>
+            </div>
+            
+            <div id="inv-tab-invoices" class="hidden">
+                <div class="bg-gradient-to-br from-indigo-900/30 to-purple-900/30 border border-purple-500/20 rounded-3xl p-8 text-center"><div class="w-20 h-20 bg-purple-500/20 text-purple-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-4"><i class="fa-solid fa-camera-viewfinder"></i></div><h3 class="text-xl font-bold text-white mb-2" data-i18n="scan_title">Сканирование накладных</h3><p class="text-gray-400 text-sm max-w-md mx-auto mb-6" data-i18n="scan_desc">Загрузите фото бумажной накладной. AI автоматически распознает ингредиенты, обновит цены и остатки на складе.</p><button onclick="simulateInvoiceScan()" class="px-8 h-12 bg-purple-500 text-white font-medium rounded-xl hover:bg-purple-600 transition-colors active:scale-95 shadow-lg shadow-purple-500/20 inline-flex items-center justify-center"><i class="fa-solid fa-camera mr-2"></i> <span data-i18n="scan_btn">Сканировать накладную</span></button></div>
+            </div>
+            
+            <div id="inv-tab-suppliers" class="hidden">
+                <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-semibold text-white" data-i18n="sup_title">База поставщиков</h3><button onclick="openSupplierEditModal(null)" class="px-4 h-11 bg-[#2C2C2E] hover:bg-[#3A3A3C] text-white rounded-xl text-sm font-medium transition-colors inline-flex items-center justify-center"><i class="fa-solid fa-plus mr-1"></i> <span data-i18n="add">Добавить</span></button></div>
+                <div id="suppliers-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                <div class="mt-10">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-white" data-i18n="orders_title">Заказы поставщикам</h3>
+                        <button id="gen-orders-btn" onclick="generateOrders()" class="px-4 h-11 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-medium transition-colors inline-flex items-center justify-center shadow-lg shadow-orange-500/20"><i class="fa-solid fa-cart-plus mr-1"></i> <span data-i18n="orders_generate">Сформировать заказ</span></button>
+                    </div>
+                    <div id="orders-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
+            </div>
+            
+            <div id="inv-tab-finance" class="hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    <h3 class="text-xl font-semibold text-white" data-i18n="fin_title">Бухгалтерия и Сводка</h3>
+                    <input type="month" id="finance-month-selector" class="h-11 bg-[#2C2C2E] border border-white/10 rounded-xl px-4 text-white text-sm outline-none focus:border-indigo-500 cursor-pointer" onchange="renderFinanceTab()">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_income">Доходы от продаж</p>
+                        <p id="finance-income" class="text-2xl font-bold text-green-400">0</p>
+                    </div>
+                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_cogs">Фуд-кост (Сырье)</p>
+                        <p id="finance-cogs" class="text-2xl font-bold text-orange-400">0</p>
+                    </div>
+                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_payroll">Зарплатный фонд</p>
+                        <p id="finance-payroll" class="text-2xl font-bold text-blue-400">0</p>
+                    </div>
+                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_losses">Списания (Убытки)</p>
+                        <p id="finance-losses" class="text-2xl font-bold text-red-400">0</p>
+                    </div>
+                </div>
+                <div class="bg-[#1C1C1E] border border-indigo-500/30 rounded-2xl p-6 shadow-[inset_0_0_20px_rgba(99,102,241,0.05)] mb-8">
+                    <p class="text-xs text-indigo-400 font-medium uppercase tracking-wider mb-1" data-i18n="fin_profit">Валовая прибыль (Чистыми)</p>
+                    <p id="finance-profit" class="text-3xl font-bold text-white">0</p>
+                </div>
+                <div class="bg-gradient-to-r from-[#1C1C1E] to-[#252529] border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="text-center md:text-left w-full md:w-auto">
+                        <p class="text-sm text-gray-400 mb-1" data-i18n="fin_assets">Текущие активы на складе</p>
+                        <p id="finance-assets" class="text-3xl font-bold text-purple-400">0</p>
+                    </div>
+                    <button onclick="switchInvTab('ingredients')" class="h-11 px-6 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-white font-medium transition-colors border border-white/10 shadow-sm w-full md:w-auto" data-i18n="fin_go_ing">Перейти к ингредиентам</button>
+                </div>
+            </div>
+
+            <div id="inv-tab-waste" class="hidden">
+                <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-semibold text-white" data-i18n="waste_tab">Списания</h3><div id="waste-total-line" class="text-sm text-gray-400"></div></div>
+                <div id="waste-top-block" class="mb-6"></div>
+                <div id="waste-list" class="flex flex-col gap-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="invoice-scanner-modal" onclick="if(event.target === this) closeScannerModal()" class="hidden fixed inset-0 z-[70] bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6 opacity-0 transition-opacity duration-300">
+        <div id="scanner-loading" class="flex flex-col items-center max-w-sm w-full"><div class="w-24 h-24 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mb-6"></div><h3 class="text-2xl font-bold text-white mb-2" data-i18n="scan_loading_title">Анализ документа...</h3><p class="text-gray-400 text-center" data-i18n="scan_loading_desc">Извлечение позиций, цен и проверка с базой данных ChefOS.</p></div>
+        <div id="scanner-result" class="hidden bg-[#1C1C1E] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-2xl w-full">
+            <h3 class="text-2xl font-bold text-white mb-2" data-i18n="scan_res_title">Накладная распознана</h3><p class="text-gray-400 text-sm mb-6">Обнаружено 3 позиции от поставщика <b>"Метро Кеш энд Керри"</b></p>
+            <div class="space-y-3 mb-8">
+                <div class="bg-black/50 border border-green-500/30 rounded-xl p-4 flex justify-between items-center"><div><p class="text-white font-medium text-sm">Лосось филе охлажденное</p><p class="text-xs text-gray-500">+10 кг</p></div><div class="text-right"><p class="text-white font-medium">1 000 <span id="scan-curr-1" data-cur>₴</span></p></div></div>
+                <div class="bg-black/50 border border-red-500/30 rounded-xl p-4 flex justify-between items-center"><div><p class="text-white font-medium text-sm">Томаты черри</p><p class="text-xs text-gray-500">+5 кг</p></div><div class="text-right"><p class="text-white font-medium">210 <span id="scan-curr-2" data-cur>₴</span></p></div></div>
+                <div class="bg-black/50 border border-purple-500/30 rounded-xl p-4 flex justify-between items-center"><div><p class="text-white font-medium text-sm flex items-center gap-2">Авокадо Хасс</p><p class="text-xs text-gray-500">+3 кг</p></div><div class="text-right"><p class="text-white font-medium">450 <span id="scan-curr-3" data-cur>₴</span></p></div></div>
+            </div>
+            <div class="flex gap-4"><button onclick="closeScannerModal()" class="flex-1 h-11 bg-[#2C2C2E] hover:bg-[#3A3A3C] text-white font-medium rounded-xl transition-colors" data-i18n="cancel">Отмена</button><button onclick="applyScannedInvoice()" class="flex-1 h-11 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-xl transition-colors shadow-lg shadow-purple-500/20" data-i18n="scan_apply">Провести накладную</button></div>
+        </div>
+    </div>
+
+    <div id="ingredient-edit-modal" onclick="if(event.target === this) closeModal('ingredient-edit-modal')" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-md p-6 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-y-auto hide-scrollbar">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-3"><button id="delete-ing-btn" onclick="deleteIngredient()" class="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-colors"><i class="fa-solid fa-trash-can text-sm"></i></button><button id="label-ing-btn" onclick="openLabelModal('ingredient', editingIngredientId)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white transition-colors" title="Этикетка"><i class="fa-solid fa-tag text-sm"></i></button><h3 class="text-xl font-semibold text-white" data-i18n="ing_edit_title">Ингредиент</h3></div>
+                <button onclick="closeModal('ingredient-edit-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ing_name">Наименование</label><input type="text" id="edit-ing-name" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-purple-500 transition-shadow"></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ing_cat">Категория</label><div class="relative"><select id="edit-ing-category" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-purple-500 transition-shadow appearance-none cursor-pointer"></select><i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none"></i></div></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ing_qty">Остаток</label><input type="number" step="0.01" id="edit-ing-qty" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-purple-500 transition-shadow"></div>
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ing_unit">Ед. изм.</label><div class="relative"><select id="edit-ing-unit" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-purple-500 transition-shadow appearance-none cursor-pointer"><option value="kg" data-i18n="unit_kg">кг</option><option value="l" data-i18n="unit_l">л</option><option value="pcs" data-i18n="unit_pcs">шт</option><option value="g" data-i18n="unit_g">г</option><option value="ml" data-i18n="unit_ml">мл</option></select><i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none"></i></div></div>
+                </div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ing_minqty">Мин. остаток</label><input type="number" step="0.01" min="0" id="edit-ing-minqty" data-i18n="ing_minqty_ph" placeholder="0 — не следить" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-purple-500 transition-shadow"><p class="text-[11px] text-gray-600 mt-1" data-i18n="ing_minqty_hint">Позиция попадёт в автозаказ, когда остаток упадёт ниже этого значения</p></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ing_price">Цена за ед.</label><div class="relative"><input type="number" step="0.01" id="edit-ing-price" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-purple-500 transition-shadow"><div class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium pointer-events-none" id="edit-ing-currency" data-cur>₴</div></div></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ing_sup">Поставщик</label><div class="relative"><select id="edit-ing-supplier" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-purple-500 transition-shadow appearance-none cursor-pointer"></select><i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none"></i></div></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ing_yield">Выход (%)</label><input type="number" min="1" max="100" step="1" id="edit-ing-yield" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-purple-500 transition-shadow"></div>
+                <div><label class="block text-sm text-gray-400 mb-2 font-medium" data-i18n="alg_title">Аллергены</label><div id="edit-ing-allergens" class="grid grid-cols-3 gap-2"></div></div>
+                <div id="edit-ing-price-history-block" class="hidden"><label class="block text-sm text-gray-400 mb-2 font-medium" data-i18n="ing_price_history">История цен</label><div id="edit-ing-price-history" class="flex flex-col gap-1 max-h-32 overflow-y-auto hide-scrollbar"></div></div>
+                <div id="edit-ing-waste-block" class="hidden border-t border-white/10 pt-4">
+                    <label class="block text-sm text-gray-400 mb-2 font-medium" data-i18n="waste_title">Списать</label>
+                    <div class="flex gap-2">
+                        <input type="number" min="0" step="0.01" id="waste-qty" data-i18n="waste_qty" placeholder="Количество" class="flex-1 h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none text-sm focus:ring-2 focus:ring-red-500 transition-shadow">
+                        <select id="waste-reason" class="h-11 bg-[#2C2C2E] text-white rounded-xl px-3 outline-none text-sm focus:ring-2 focus:ring-red-500 appearance-none cursor-pointer">
+                            <option value="spoil" data-i18n="waste_reason_spoil">Порча</option>
+                            <option value="resort" data-i18n="waste_reason_resort">Пересортица</option>
+                            <option value="tasting" data-i18n="waste_reason_tasting">Дегустация</option>
+                            <option value="defect" data-i18n="waste_reason_defect">Брак</option>
+                        </select>
+                        <button onclick="applyWaste()" class="h-11 px-4 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded-xl text-sm font-medium transition-all active:scale-95 whitespace-nowrap"><i class="fa-solid fa-trash-can mr-1"></i><span data-i18n="waste_title">Списать</span></button>
+                    </div>
+                </div>
+            </div>
+            <button onclick="saveIngredientChanges()" class="w-full mt-8 h-11 rounded-xl bg-purple-500 text-white font-medium hover:bg-purple-600 active:scale-95 transition-all shadow-lg shadow-purple-500/20" data-i18n="save">Сохранить</button>
+        </div>
+    </div>
+
+    <!-- Модалка: цена выросла (v1.6) -->
+    <div id="price-alert-modal" onclick="if(event.target === this) closeModal('price-alert-modal')" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-md p-6 border border-red-500/30 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-y-auto hide-scrollbar">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-red-400"><i class="fa-solid fa-arrow-trend-up mr-2"></i><span data-i18n="price_rise_title">Цена выросла!</span></h3>
+                <button onclick="closeModal('price-alert-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p id="price-alert-desc" class="text-sm text-gray-400 mb-4"></p>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2" data-i18n="price_rise_affected">Затронутые ТТК</p>
+            <div id="price-alert-list" class="flex flex-col gap-2 mb-6 max-h-56 overflow-y-auto hide-scrollbar"></div>
+            <button onclick="applyPriceRiseRecalc()" class="w-full h-11 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 active:scale-95 transition-all shadow-lg shadow-red-500/20" data-i18n="price_rise_recalc">Пересчитать себестоимость</button>
+        </div>
+    </div>
+
+    <div id="supplier-edit-modal" onclick="if(event.target === this) closeModal('supplier-edit-modal')" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-md p-6 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-y-auto hide-scrollbar">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-3"><button id="delete-sup-btn" onclick="deleteSupplier()" class="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-colors"><i class="fa-solid fa-trash-can text-sm"></i></button><h3 class="text-xl font-semibold text-white" data-i18n="sup_edit_title">Поставщик</h3></div>
+                <button onclick="closeModal('supplier-edit-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="sup_company">Название компании</label><input type="text" id="edit-sup-name" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-purple-500 transition-shadow"></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="sup_cat">Категория</label><div class="relative"><select id="edit-sup-category" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-purple-500 transition-shadow appearance-none cursor-pointer"></select><i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none"></i></div></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="sup_manager">Имя менеджера</label><input type="text" id="edit-sup-manager" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-purple-500 transition-shadow"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="sup_phone">Телефон</label><input type="text" id="edit-sup-phone" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-purple-500 transition-shadow"></div>
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="sup_email">Email</label><input type="email" id="edit-sup-email" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-purple-500 transition-shadow"></div>
+                </div>
+            </div>
+            <button onclick="saveSupplierChanges()" class="w-full mt-8 h-11 rounded-xl bg-purple-500 text-white font-medium hover:bg-purple-600 active:scale-95 transition-all shadow-lg shadow-purple-500/20" data-i18n="save">Сохранить</button>
+        </div>
+    </div>
+
+    <!-- Модалка Инвентаризация Сверка -->
+    <div id="inventory-check-modal" onclick="if(event.target === this) closeModal('inventory-check-modal')" class="hidden fixed inset-0 z-50 bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
+        <div class="max-w-4xl mx-auto p-6 sm:p-10 pb-20">
+            <button onclick="closeModal('inventory-check-modal')" class="text-gray-400 hover:text-white mb-6 flex items-center gap-2 transition-colors"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                <div><h2 class="text-3xl font-bold text-white cursor-pointer" onclick="closeModal('inventory-check-modal')">ChefOS</h2><p id="inv-check-kitchen-subtitle" class="text-indigo-500 mt-1 font-medium">Основная кухня</p></div>
+                <div class="relative w-full md:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i>
+                    <input type="text" id="inv-check-search" onkeyup="filterInventoryCheck()" data-i18n="inv_search" placeholder="Поиск ингредиента..." class="w-full h-11 bg-[#1C1C1E] border border-white/10 text-white rounded-xl pl-10 pr-4 outline-none focus:border-indigo-500 text-sm">
+                </div>
+            </div>
+            <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-4 mb-6 text-sm text-indigo-200">
+                <i class="fa-solid fa-circle-info mr-2"></i> <span data-i18n="chk_info">Колонка "По системе" учитывает все введенные продажи. Внесите фактический остаток.</span>
+            </div>
+            <div class="hidden md:grid grid-cols-12 gap-4 px-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-white/5 mb-4">
+                <div class="col-span-5" data-i18n="inv_th_name">Наименование / Категория</div><div class="col-span-2 text-right" data-i18n="chk_th_sys">По системе</div><div class="col-span-3 text-center" data-i18n="chk_th_fact">Фактический остаток</div><div class="col-span-2 text-right" data-i18n="chk_th_diff">Разница</div>
+            </div>
+            <div id="inv-check-list" class="flex flex-col gap-2 mb-8"></div>
+            <button id="finish-inv-btn" onclick="applyInventoryCheck(this)" class="w-full h-14 rounded-xl bg-indigo-500 text-white font-medium hover:bg-indigo-600 active:scale-95 transition-all shadow-lg shadow-indigo-500/20 text-lg flex items-center justify-center">
+                <i class="fa-solid fa-check-double mr-2"></i> <span data-i18n="chk_btn">Завершить инвентаризацию</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Модалка Команды -->
+    <div id="team-modal" onclick="if(event.target === this) closeModal('team-modal')" class="hidden fixed inset-0 z-50 bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
+        <div class="max-w-5xl mx-auto p-6 sm:p-10 pb-20">
+            <button onclick="closeModal('team-modal')" class="text-gray-400 hover:text-white mb-6 flex items-center gap-2 transition-colors"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div><h2 class="text-3xl font-bold cursor-pointer text-white" onclick="closeModal('team-modal')">ChefOS</h2><p id="team-kitchen-subtitle" class="text-teal-500 mt-1 font-medium">Основная кухня</p></div>
+            </div>
+            <div class="flex border-b border-white/10 mb-6 overflow-x-auto hide-scrollbar" id="team-tabs-container">
+                <button id="team-tab-btn-staff" onclick="switchTeamTab('staff')" class="px-6 py-3 text-sm font-medium border-b-2 border-teal-500 text-teal-500 transition-colors whitespace-nowrap" data-i18n="team_tab_staff">Сотрудники</button>
+                <button id="team-tab-btn-schedule" onclick="switchTeamTab('schedule')" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-300 transition-colors whitespace-nowrap" data-i18n="team_tab_sched">График смен</button>
+                <button id="team-tab-btn-requests" onclick="switchTeamTab('requests')" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-300 transition-colors whitespace-nowrap" data-i18n="team_tab_requests">Запросы</button>
+            </div>
+            <div id="team-tab-staff">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold text-white" data-i18n="team_staff_title">База сотрудников</h3>
+                    <button onclick="openEmployeeEditModal(null)" class="h-11 px-6 bg-teal-500 hover:bg-teal-600 text-white rounded-xl text-sm font-medium transition-colors flex items-center shadow-lg shadow-teal-500/20"><i class="fa-solid fa-plus mr-2"></i> <span data-i18n="add">Добавить</span></button>
+                </div>
+                <div id="team-staff-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+            </div>
+            <div id="team-tab-schedule" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold text-white"><span data-i18n="team_sched_title">Расписание:</span> <span id="schedule-kitchen-name" class="text-teal-400"></span></h3>
+                </div>
+                <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-4 overflow-x-auto hide-scrollbar mb-6">
+                    <div class="min-w-[800px] grid grid-cols-7 gap-2" id="team-schedule-grid"></div>
+                </div>
+                <div id="team-dayoff-block" class="mb-6"></div>
+            </div>
+            <div id="team-tab-requests" class="hidden">
+                <div id="team-requests-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалки Редактирования Сотрудника -->
+    <div id="employee-edit-modal" onclick="if(event.target === this) closeModal('employee-edit-modal')" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-y-auto hide-scrollbar">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-3"><button id="delete-emp-btn" onclick="deleteEmployee()" class="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-colors"><i class="fa-solid fa-trash-can text-sm"></i></button><h3 class="text-xl font-semibold text-white" data-i18n="emp_title">Сотрудник</h3></div>
+                <button onclick="closeModal('employee-edit-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="emp_name">Имя и Фамилия</label><input type="text" id="edit-emp-name" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-teal-500"></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="emp_role">Должность</label><input type="text" id="edit-emp-role" oninput="refreshEmpAccessRolePreview()" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-teal-500" data-i18n="emp_placeholder_role" placeholder="Например: Су-шеф"></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="emp_phone">Телефон</label><input type="text" id="edit-emp-phone" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-teal-500"></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="emp_pin">Личный PIN</label><input type="text" id="edit-emp-pin" inputmode="numeric" maxlength="4" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-teal-500" placeholder="••••"><p class="text-[11px] text-gray-600 mt-1" data-i18n="emp_pin_hint">4 цифры. Пусто — вход только по ролевому PIN.</p></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="emp_access_role">Уровень доступа</label><div id="edit-emp-accessrole" class="h-11 flex items-center px-4 rounded-xl bg-black/30 border border-white/5 text-sm text-gray-300"></div></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="emp_rate">Ставка в час</label><div class="relative"><input type="number" id="edit-emp-rate" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-teal-500" placeholder="0" oninput="updateEmpSalaryPreview()"><div class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium pointer-events-none" id="edit-emp-currency" data-cur>₴</div></div></div>
+            </div>
+            <div id="emp-salary-info" class="mt-5 p-4 bg-teal-500/10 border border-teal-500/20 rounded-xl hidden">
+                <p class="text-xs text-teal-200 uppercase tracking-wider font-semibold" data-i18n="emp_weekly">Итого за эту неделю</p>
+                <p class="text-2xl font-bold text-white mt-1" id="emp-weekly-salary">0 <span data-cur>₴</span> <span class="text-sm font-normal text-gray-400">/ 0 ч</span></p>
+            </div>
+            <button onclick="saveEmployeeChanges()" class="w-full mt-6 h-11 rounded-xl bg-teal-500 text-white font-medium hover:bg-teal-600 active:scale-95 transition-all shadow-lg shadow-teal-500/20" data-i18n="save">Сохранить</button>
+        </div>
+    </div>
+
+    <div id="schedule-select-modal" onclick="if(event.target === this) closeModal('schedule-select-modal')" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-white" data-i18n="sched_sel_title">Кого назначить?</h3>
+                <button onclick="closeModal('schedule-select-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="flex gap-3 mb-4 bg-black/30 p-3 rounded-xl border border-white/5">
+                <div class="flex-1"><label class="block text-[10px] text-gray-500 uppercase tracking-wider mb-1" data-i18n="sched_start">Начало</label><input type="time" id="shift-start-time" value="08:00" class="w-full h-9 bg-[#2C2C2E] text-white rounded-lg px-3 outline-none focus:ring-1 focus:ring-teal-500 text-sm"></div>
+                <div class="flex-1"><label class="block text-[10px] text-gray-500 uppercase tracking-wider mb-1" data-i18n="sched_end">Конец</label><input type="time" id="shift-end-time" value="20:00" class="w-full h-9 bg-[#2C2C2E] text-white rounded-lg px-3 outline-none focus:ring-1 focus:ring-teal-500 text-sm"></div>
+            </div>
+            <div id="schedule-emp-list" class="flex flex-col gap-2 max-h-[50vh] overflow-y-auto hide-scrollbar"></div>
+        </div>
+    </div>
+
+
+    <!-- Модалка: Аналитика меню (v1.7) -->
+    <div id="analytics-modal" class="fixed inset-0 z-[70] hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeModal('analytics-modal')"></div>
+        <div class="absolute inset-x-0 bottom-0 sm:inset-0 sm:m-auto sm:max-w-4xl sm:h-fit sm:max-h-[92vh] bg-[#1C1C1E] sm:rounded-3xl rounded-t-3xl border border-white/10 flex flex-col max-h-[92vh] overflow-hidden">
+            <div class="flex items-center justify-between p-5 border-b border-white/10 flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-lg font-bold text-white" data-i18n="an_title">Аналитика меню</h3>
+                    <input type="month" id="analytics-month" onchange="analyticsMonth=this.value; renderAnalytics();" class="h-9 bg-[#2C2C2E] text-white rounded-xl px-3 text-sm outline-none focus:ring-2 focus:ring-cyan-500">
+                </div>
+                <button onclick="closeModal('analytics-modal')" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-8">
+                <div>
+                    <h4 class="text-sm font-bold text-white mb-1" data-i18n="an_abc_title">ABC-анализ: звёзды и аутсайдеры</h4>
+                    <p class="text-xs text-gray-500 mb-4" data-i18n="an_abc_sub">Популярность × маржа на порцию, деление по медианам</p>
+                    <div id="analytics-abc" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-white mb-4" data-i18n="an_fvt_title">Факт vs теория фудкоста</h4>
+                    <div id="analytics-fvt"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка: этикетка (v1.7) -->
+    <div id="label-modal" class="fixed inset-0 z-[70] hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeModal('label-modal')"></div>
+        <div class="absolute inset-x-0 bottom-0 sm:inset-0 sm:m-auto sm:max-w-sm sm:h-fit bg-[#1C1C1E] sm:rounded-3xl rounded-t-3xl border border-white/10 p-6">
+            <h3 class="text-lg font-bold text-white mb-4" data-i18n="label_title">Этикетка</h3>
+            <div class="space-y-4">
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="label_made">Дата изготовления</label><input type="date" id="label-made" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500"></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="label_exp">Срок годности</label><input type="date" id="label-exp" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500"></div>
+            </div>
+            <button onclick="confirmLabelPrint()" class="w-full h-12 mt-6 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors"><i class="fa-solid fa-print mr-2"></i><span data-i18n="label_print">Печать</span></button>
+        </div>
+    </div>
+
+    <!-- Параметры печати ТТК (v1.9.1) -->
+    <div id="ttk-print-modal" class="fixed inset-0 z-[70] hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeModal('ttk-print-modal')"></div>
+        <div class="absolute inset-x-0 bottom-0 sm:inset-0 sm:m-auto sm:max-w-sm sm:h-fit bg-[#1C1C1E] sm:rounded-3xl rounded-t-3xl border border-white/10 p-6">
+            <h3 class="text-lg font-bold text-white mb-4" data-i18n="print_opts">Параметры печати</h3>
+            <div class="space-y-3">
+                <label id="ttk-print-cost-row" class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" id="ttk-print-cost" class="w-5 h-5 accent-blue-500 cursor-pointer">
+                    <span class="text-sm text-gray-300" data-i18n="print_incl_cost">Печатать себестоимость</span>
+                </label>
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" id="ttk-print-nutrition" class="w-5 h-5 accent-blue-500 cursor-pointer">
+                    <span class="text-sm text-gray-300" data-i18n="print_incl_nutrition">Печатать КБЖУ</span>
+                </label>
+            </div>
+            <button onclick="confirmTTKPrint()" class="w-full h-12 mt-6 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors"><i class="fa-solid fa-print mr-2"></i><span data-i18n="print">Печать</span></button>
+        </div>
+    </div>
+
+    <!-- Режим готовки (v1.7): полноэкранный оверлей -->
+    <div id="cookmode-overlay" class="fixed inset-0 z-[200] hidden bg-black flex flex-col">
+        <div class="flex items-center justify-between p-4 sm:p-6 flex-shrink-0">
+            <button onclick="closeCookMode()" class="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <span id="cook-counter" class="text-sm font-semibold text-gray-400"></span>
+            <div class="w-11"></div>
+        </div>
+        <div class="h-1 bg-white/10 mx-4 sm:mx-6 rounded-full overflow-hidden flex-shrink-0"><div id="cook-progress" class="h-full bg-orange-500 rounded-full transition-all duration-300" style="width:0%"></div></div>
+        <div class="flex-1 overflow-y-auto p-6 sm:p-10 flex items-center justify-center">
+            <div id="cook-body" class="w-full"></div>
+        </div>
+        <div class="flex items-center justify-between gap-4 p-4 sm:p-6 flex-shrink-0">
+            <button id="cook-prev" onclick="cookPrev()" class="h-14 px-8 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-medium transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i><span data-i18n="back">Назад</span></button>
+            <button id="cook-next" onclick="cookNext()" class="h-14 px-8 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"><span data-i18n="next">Далее</span><i class="fa-solid fa-arrow-right ml-2"></i></button>
+        </div>
+    </div>
+
+    <div id="print-area" class="hidden"></div>
+
+    <script src="js/i18n.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/costing.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/tiles.js"></script>
+    <script src="js/core.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/account.js"></script>
+    <script src="js/kitchens.js"></script>
+    <script src="js/calendar.js"></script>
+    <!-- Модалка: обмен сменой (v1.9) -->
+    <div id="swap-modal" onclick="if(event.target === this) closeModal('swap-modal')" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-y-auto hide-scrollbar">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-white" data-i18n="swap_title">Обмен сменой</h3>
+                <button onclick="closeModal('swap-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="swap_peer">Коллега</label><div id="swap-peer-dd"></div></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="swap_their_shift">Его смена (необязательно)</label><div id="swap-their-dd"></div></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="swap_note">Комментарий</label><input type="text" id="swap-note" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-teal-500" data-i18n="swap_note_ph" placeholder="Необязательно…"></div>
+            </div>
+            <button onclick="submitSwapRequest()" class="w-full mt-6 h-11 rounded-xl bg-teal-500 text-white font-medium hover:bg-teal-600 active:scale-95 transition-all shadow-lg shadow-teal-500/20" data-i18n="swap_create">Отправить запрос</button>
+        </div>
+    </div>
+
+    <!-- Модалка: запрос на выходной (v1.9) -->
+    <div id="dayoff-modal" onclick="if(event.target === this) closeModal('dayoff-modal')" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-y-auto hide-scrollbar">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-white" data-i18n="dayoff_title">Запрос на выходной</h3>
+                <button onclick="closeModal('dayoff-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="dayoff_date">Дата</label><input type="date" id="dayoff-date" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-amber-500"></div>
+                <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="dayoff_reason">Причина</label><input type="text" id="dayoff-reason" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-amber-500" data-i18n="dayoff_reason_ph" placeholder="Необязательно…"></div>
+            </div>
+            <button onclick="submitDayOffRequest()" class="w-full mt-6 h-11 rounded-xl bg-amber-500 text-white font-medium hover:bg-amber-600 active:scale-95 transition-all shadow-lg shadow-amber-500/20" data-i18n="dayoff_request_btn">Запрос на выходной</button>
+        </div>
+    </div>
+
+    <!-- Модалка: уведомления (v1.9) -->
+    <div id="notifications-modal" onclick="if(event.target === this) closeModal('notifications-modal')" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-y-auto hide-scrollbar">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-white" data-i18n="notif_title">Уведомления</h3>
+                <button onclick="closeModal('notifications-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="notifications-list"></div>
+        </div>
+    </div>
+
+    <script src="js/settings.js"></script>
+    <script src="js/sales.js"></script>
+    <script src="js/menu.js"></script>
+    <script src="js/ttk.js"></script>
+    <script src="js/books.js"></script>
+    <script src="js/inventory.js"></script>
+    <script src="js/invoice-ocr.js"></script>
+    <script src="js/stocktake.js"></script>
+    <script src="js/team.js"></script>
+    <script src="js/team-v19.js"></script>
+    <script src="js/finance.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/cookmode.js"></script>
+    <script src="js/labels.js"></script>
+    <script src="js/orders.js"></script>
+    <script src="js/sync.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

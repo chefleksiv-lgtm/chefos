@@ -1,0 +1,1 @@
+{"description":"ChefOS v2.0 — multi-user kitchen management (accounts + per-user sync), Node built-ins only","engines":{"node":">=18"},"name":"chefos","private":true,"scripts":{"start":"node server/server.js"},"version":"2.0.0"}
