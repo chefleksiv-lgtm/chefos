@@ -617,11 +617,37 @@
             <div class="flex items-center justify-between gap-3 p-4 border-b border-white/10 shrink-0">
                 <div id="pdf-title" class="text-white text-sm font-medium truncate">PDF</div>
                 <div class="flex gap-2 shrink-0">
-                    <button onclick="openPdfExtern()" class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium flex items-center gap-2 active:scale-95 transition-all"><i class="fa-solid fa-arrow-up-right-from-square"></i><span>Открыть</span></button>
+                    <button onclick="translateCurrentPdf()" class="h-10 px-4 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-sm font-medium flex items-center gap-2 active:scale-95 transition-all border border-emerald-500/30"><i class="fa-solid fa-language"></i><span data-i18n="book_translate">Перевести</span></button>
+                    <button onclick="openPdfExtern()" class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium flex items-center gap-2 active:scale-95 transition-all"><i class="fa-solid fa-arrow-up-right-from-square"></i><span data-i18n="book_open">Открыть</span></button>
                     <button onclick="closePdfModal()" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center text-gray-300 active:scale-95 transition-all"><i class="fa-solid fa-xmark"></i></button>
                 </div>
             </div>
             <iframe id="pdf-frame" class="w-full flex-1 bg-white" title="PDF"></iframe>
+        </div>
+    </div>
+
+    <div id="translate-modal" class="hidden fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm opacity-0 transition-opacity duration-300 flex items-center justify-center p-6" onclick="if(event.target === this) cancelTranslation()">
+        <div class="bg-[#1C1C1E] rounded-3xl border border-white/10 p-6 w-full max-w-sm shadow-2xl">
+            <h3 class="text-white font-bold mb-1" data-i18n="tr_title">Перевод книги</h3>
+            <p id="tr-title" class="text-xs text-gray-400 truncate mb-4"></p>
+            <div class="h-2.5 rounded-full bg-white/10 overflow-hidden mb-2"><div id="tr-bar" class="h-full rounded-full bg-emerald-500 transition-all duration-300" style="width:0%"></div></div>
+            <p id="tr-label" class="text-xs text-gray-400 mb-5">…</p>
+            <button onclick="cancelTranslation(); closeModal('translate-modal')" class="w-full h-11 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium active:scale-95 transition-all"><span data-i18n="tr_cancel">Отмена</span></button>
+        </div>
+    </div>
+
+    <div id="bookread-modal" onclick="if(event.target === this) closeModal('bookread-modal')" class="hidden fixed inset-0 z-[70] bg-[#121212] overflow-y-auto opacity-0 transition-opacity duration-300">
+        <div class="max-w-2xl mx-auto p-8 sm:p-12 min-h-screen relative bg-[#181818]">
+            <button onclick="closeModal('bookread-modal')" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            <div class="mt-10 font-serif">
+                <h1 id="bookread-title" class="text-2xl font-bold text-white mb-2 leading-tight"></h1>
+                <p id="bookread-sub" class="text-sm text-gray-400 mb-8"></p>
+                <div id="bookread-content" class="text-gray-300 text-lg leading-relaxed"></div>
+                <div class="flex items-center justify-between mt-10 pb-10">
+                    <button id="bookread-prev" onclick="bookreadNav(-1)" class="h-11 px-6 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium active:scale-95 transition-all">←</button>
+                    <button id="bookread-next" onclick="bookreadNav(1)" class="h-11 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold active:scale-95 transition-all">→</button>
+                </div>
+            </div>
         </div>
     </div>
 
