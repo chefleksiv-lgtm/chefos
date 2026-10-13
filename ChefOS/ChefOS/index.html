@@ -280,7 +280,16 @@
                 </div>
                 <button onclick="closeTableTabModal()" class="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="p-6 pt-4">
+            <div class="px-6 pt-4">
+                <button id="table-status-btn" onclick="toggleTableStatus()" class="w-full h-12 rounded-xl border-2 font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center"></button>
+            </div>
+            <div id="table-tab-free" class="p-6 pt-4 hidden">
+                <p class="text-sm text-gray-400 text-center mb-4" data-i18n="table_free_hint">Гости ещё не сели. Нажмите кнопку, чтобы занять столик.</p>
+                <button onclick="seatTableGuests()" class="w-full h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition-all flex items-center justify-center shadow-lg shadow-emerald-500/20 active:scale-[0.98]">
+                    <i class="fa-solid fa-users mr-2 text-lg"></i> <span data-i18n="table_seat">Посадить гостей</span>
+                </button>
+            </div>
+            <div id="table-tab-busy" class="p-6 pt-4 hidden">
                 <div id="table-tab-items" class="mb-4"></div>
                 <div class="relative w-full mb-3">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none text-sm"></i>

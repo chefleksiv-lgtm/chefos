@@ -3,6 +3,7 @@
         // tableTabsDB: [{id, tableId, items:{dishId:qty}, sent:{dishId:qty}, ts}]
         let floorEditMode = false;
         let activeTableTabId = null;
+        let activeTableId = null;
         let tableDishQuery = '';
 
         function tableTabFor(tableId) {
@@ -204,19 +205,36 @@
         function openTableTab(tableId) {
             const tb = tablesDB.find(v => v.id === tableId);
             if (!tb) return;
-            let tab = tableTabFor(tableId);
-            if (!tab) {
-                tab = { id: Date.now(), tableId, items: {}, sent: {}, ts: new Date().toISOString() };
-                tableTabsDB.push(tab);
-                markDirty();
-            }
-            activeTableTabId = tab.id;
+            const tab = tableTabFor(tableId);
+            activeTableId = tableId;
+            activeTableTabId = tab ? tab.id : null;
             tableDishQuery = '';
             const si = document.getElementById('table-tab-search');
             if (si) si.value = '';
             renderTableTab();
-            renderFloorPlan();
             openModal('table-tab-modal');
+        }
+        // Посадить гостей: открыть пустой счёт = стол занят
+        function seatTableGuests() {
+            if (!activeTableId || tableTabFor(activeTableId)) return;
+            tableTabsDB.push({ id: Date.now(), tableId: activeTableId, items: {}, sent: {}, ts: new Date().toISOString() });
+            activeTableTabId = tableTabsDB[tableTabsDB.length - 1].id;
+            markDirty();
+            renderTableTab();
+            renderFloorPlan();
+        }
+        // Кнопка статуса: занят/свободен
+        function toggleTableStatus() {
+            const tab = activeTab();
+            if (!tab) { seatTableGuests(); return; }
+            const hasItems = Object.keys(tab.items || {}).length > 0;
+            if (hasItems) { showNotification(t('table_cannot_free')); return; }
+            const i = tableTabsDB.findIndex(x => x.id === tab.id);
+            if (i >= 0) tableTabsDB.splice(i, 1);
+            activeTableTabId = null;
+            markDirty();
+            closeTableTabModal();
+            showNotification(t('table_freed'));
         }
         function activeTab() {
             return (tableTabsDB || []).find(x => x.id === activeTableTabId) || null;
@@ -250,8 +268,27 @@
         }
         function renderTableTab() {
             const tab = activeTab();
-            if (!tab) return;
-            const tb = tablesDB.find(v => v.id === tab.tableId);
+            const tb = tablesDB.find(v => v.id === (tab ? tab.tableId : activeTableId));
+            const freePane = document.getElementById('table-tab-free');
+            const busyPane = document.getElementById('table-tab-busy');
+            const stBtn = document.getElementById('table-status-btn');
+            const occupied = !!tab;
+            if (freePane) freePane.classList.toggle('hidden', occupied);
+            if (busyPane) busyPane.classList.toggle('hidden', !occupied);
+            if (stBtn) {
+                stBtn.innerHTML = occupied
+                    ? `<i class="fa-solid fa-users mr-2"></i><span>${t('table_is_occupied')}</span>`
+                    : `<i class="fa-solid fa-circle-check mr-2"></i><span>${t('table_is_free')}</span>`;
+                const on = ['bg-amber-500', 'text-black', 'border-amber-500'];
+                const off = ['bg-emerald-500/15', 'text-emerald-300', 'border-emerald-500/40'];
+                stBtn.classList.remove(...(occupied ? off : on));
+                stBtn.classList.add(...(occupied ? on : off));
+            }
+            if (!tab) {
+                const title = document.getElementById('table-tab-title');
+                if (title) title.textContent = (t('table_prefix') + ' ' + (tb ? tb.name : '')) + (tb ? ` · ${tb.seats} ${t('table_seats_short')}` : '');
+                return;
+            }
             const title = document.getElementById('table-tab-title');
             if (title) title.textContent = (t('table_prefix') + ' ' + (tb ? tb.name : '')) + (tb ? ` · ${tb.seats} ${t('table_seats_short')}` : '');
             const sub = document.querySelector('#table-tab-modal [data-i18n="table_tab_subtitle"]');
@@ -354,15 +391,14 @@
             commitSale(Object.assign({}, tab.items), { tableId: tab.tableId, tableName });
             const i = tableTabsDB.findIndex(x => x.id === tab.id);
             if (i >= 0) tableTabsDB.splice(i, 1);
-            activeTableTabId = null;
             markDirty();
-            closeModal('table-tab-modal');
-            renderFloorPlan();
+            closeTableTabModal();
             showNotification(`${t('sales_success')}: ${tableName}`);
         }
 
         function closeTableTabModal() {
             activeTableTabId = null;
+            activeTableId = null;
             closeModal('table-tab-modal');
             renderFloorPlan();
         }
