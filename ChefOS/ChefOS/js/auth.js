@@ -48,6 +48,7 @@
             const sec = document.getElementById('pin-employee-section');
             if (!sec) return;
             document.getElementById('pin-keypad').classList.add('hidden');
+            document.getElementById('pin-dots').classList.add('hidden');
             document.getElementById('pin-role-btn').classList.remove('hidden');
             document.getElementById('pin-emp-btn').classList.add('hidden');
             sec.classList.remove('hidden');
@@ -56,7 +57,10 @@
                 const withPin = teamDB.filter(e => e.pin);
                 list.innerHTML = withPin.length === 0
                     ? `<p class="text-sm text-gray-500 text-center py-4">${t('auth_emp_none')}</p>`
-                    : withPin.map(e => `<button onclick="pinSelectEmployee(${e.id})" class="w-full flex items-center justify-between p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors border border-white/5 mb-2"><div class="text-left"><p class="text-sm font-medium text-white">${e.name}</p><p class="text-[10px] text-gray-400">${e.role || ''}</p></div><i class="fa-solid fa-chevron-right text-gray-500 text-xs"></i></button>`).join('');
+                    : withPin.map(e => {
+                        const initials = (e.name || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+                        return `<button onclick="pinSelectEmployee(${e.id})" class="group w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] hover:from-teal-500/20 hover:to-teal-500/5 border border-white/10 hover:border-teal-400/40 transition-all duration-200 mb-3 text-left active:scale-[0.99]"><div class="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400/40 to-teal-700/40 border border-teal-400/30 flex items-center justify-center text-teal-200 font-bold text-sm shrink-0 shadow-lg shadow-teal-900/30">${initials}</div><div class="flex-1 min-w-0"><p class="text-[15px] font-semibold text-white truncate">${e.name}</p><p class="text-xs text-gray-400 mt-0.5">${e.role || ''}</p></div><i class="fa-solid fa-chevron-right text-gray-600 group-hover:text-teal-300 group-hover:translate-x-1 transition-all text-sm"></i></button>`;
+                    }).join('');
             }
             document.getElementById('pin-msg').textContent = t('auth_emp_select_msg');
             document.getElementById('pin-msg').className = 'text-sm text-gray-400 mb-10';
@@ -70,6 +74,7 @@
             const sec = document.getElementById('pin-employee-section');
             if (sec) sec.classList.add('hidden');
             document.getElementById('pin-keypad').classList.remove('hidden');
+            document.getElementById('pin-dots').classList.remove('hidden');
             document.getElementById('pin-msg').textContent = t('auth_emp_pin_msg');
             document.getElementById('pin-msg').className = 'text-sm text-gray-400 mb-10';
         }
@@ -80,6 +85,7 @@
             const sec = document.getElementById('pin-employee-section');
             if (sec) sec.classList.add('hidden');
             document.getElementById('pin-keypad').classList.remove('hidden');
+            document.getElementById('pin-dots').classList.remove('hidden');
             document.getElementById('pin-role-btn').classList.add('hidden');
             document.getElementById('pin-emp-btn').classList.remove('hidden');
             clearPin();

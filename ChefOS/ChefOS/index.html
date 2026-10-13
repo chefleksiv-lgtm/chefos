@@ -54,7 +54,7 @@
             <h1 class="text-4xl font-bold mb-2 tracking-tight text-white">ChefOS</h1>
             <p class="text-sm text-gray-400 mb-10" id="pin-msg">Введите PIN-код для входа</p>
             
-            <div class="flex gap-4 mb-10">
+            <div id="pin-dots" class="flex gap-4 mb-10">
                 <div class="pin-dot w-4 h-4 rounded-full border-2 border-gray-600" id="dot-1"></div>
                 <div class="pin-dot w-4 h-4 rounded-full border-2 border-gray-600" id="dot-2"></div>
                 <div class="pin-dot w-4 h-4 rounded-full border-2 border-gray-600" id="dot-3"></div>
@@ -79,7 +79,7 @@
             <div id="pin-hint" class="mt-8 text-xs text-gray-500 text-center hidden">
             </div>
             <button id="pin-emp-btn" onclick="pinShowEmployeeSelect()" class="mt-6 h-11 px-6 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors" data-i18n="auth_i_am_employee">Я — сотрудник</button>
-            <button id="pin-role-btn" onclick="pinShowRoleMode()" class="mt-6 h-11 px-6 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors hidden" data-i18n="auth_back_roles">← ролевые PIN</button>
+            <button id="pin-role-btn" onclick="pinShowRoleMode()" class="mt-2 h-10 px-5 rounded-full border border-white/15 text-gray-300 hover:text-white hover:border-white/40 hover:bg-white/5 text-sm transition-all hidden" data-i18n="auth_back_roles">← ролевые PIN</button>
             <div id="pin-employee-section" class="hidden w-full mt-2">
                 <div id="pin-emp-list" class="w-full max-h-[40vh] overflow-y-auto hide-scrollbar"></div>
             </div>
