@@ -4,7 +4,7 @@
             kitchens.forEach(kitchen => {
                 const isActive = kitchen === activeKitchen;
                 const btn = document.createElement('button');
-                btn.className = `px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 active:scale-95 flex items-center gap-2 ${isActive ? 'bg-white text-black shadow-sm' : 'bg-[#2C2C2E] text-gray-300 hover:bg-[#3A3A3C]'}`;
+                btn.className = `shrink-0 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 active:scale-95 flex items-center gap-2 ${isActive ? 'bg-white text-black shadow-sm' : 'bg-[#2C2C2E] text-gray-300 hover:bg-[#3A3A3C]'}`;
                 
                 if (isActive) {
                     let actionsHtml = '';
