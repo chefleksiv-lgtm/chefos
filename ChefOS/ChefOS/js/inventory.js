@@ -26,7 +26,7 @@
                 }
             });
             if (tabName === 'ingredients') renderInventoryList(); 
-            if (tabName === 'suppliers') { renderSuppliersList(); renderOrdersList(); }
+            if (tabName === 'suppliers') { renderSuppliersList(); if (typeof renderAutoOrderSettings === 'function') renderAutoOrderSettings(); renderOrdersList(); }
             if (tabName === 'finance') renderFinanceTab();
             if (tabName === 'waste') renderWasteTab();
         }

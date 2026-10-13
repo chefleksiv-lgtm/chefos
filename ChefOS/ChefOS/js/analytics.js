@@ -123,6 +123,32 @@
         }
 
         // --- ПРОГНОЗ СПРОСА (v2.2): средние продажи × горизонт → что докупить ---
+        // v2.4: сезонный индекс — корректирует прогноз по истории продаж
+        function seasonalFactor(dishId, monthKey) {
+            const clamp = (v) => Math.max(0.5, Math.min(2, v));
+            const parts = String(monthKey).split('-');
+            const y = parseInt(parts[0]), m = parseInt(parts[1]);
+            const key = (yy, mm) => yy + '-' + String(mm).padStart(2, '0');
+            // 1) Тот же месяц год назад vs средний месяц того года
+            const ly = {};
+            for (let mm = 1; mm <= 12; mm++) ly[mm] = ((salesDB[key(y - 1, mm)] || {})[dishId]) || 0;
+            const lyMonths = Object.values(ly).filter(q => q > 0);
+            if (ly[m] > 0 && lyMonths.length >= 3) {
+                return clamp(ly[m] / (lyMonths.reduce((a, b) => a + b, 0) / lyMonths.length));
+            }
+            // 2) Fallback: последний месяц с данными vs среднее за 3 последних месяца с данными
+            const recent = [];
+            for (let i = 1; i <= 12 && recent.length < 3; i++) {
+                let yy = y, mm = m - i;
+                while (mm < 1) { mm += 12; yy--; }
+                const q = ((salesDB[key(yy, mm)] || {})[dishId]) || 0;
+                if (q > 0) recent.push(q);
+            }
+            if (recent.length >= 2) {
+                return clamp(recent[0] / (recent.reduce((a, b) => a + b, 0) / recent.length));
+            }
+            return 1;
+        }
         let forecastHorizon = 7;
         function setForecastHorizon(d) { forecastHorizon = d; renderForecast(); }
         function forecastDishNeeds(dish, portions) {
@@ -154,8 +180,9 @@
                 if (!d) return;
                 const qty = sales[id] || 0;
                 const avg = daysElapsed > 0 ? qty / daysElapsed : 0;
-                const fqty = Math.ceil(avg * forecastHorizon);
-                if (fqty > 0) dishes.push({ dish: d, sold: qty, avg, fqty });
+                const sf = seasonalFactor(id, mk);
+                const fqty = Math.ceil(avg * forecastHorizon * sf);
+                if (fqty > 0) dishes.push({ dish: d, sold: qty, avg, fqty, sf });
             });
             dishes.sort((a, b) => b.fqty - a.fqty);
             const needs = {};
@@ -186,7 +213,7 @@
                 '<div class="space-y-1 mb-6">' + dishes.slice(0, 12).map(x =>
                     '<div class="flex justify-between items-center bg-black/30 rounded-xl px-3 py-2 text-sm">' +
                     '<span class="text-gray-200 truncate mr-2">' + x.dish.name + '</span>' +
-                    '<span class="text-xs text-gray-500 whitespace-nowrap">' + t('fc_sold') + ' ' + x.sold + ' · ~' + x.avg.toFixed(1) + '/' + t('fc_day') + ' → <span class="text-teal-400 font-bold">' + x.fqty + '</span></span></div>'
+                    '<span class="text-xs text-gray-500 whitespace-nowrap">' + t('fc_sold') + ' ' + x.sold + ' · ~' + x.avg.toFixed(1) + '/' + t('fc_day') + (x.sf && Math.abs(x.sf - 1) > 0.05 ? ' <span class="text-sky-400" title="' + t('fc_seasonal') + '">×' + x.sf.toFixed(1) + '</span>' : '') + ' → <span class="text-teal-400 font-bold">' + x.fqty + '</span></span></div>'
                 ).join('') + '</div>' +
                 '<p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">' + t('fc_shop_title') + '</p>' +
                 (shopping.length ? '<div class="space-y-1">' + shopping.map(n =>

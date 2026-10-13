@@ -642,6 +642,11 @@
                 <div id="suppliers-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                 <div class="mt-10">
                     <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-white" data-i18n="autoorder_settings">Настройки автозаказа</h3>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-4" data-i18n="autoorder_settings_desc">Дни, когда поставщик принимает заказы, и срок поставки в днях.</p>
+                    <div id="autoorder-settings" class="space-y-3 mb-10"></div>
+                    <div class="flex justify-between items-center mb-4">
                         <h3 class="text-xl font-semibold text-white" data-i18n="orders_title">Заказы поставщикам</h3>
                         <button id="gen-orders-btn" onclick="generateOrders()" class="px-4 h-11 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-medium transition-colors inline-flex items-center justify-center shadow-lg shadow-orange-500/20"><i class="fa-solid fa-cart-plus mr-1"></i> <span data-i18n="orders_generate">Сформировать заказ</span></button>
                     </div>

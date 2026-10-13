@@ -58,6 +58,112 @@
             });
         }
 
+        // --- НАСТРОЙКИ АВТОЗАКАЗА (v2.4): дни работы поставщика, лид-тайм ---
+        // supplier.orderDays: [0..6] (0=вс), supplier.leadDays: дней до поставки
+        function supplierByName(name) {
+            return (suppliersDB || []).find(x => String(x.name || '').trim().toLowerCase() === String(name || '').trim().toLowerCase()) || null;
+        }
+        function supplierWorkdays(sup) {
+            const r = supplierByName(sup);
+            const d = r && Array.isArray(r.orderDays) ? r.orderDays : null;
+            return (d && d.length) ? d : [0, 1, 2, 3, 4, 5, 6];
+        }
+        function supplierLead(sup) {
+            const r = supplierByName(sup);
+            return (r && r.leadDays >= 0) ? r.leadDays : 0;
+        }
+        // Дней до ближайшего рабочего дня поставщика (0 = сегодня)
+        function daysToNextOrderDay(sup, fromDate) {
+            const days = supplierWorkdays(sup);
+            const base = fromDate ? new Date(fromDate) : new Date();
+            for (let i = 0; i < 8; i++) {
+                if (days.includes((base.getDay() + i) % 7)) return i;
+            }
+            return 0;
+        }
+        function weekdayShort(d) { return t('dow_' + d); }
+        function nextOrderDayLabel(sup) {
+            const n = daysToNextOrderDay(sup);
+            if (n === 0) return t('next_order_today');
+            const d = new Date(); d.setDate(d.getDate() + n);
+            return t('next_order_day') + ': ' + weekdayShort(d.getDay());
+        }
+        function toggleSupplierDay(id, day) {
+            if (currentAppRole !== 'chef') { showNotification(t('chef_only')); return; }
+            const s = (suppliersDB || []).find(x => x.id === id); if (!s) return;
+            if (!Array.isArray(s.orderDays)) s.orderDays = [0, 1, 2, 3, 4, 5, 6];
+            const i = s.orderDays.indexOf(day);
+            if (i >= 0) { if (s.orderDays.length > 1) s.orderDays.splice(i, 1); }
+            else s.orderDays.push(day);
+            markDirty();
+            renderAutoOrderSettings();
+            renderOrdersList();
+        }
+        function changeSupplierLead(id, delta) {
+            if (currentAppRole !== 'chef') { showNotification(t('chef_only')); return; }
+            const s = (suppliersDB || []).find(x => x.id === id); if (!s) return;
+            s.leadDays = Math.max(0, Math.min(14, (s.leadDays || 0) + delta));
+            markDirty();
+            renderAutoOrderSettings();
+            renderOrdersList();
+        }
+        function renderAutoOrderSettings() {
+            const box = document.getElementById('autoorder-settings'); if (!box) return;
+            const isChef = currentAppRole === 'chef';
+            const list = suppliersDB || [];
+            box.innerHTML = list.length ? list.map(s => {
+                const days = supplierWorkdays(s.name);
+                const chips = [1, 2, 3, 4, 5, 6, 0].map(d => {
+                    const on = days.includes(d);
+                    return `<button ${isChef ? `onclick="toggleSupplierDay(${s.id}, ${d})"` : 'disabled'} class="w-9 h-9 rounded-lg text-xs font-bold border transition-all ${on ? 'bg-orange-500 text-white border-orange-500' : 'bg-[#2C2C2E] text-gray-500 border-white/10'} ${isChef ? 'active:scale-90 cursor-pointer' : 'cursor-default'}">${weekdayShort(d)}</button>`;
+                }).join('');
+                return `<div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-4">
+                    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                        <div>
+                            <span class="font-semibold text-white">${s.name}</span>
+                            <span class="text-xs text-gray-500 ml-2">${s.email ? s.email : t('no_supplier_email')}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-400">${t('lead_days')}:</span>
+                            <button ${isChef ? `onclick="changeSupplierLead(${s.id}, -1)"` : 'disabled'} class="w-8 h-8 rounded-lg bg-[#2C2C2E] text-white border border-white/10 ${isChef ? 'active:scale-90' : 'opacity-40'}">−</button>
+                            <span class="text-white font-bold w-6 text-center">${s.leadDays || 0}</span>
+                            <button ${isChef ? `onclick="changeSupplierLead(${s.id}, 1)"` : 'disabled'} class="w-8 h-8 rounded-lg bg-[#2C2C2E] text-white border border-white/10 ${isChef ? 'active:scale-90' : 'opacity-40'}">+</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-xs text-gray-400 mr-1">${t('supplier_workdays')}:</span>
+                        ${chips}
+                    </div>
+                </div>`;
+            }).join('') : `<p class="text-sm text-gray-600 text-center py-4">${t('sup_empty')}</p>`;
+        }
+
+        // --- Отправка заказа поставщику (v2.4): email / копирование ---
+        function orderText(o) {
+            const lines = o.items.map(i => `- ${i.name} — ${i.qty} ${t('unit_' + i.unit) || i.unit}`);
+            return `${t('order_mail_subject')} ${o.date}\n${t('order_mail_supplier')}: ${o.supplier}\n\n${lines.join('\n')}\n\n${t('orders_positions')}: ${o.items.length}`;
+        }
+        function emailOrder(id) {
+            const o = (ordersDB || []).find(x => x.id === id); if (!o) return;
+            const s = supplierByName(o.supplier);
+            if (!s || !s.email) { showNotification(t('no_supplier_email')); return; }
+            const subject = encodeURIComponent(`${t('order_mail_subject')} ${o.date} — ${o.supplier}`);
+            const body = encodeURIComponent(orderText(o));
+            window.location.href = `mailto:${s.email}?subject=${subject}&body=${body}`;
+        }
+        function copyOrder(id) {
+            const o = (ordersDB || []).find(x => x.id === id); if (!o) return;
+            const done = () => showNotification(t('order_copied'));
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(orderText(o)).then(done).catch(() => showNotification(t('order_copy_fail')));
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = orderText(o); document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); done(); } catch (e) { showNotification(t('order_copy_fail')); }
+                ta.remove();
+            }
+        }
+
         // v2.2: сравнение цен — ищем поставщика дешевле для позиции заказа
         function cheaperSupplierHint(itemName, orderSupplier) {
             const inv = (inventoryDB || []).find(x => x.name.trim().toLowerCase() === String(itemName).trim().toLowerCase());
@@ -82,6 +188,7 @@
                         <div>
                             <h4 class="font-semibold text-white">${o.supplier}</h4>
                             <p class="text-xs text-gray-500">${o.date} · ${o.items.length} ${t('orders_positions')}</p>
+                            <p class="text-xs text-sky-400 mt-0.5"><i class="fa-solid fa-truck mr-1"></i>${nextOrderDayLabel(o.supplier)}</p>
                         </div>
                         <span class="text-xs font-bold px-2.5 py-1 rounded-md ${o.status === 'new' ? 'bg-orange-500/20 text-orange-400' : 'bg-green-500/20 text-green-400'}">${t('order_' + o.status)}</span>
                     </div>
@@ -91,6 +198,8 @@
                     ${currentAppRole === 'chef' ? `
                     <div class="flex gap-2">
                         <button onclick="toggleOrderStatus(${o.id})" class="flex-1 h-10 rounded-xl ${o.status === 'new' ? 'bg-green-500/20 hover:bg-green-500/30 text-green-400' : 'bg-white/10 hover:bg-white/20 text-gray-300'} text-sm font-medium transition-colors">${t(o.status === 'new' ? 'order_mark_done' : 'order_reopen')}</button>
+                        <button onclick="emailOrder(${o.id})" title="${t('order_email')}" class="h-10 w-10 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 transition-colors"><i class="fa-solid fa-envelope"></i></button>
+                        <button onclick="copyOrder(${o.id})" title="${t('order_copy')}" class="h-10 w-10 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 transition-colors"><i class="fa-solid fa-copy"></i></button>
                         <button onclick="deleteOrder(${o.id})" class="h-10 w-10 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors"><i class="fa-solid fa-trash"></i></button>
                     </div>` : ''}
                 </div>`).join('')
