@@ -42,6 +42,29 @@
         }
 
         function openPayrollModal() {
+
+        // v2.2: Экспорт P&L в CSV для бухгалтера (все месяцы, UTF-8 BOM для Excel)
+        function exportFinanceCSV() {
+            const months = Object.keys(financeDB || {}).sort();
+            if (!months.length) { showNotification(t('fin_export_empty')); return; }
+            const rows = [['Month', 'Income', 'COGS', 'Payroll', 'Losses', 'Profit', 'Labor %', 'Prime cost %', 'Food cost %']];
+            months.forEach(m => {
+                const d = financeDB[m];
+                const profit = (d.income || 0) - (d.cogs || 0) - (d.payroll || 0) - (d.losses || 0);
+                const pct = (v) => d.income > 0 ? (v / d.income * 100).toFixed(1) : '';
+                rows.push([m,
+                    (d.income || 0).toFixed(2), (d.cogs || 0).toFixed(2), (d.payroll || 0).toFixed(2), (d.losses || 0).toFixed(2),
+                    profit.toFixed(2), pct(d.payroll || 0), pct((d.cogs || 0) + (d.payroll || 0)), pct(d.cogs || 0)]);
+            });
+            const csv = '\uFEFF' + rows.map(r => r.join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'chefos-pnl-' + new Date().toISOString().slice(0, 10) + '.csv';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+            showNotification(t('fin_export_done'));
+        }
             if (!Array.isArray(payrollDB)) payrollDB = [];
             const sel = document.getElementById('payroll-emp');
             sel.innerHTML = (teamDB || []).map(e =>
