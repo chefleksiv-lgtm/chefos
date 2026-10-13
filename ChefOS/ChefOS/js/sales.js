@@ -212,6 +212,7 @@
                 const ticket = { id: Date.now(), num, ts: new Date().toISOString(), items: kdsItems, status: 'new' };
                 if (opts.tableName) ticket.table = opts.tableName;
                 if (opts.takeaway) { ticket.takeaway = true; if (opts.customerName) ticket.customer = opts.customerName; }
+                if (opts.allergies && opts.allergies.length) ticket.allergies = opts.allergies.slice();
                 kdsDB.unshift(ticket);
             }
             markDirty();

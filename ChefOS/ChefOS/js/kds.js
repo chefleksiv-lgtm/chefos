@@ -88,6 +88,7 @@
                         <span class="text-lg font-bold text-white">#${tk.num}${tk.table ? ` <span class="text-amber-400 text-sm font-semibold">· ${tk.table}</span>` : ""}${tk.takeaway ? ` <span class="ml-1 px-2 py-0.5 rounded-full bg-sky-500/20 border border-sky-500/50 text-sky-300 text-[11px] font-bold align-middle">${t('takeaway_tag')}${tk.customer ? ' · ' + tk.customer : ''}</span>` : ""}</span>
                         <span class="text-xl font-bold ${timeCls}"><i class="fa-regular fa-clock mr-1"></i>${kdsElapsedTxt(tk.ts)}</span>
                     </div>
+                    ${tk.allergies && tk.allergies.length ? `<div class="mb-3 px-3 py-2 rounded-xl bg-red-500/20 border-2 border-red-500/70 text-red-300 text-sm font-bold flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation"></i><span>${t('kds_allergies')}: ${tk.allergies.map(a => t('alg_' + a)).join(', ')}</span></div>` : ''}
                     <div class="flex-1 space-y-2 mb-4">
                         ${tk.items.map(it => `<div class="flex items-baseline gap-2"><span class="text-2xl font-bold text-orange-400 w-10 shrink-0">${it.qty}×</span><span class="text-white font-medium leading-snug">${it.name}</span></div>`).join('')}
                     </div>

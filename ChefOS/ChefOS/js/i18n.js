@@ -189,6 +189,8 @@
             'table_seat': { ru: 'Посадить гостей', en: 'Seat guests' },
             'table_cannot_free': { ru: 'Сначала закройте счёт', en: 'Close the tab first' },
             'table_freed': { ru: 'Стол свободен', en: 'Table is free' },
+            'table_allergies': { ru: 'Аллергии гостей', en: 'Guest allergies' },
+            'kds_allergies': { ru: 'АЛЛЕРГИЯ', en: 'ALLERGY' },
             'autoorder_settings': { ru: 'Настройки автозаказа', en: 'Auto-order settings' },
             'autoorder_settings_desc': { ru: 'Дни, когда поставщик принимает заказы, и срок поставки в днях.', en: 'Days the supplier takes orders, and lead time in days.' },
             'supplier_workdays': { ru: 'Рабочие дни', en: 'Working days' },

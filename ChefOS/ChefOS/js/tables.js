@@ -70,6 +70,7 @@
                     ${occupied && !floorEditMode ? `<div class="text-amber-300 text-[11px] font-bold pointer-events-none">${currentCurrency}${tabSum}</div>
                     <div class="text-gray-500 text-[9px] pointer-events-none">${elapsed} ${t('table_min_short')}</div>` : ''}
                     ${occupied && !floorEditMode ? `<div class="absolute -top-2 -right-2 min-w-[24px] h-6 px-1 rounded-full bg-amber-400 text-black text-xs font-bold flex items-center justify-center pointer-events-none">${itemCount}</div>` : ''}
+                    ${(tb.allergies && tb.allergies.length) ? `<div class="absolute -bottom-2 -left-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center pointer-events-none" title="${t('table_allergies')}">!</div>` : ''}
                 </div>`;
             }).join('');
 
@@ -111,6 +112,7 @@
             document.getElementById('table-edit-seats').value = tb ? tb.seats : 2;
             renderTableShapeBtns();
             renderTableSizeBtns();
+            renderTableAllergenCheckboxes(tb ? tb.allergies : []);
             document.getElementById('table-edit-delete').style.display = tb ? '' : 'none';
             document.getElementById('table-edit-title').textContent = tb ? t('table_edit_title') : t('table_add_title');
             openModal('table-edit-modal');
@@ -139,15 +141,27 @@
             }
         }
         function setTableSize(size) { pendingTableSize = size; renderTableSizeBtns(); }
+        function renderTableAllergenCheckboxes(selected) {
+            const box = document.getElementById('table-edit-allergens'); if (!box) return;
+            const list = (typeof ALLERGENS !== 'undefined') ? ALLERGENS : [];
+            box.innerHTML = list.map(a => {
+                const on = (selected || []).includes(a);
+                return `<label class="flex items-center gap-1.5 h-9 px-2 bg-[#2C2C2E] rounded-lg text-[11px] text-gray-300 cursor-pointer whitespace-nowrap ${on ? 'ring-1 ring-red-500/60' : ''}"><input type="checkbox" data-allergen="${a}" ${on ? 'checked' : ''} class="accent-red-500 w-3.5 h-3.5 shrink-0">${t('alg_' + a)}</label>`;
+            }).join('');
+        }
+        function getSelectedTableAllergens() {
+            return [...document.querySelectorAll('#table-edit-allergens input[data-allergen]:checked')].map(el => el.dataset.allergen);
+        }
         function saveTableEdit() {
             const name = document.getElementById('table-edit-name').value.trim();
             const seats = Math.max(1, Math.min(20, parseInt(document.getElementById('table-edit-seats').value) || 2));
             if (!name) { showNotification(t('table_name_needed')); return; }
+            const allergies = getSelectedTableAllergens();
             if (editingTableId) {
                 const tb = tablesDB.find(v => v.id === editingTableId);
-                if (tb) { tb.name = name; tb.seats = seats; tb.shape = pendingTableShape; tb.size = pendingTableSize; }
+                if (tb) { tb.name = name; tb.seats = seats; tb.shape = pendingTableShape; tb.size = pendingTableSize; tb.allergies = allergies; }
             } else {
-                tablesDB.push({ id: Date.now(), name, seats, shape: pendingTableShape, size: pendingTableSize, x: pendingTableXY ? Math.round(pendingTableXY.x * 10) / 10 : 50, y: pendingTableXY ? Math.round(pendingTableXY.y * 10) / 10 : 50 });
+                tablesDB.push({ id: Date.now(), name, seats, shape: pendingTableShape, size: pendingTableSize, allergies, x: pendingTableXY ? Math.round(pendingTableXY.x * 10) / 10 : 50, y: pendingTableXY ? Math.round(pendingTableXY.y * 10) / 10 : 50 });
             }
             markDirty();
             closeModal('table-edit-modal');
@@ -369,11 +383,13 @@
             if (!Array.isArray(kdsDB)) kdsDB = [];
             const todayKey = new Date().toISOString().slice(0, 10);
             const num = kdsDB.filter(x => (x.ts || '').slice(0, 10) === todayKey).length + 1;
-            kdsDB.unshift({
+            const ticket = {
                 id: Date.now(), num, ts: new Date().toISOString(), table: tableName,
                 items: fresh.map(id => { const d = menuDB.find(x => x.id == id); return { name: d ? d.name : '?', qty: tab.items[id] - (tab.sent[id] || 0) }; }),
                 status: 'new'
-            });
+            };
+            if (tb && tb.allergies && tb.allergies.length) ticket.allergies = tb.allergies.slice();
+            kdsDB.unshift(ticket);
             fresh.forEach(id => { tab.sent[id] = tab.items[id]; });
             markDirty();
             renderTableTab();
@@ -388,7 +404,7 @@
             if (count === 0) { showNotification(t('sales_empty')); return; }
             const tb = tablesDB.find(v => v.id === tab.tableId);
             const tableName = t('table_prefix') + ' ' + (tb ? tb.name : '');
-            commitSale(Object.assign({}, tab.items), { tableId: tab.tableId, tableName });
+            commitSale(Object.assign({}, tab.items), { tableId: tab.tableId, tableName, allergies: (tb && tb.allergies) ? tb.allergies.slice() : [] });
             const i = tableTabsDB.findIndex(x => x.id === tab.id);
             if (i >= 0) tableTabsDB.splice(i, 1);
             markDirty();
