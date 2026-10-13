@@ -20,18 +20,27 @@
         function backspacePin() {
             if (currentPin.length > 0) { currentPin = currentPin.slice(0, -1); updatePinDots(); }
         }
+        // На компьютере экранную клавиатуру прячем (есть физическая), оставляем только строку PIN-кода.
+        // На телефоне/планшете (тач) — показываем цифры.
+        function pinHasTouch() { return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0); }
+        function pinSyncKeypad() {
+            const kp = document.getElementById('pin-keypad');
+            if (!kp) return;
+            const needPin = (pinLoginMode === 'role' || pinLoginMode === 'employee-pin');
+            kp.classList.toggle('hidden', !(needPin && pinHasTouch()));
+        }
         // Ввод PIN с физической клавиатуры: цифры, Backspace — стереть, Esc — очистить
         document.addEventListener('keydown', function (e) {
             const ae = document.activeElement;
             if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
             const screen = document.getElementById('pin-screen');
             if (!screen || screen.classList.contains('hidden')) return;
-            const keypad = document.getElementById('pin-keypad');
-            if (!keypad || keypad.classList.contains('hidden')) return; // выбор сотрудника из списка — цифры не нужны
+            if (pinLoginMode !== 'role' && pinLoginMode !== 'employee-pin') return; // выбор сотрудника из списка — цифры не нужны
             if (/^[0-9]$/.test(e.key)) { addPin(e.key); e.preventDefault(); }
             else if (e.key === 'Backspace') { backspacePin(); e.preventDefault(); }
             else if (e.key === 'Escape') { clearPin(); }
         });
+        pinSyncKeypad();
         function updatePinDots() {
             for (let i = 1; i <= 4; i++) {
                 const dot = document.getElementById(`dot-${i}`);
@@ -62,7 +71,7 @@
             currentPin = ''; updatePinDots();
             const sec = document.getElementById('pin-employee-section');
             if (!sec) return;
-            document.getElementById('pin-keypad').classList.add('hidden');
+            pinSyncKeypad();
             document.getElementById('pin-dots').classList.add('hidden');
             document.getElementById('pin-role-btn').classList.remove('hidden');
             document.getElementById('pin-emp-btn').classList.add('hidden');
@@ -88,7 +97,7 @@
             currentPin = ''; updatePinDots();
             const sec = document.getElementById('pin-employee-section');
             if (sec) sec.classList.add('hidden');
-            document.getElementById('pin-keypad').classList.remove('hidden');
+            pinSyncKeypad();
             document.getElementById('pin-dots').classList.remove('hidden');
             document.getElementById('pin-msg').textContent = t('auth_emp_pin_msg');
             document.getElementById('pin-msg').className = 'text-sm text-gray-400 mb-10';
@@ -99,7 +108,7 @@
             currentPin = ''; updatePinDots();
             const sec = document.getElementById('pin-employee-section');
             if (sec) sec.classList.add('hidden');
-            document.getElementById('pin-keypad').classList.remove('hidden');
+            pinSyncKeypad();
             document.getElementById('pin-dots').classList.remove('hidden');
             document.getElementById('pin-role-btn').classList.add('hidden');
             document.getElementById('pin-emp-btn').classList.remove('hidden');
