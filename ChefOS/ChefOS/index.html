@@ -232,11 +232,12 @@
                 <button onclick="closeModal('sales-modal')" class="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="px-6 pt-2 flex gap-2">
-                <button id="sales-tab-dishes" onclick="switchSalesTab('dishes')" class="flex-1 h-10 rounded-xl bg-emerald-500 text-white text-sm font-medium transition-colors"><i class="fa-solid fa-utensils mr-2"></i><span data-i18n="sales_tab_dishes">Блюда</span></button>
+                <button id="sales-tab-dishes" onclick="switchSalesTab('dishes')" class="flex-1 h-10 rounded-xl bg-emerald-500 text-white text-sm font-medium transition-colors"><i class="fa-solid fa-bag-shopping mr-2"></i><span data-i18n="sales_tab_takeaway">На вынос</span></button>
                 <button id="sales-tab-floor" onclick="switchSalesTab('floor')" class="flex-1 h-10 rounded-xl bg-[#2C2C2E] text-gray-300 text-sm font-medium transition-colors"><i class="fa-solid fa-chair mr-2"></i><span data-i18n="sales_tab_floor">Зал</span></button>
             </div>
             <div id="sales-pane-dishes" class="p-6 pt-4">
-                <p class="text-sm text-gray-400 mb-4" data-i18n="sales_desc">Впишите количество проданных порций. Система автоматически спишет нужные ингредиенты со склада.</p>
+                <p class="text-sm text-gray-400 mb-3" data-i18n="takeaway_desc">Заказ на вынос: соберите блюда, укажите имя — кухня увидит тикет «На вынос».</p>
+                <input type="text" id="takeaway-name" maxlength="24" data-i18n="takeaway_name_ph" placeholder="Имя клиента (необязательно)" class="w-full h-11 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-4 mb-4 outline-none focus:border-emerald-500 text-sm">
                 <div class="relative w-full mb-4">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none text-sm"></i>
                     <input type="text" id="sales-search" onkeyup="filterSalesList()" data-i18n="sales_search" placeholder="Быстрый поиск блюда..." class="w-full h-10 bg-[#2C2C2E] border border-white/10 text-white rounded-xl pl-9 pr-4 outline-none focus:border-emerald-500 text-sm">
@@ -328,6 +329,14 @@
                     <div class="flex gap-2">
                         <button id="table-shape-round" onclick="setTableShape('round')" class="flex-1 h-11 rounded-xl border text-sm font-medium transition-colors"><i class="fa-solid fa-circle mr-2"></i><span data-i18n="table_shape_round">Круглый</span></button>
                         <button id="table-shape-square" onclick="setTableShape('square')" class="flex-1 h-11 rounded-xl border text-sm font-medium transition-colors"><i class="fa-solid fa-square mr-2"></i><span data-i18n="table_shape_square">Квадратный</span></button>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1" data-i18n="table_size">Размер</label>
+                    <div class="flex gap-2">
+                        <button id="table-size-s" onclick="setTableSize('s')" class="flex-1 h-11 rounded-xl border text-sm font-medium transition-colors"><span data-i18n="table_size_s">Мал.</span></button>
+                        <button id="table-size-m" onclick="setTableSize('m')" class="flex-1 h-11 rounded-xl border text-sm font-medium transition-colors"><span data-i18n="table_size_m">Сред.</span></button>
+                        <button id="table-size-l" onclick="setTableSize('l')" class="flex-1 h-11 rounded-xl border text-sm font-medium transition-colors"><span data-i18n="table_size_l">Бол.</span></button>
                     </div>
                 </div>
                 <button onclick="saveTableEdit()" class="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-medium transition-all"><i class="fa-solid fa-check mr-2"></i><span data-i18n="table_save">Сохранить</span></button>

@@ -85,7 +85,7 @@
                 return `
                 <div class="bg-[#1C1C1E] border ${border} rounded-2xl p-5 flex flex-col">
                     <div class="flex items-center justify-between mb-3 pb-3 border-b border-white/10">
-                        <span class="text-lg font-bold text-white">#${tk.num}${tk.table ? ` <span class="text-amber-400 text-sm font-semibold">· ${tk.table}</span>` : ""}</span>
+                        <span class="text-lg font-bold text-white">#${tk.num}${tk.table ? ` <span class="text-amber-400 text-sm font-semibold">· ${tk.table}</span>` : ""}${tk.takeaway ? ` <span class="ml-1 px-2 py-0.5 rounded-full bg-sky-500/20 border border-sky-500/50 text-sky-300 text-[11px] font-bold align-middle">${t('takeaway_tag')}${tk.customer ? ' · ' + tk.customer : ''}</span>` : ""}</span>
                         <span class="text-xl font-bold ${timeCls}"><i class="fa-regular fa-clock mr-1"></i>${kdsElapsedTxt(tk.ts)}</span>
                     </div>
                     <div class="flex-1 space-y-2 mb-4">

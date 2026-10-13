@@ -8,6 +8,7 @@
             updateSalesTotal();
             if (typeof floorEditMode !== 'undefined') floorEditMode = false;
             if (typeof switchSalesTab === 'function') switchSalesTab('dishes');
+            const tn = document.getElementById('takeaway-name'); if (tn) tn.value = '';
             openModal('sales-modal');
         }
 
@@ -139,8 +140,11 @@
             btn.classList.add('pointer-events-none');
 
             setTimeout(() => {
-                const totalSold = commitSale(salesCart, {});
+                const nameEl = document.getElementById('takeaway-name');
+                const customerName = nameEl ? nameEl.value.trim() : '';
+                const totalSold = commitSale(salesCart, { takeaway: true, customerName });
                 salesCart = {};
+                if (nameEl) nameEl.value = '';
 
                 btn.innerHTML = `<i class="fa-solid fa-check mr-2"></i> <span>${t('sales_success')}</span>`;
                 btn.classList.replace('bg-emerald-500', 'bg-green-500');
@@ -207,6 +211,7 @@
                 const num = kdsDB.filter(x => (x.ts || '').slice(0, 10) === todayKey).length + 1;
                 const ticket = { id: Date.now(), num, ts: new Date().toISOString(), items: kdsItems, status: 'new' };
                 if (opts.tableName) ticket.table = opts.tableName;
+                if (opts.takeaway) { ticket.takeaway = true; if (opts.customerName) ticket.customer = opts.customerName; }
                 kdsDB.unshift(ticket);
             }
             markDirty();

@@ -28,6 +28,21 @@
             if (tab === 'floor') renderFloorPlan();
         }
 
+        const TABLE_SIZES = { s: 56, m: 72, l: 92 };
+        function tableSizePx(tb) { return TABLE_SIZES[tb.size] || TABLE_SIZES.m; }
+        function tableElapsedMin(tab) {
+            if (!tab || !tab.ts) return 0;
+            return Math.max(0, Math.floor((Date.now() - new Date(tab.ts).getTime()) / 60000));
+        }
+        function tableTabSum(tab) {
+            let total = 0;
+            if (tab) for (const id in (tab.items || {})) {
+                const d = (typeof menuDB !== 'undefined') ? menuDB.find(x => x.id == id) : null;
+                if (d) total += (d.menuPrice || 0) * tab.items[id];
+            }
+            return Math.round(total * 100) / 100;
+        }
+
         function renderFloorPlan() {
             const plan = document.getElementById('floor-plan');
             if (!plan) return;
@@ -43,11 +58,16 @@
                 const ring = occupied ? 'border-amber-400 shadow-amber-500/20' : 'border-emerald-500/70 shadow-emerald-500/10';
                 const shape = tb.shape === 'square' ? 'rounded-2xl' : 'rounded-full';
                 const itemCount = tab ? Object.values(tab.items || {}).reduce((a, b) => a + b, 0) : 0;
+                const px = tableSizePx(tb);
+                const tabSum = occupied ? tableTabSum(tab) : 0;
+                const elapsed = occupied ? tableElapsedMin(tab) : 0;
                 return `<div class="floor-table absolute ${shape} bg-[#2C2C2E] border-2 ${ring} shadow-lg flex flex-col items-center justify-center select-none ${floorEditMode ? 'cursor-move' : 'cursor-pointer active:scale-95'} transition-transform"
-                    data-id="${tb.id}" style="left:${tb.x}%; top:${tb.y}%; width:72px; height:72px; transform:translate(-50%,-50%); touch-action:none;"
+                    data-id="${tb.id}" style="left:${tb.x}%; top:${tb.y}%; width:${px}px; height:${px}px; transform:translate(-50%,-50%); touch-action:none;"
                     ${floorEditMode ? `onpointerdown="tableDragStart(event, ${tb.id})" onclick="openTableEdit(${tb.id})"` : `onclick="openTableTab(${tb.id})"`}>
-                    <div class="text-white font-bold text-lg leading-none pointer-events-none">${escapeHtml(tb.name)}</div>
+                    <div class="text-white font-bold ${px >= 92 ? 'text-xl' : 'text-lg'} leading-none pointer-events-none">${escapeHtml(tb.name)}</div>
                     <div class="text-gray-400 text-[10px] pointer-events-none">${tb.seats} ${t('table_seats_short')}</div>
+                    ${occupied && !floorEditMode ? `<div class="text-amber-300 text-[11px] font-bold pointer-events-none">${currentCurrency}${tabSum}</div>
+                    <div class="text-gray-500 text-[9px] pointer-events-none">${elapsed} ${t('table_min_short')}</div>` : ''}
                     ${occupied && !floorEditMode ? `<div class="absolute -top-2 -right-2 min-w-[24px] h-6 px-1 rounded-full bg-amber-400 text-black text-xs font-bold flex items-center justify-center pointer-events-none">${itemCount}</div>` : ''}
                 </div>`;
             }).join('');
@@ -78,16 +98,18 @@
         }
 
         // Диалог создания/редактирования столика
-        let editingTableId = null, pendingTableXY = null, pendingTableShape = 'round';
+        let editingTableId = null, pendingTableXY = null, pendingTableShape = 'round', pendingTableSize = 'm';
         function openTableEdit(id, x, y) {
             if (_suppressTableClick) return;
             editingTableId = id;
             pendingTableXY = (x !== undefined) ? { x, y } : null;
             const tb = id ? tablesDB.find(v => v.id === id) : null;
             pendingTableShape = tb ? tb.shape : 'round';
+            pendingTableSize = (tb && tb.size) ? tb.size : 'm';
             document.getElementById('table-edit-name').value = tb ? tb.name : String(tablesDB.length + 1);
             document.getElementById('table-edit-seats').value = tb ? tb.seats : 2;
             renderTableShapeBtns();
+            renderTableSizeBtns();
             document.getElementById('table-edit-delete').style.display = tb ? '' : 'none';
             document.getElementById('table-edit-title').textContent = tb ? t('table_edit_title') : t('table_add_title');
             openModal('table-edit-modal');
@@ -103,15 +125,28 @@
             });
         }
         function setTableShape(shape) { pendingTableShape = shape; renderTableShapeBtns(); }
+        function renderTableSizeBtns() {
+            const map = { s: 'table-size-s', m: 'table-size-m', l: 'table-size-l' };
+            const on = ['bg-emerald-500', 'text-white', 'border-emerald-500'];
+            const off = ['bg-[#2C2C2E]', 'text-gray-300', 'border-white/10'];
+            for (const k in map) {
+                const b = document.getElementById(map[k]);
+                if (!b) continue;
+                const active = pendingTableSize === k;
+                b.classList.remove(...(active ? off : on));
+                b.classList.add(...(active ? on : off));
+            }
+        }
+        function setTableSize(size) { pendingTableSize = size; renderTableSizeBtns(); }
         function saveTableEdit() {
             const name = document.getElementById('table-edit-name').value.trim();
             const seats = Math.max(1, Math.min(20, parseInt(document.getElementById('table-edit-seats').value) || 2));
             if (!name) { showNotification(t('table_name_needed')); return; }
             if (editingTableId) {
                 const tb = tablesDB.find(v => v.id === editingTableId);
-                if (tb) { tb.name = name; tb.seats = seats; tb.shape = pendingTableShape; }
+                if (tb) { tb.name = name; tb.seats = seats; tb.shape = pendingTableShape; tb.size = pendingTableSize; }
             } else {
-                tablesDB.push({ id: Date.now(), name, seats, shape: pendingTableShape, x: pendingTableXY ? Math.round(pendingTableXY.x * 10) / 10 : 50, y: pendingTableXY ? Math.round(pendingTableXY.y * 10) / 10 : 50 });
+                tablesDB.push({ id: Date.now(), name, seats, shape: pendingTableShape, size: pendingTableSize, x: pendingTableXY ? Math.round(pendingTableXY.x * 10) / 10 : 50, y: pendingTableXY ? Math.round(pendingTableXY.y * 10) / 10 : 50 });
             }
             markDirty();
             closeModal('table-edit-modal');
@@ -219,6 +254,8 @@
             const tb = tablesDB.find(v => v.id === tab.tableId);
             const title = document.getElementById('table-tab-title');
             if (title) title.textContent = (t('table_prefix') + ' ' + (tb ? tb.name : '')) + (tb ? ` · ${tb.seats} ${t('table_seats_short')}` : '');
+            const sub = document.querySelector('#table-tab-modal [data-i18n="table_tab_subtitle"]');
+            if (sub) sub.textContent = `${t('table_tab_subtitle')} · ${tableElapsedMin(tab)} ${t('table_min_short')}`;
             const { total, count } = tableTabTotals();
 
             // Позиции счёта
