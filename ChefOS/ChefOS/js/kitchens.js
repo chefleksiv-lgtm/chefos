@@ -21,13 +21,9 @@
                 
                 btn.onclick = () => selectKitchen(kitchen); container.appendChild(btn);
             });
-            if (currentAppRole === 'chef') {
-                new Sortable(container, { animation: 150, delay: 200, delayOnTouchOnly: true, onEnd: function (evt) {
-                    const moved = kitchens.splice(evt.oldIndex, 1)[0];
-                    kitchens.splice(evt.newIndex, 0, moved);
-                    markDirty();
-                }});
-            }
+            // Sortable УБРАН: его touch-обработчики перехватывали свайп и убивали
+            // нативную горизонтальную прокрутку на телефоне (палец >200мс = старт драга
+            // вместо скролла). Порядок кухонь = порядок создания.
         }
         function selectKitchen(k) {
             activeKitchen = k; document.getElementById('current-kitchen-label').textContent = t(activeKitchen);
