@@ -651,6 +651,17 @@
         </div>
     </div>
 
+    <div id="rename-modal" class="hidden fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm opacity-0 transition-opacity duration-300 flex items-center justify-center p-6" onclick="if(event.target === this) closeModal('rename-modal')">
+        <div class="bg-[#1C1C1E] rounded-3xl border border-white/10 p-6 w-full max-w-sm shadow-2xl">
+            <h3 class="text-white font-bold mb-4" data-i18n="book_rename">Переименовать</h3>
+            <input id="rename-input" type="text" maxlength="120" class="w-full h-12 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-4 outline-none focus:border-emerald-500 mb-4" onkeydown="if(event.key==='Enter') saveBookRename()">
+            <div class="flex gap-2">
+                <button onclick="closeModal('rename-modal')" class="flex-1 h-11 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium active:scale-95 transition-all"><span data-i18n="cancel">Отмена</span></button>
+                <button onclick="saveBookRename()" class="flex-1 h-11 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold active:scale-95 transition-all"><span data-i18n="save">Сохранить</span></button>
+            </div>
+        </div>
+    </div>
+
     <div id="inventory-modal" onclick="if(event.target === this) closeModal('inventory-modal')" class="hidden fixed inset-0 z-50 bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
         <div class="max-w-5xl mx-auto p-6 sm:p-10 pb-20">
             <button onclick="closeModal('inventory-modal')" class="text-gray-400 hover:text-white mb-6 flex items-center gap-2 transition-colors"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>

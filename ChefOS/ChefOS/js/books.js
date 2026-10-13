@@ -60,17 +60,44 @@ function renderUploadedBooks() {
             d.onclick = () => openBookFile(b.id);
             d.innerHTML = `<div class="aspect-[2/3] bg-gradient-to-br from-indigo-900 to-purple-900 rounded-2xl overflow-hidden mb-3 relative shadow-lg flex items-center justify-center border border-white/10">
                     <i class="fa-solid fa-file-lines text-4xl text-white/50"></i>
+                    <button data-rename="${b.id}" class="absolute top-2 left-2 w-7 h-7 rounded-full bg-black/60 text-white/70 text-sm leading-none flex items-center justify-center active:scale-90"><i class="fa-solid fa-pen text-[10px]"></i></button>
                     <button data-del="${b.id}" class="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white/70 text-sm leading-none flex items-center justify-center active:scale-90"><i class="fa-solid fa-xmark text-xs"></i></button>
                 </div>
                 <h3 class="text-sm font-semibold leading-tight truncate text-white">${escapeHtml(b.name)}</h3>
                 <p class="text-xs text-gray-500 mt-1">${bookDateStr(b.ts)}</p>`;
             const delBtn = d.querySelector('[data-del]');
             if (delBtn) delBtn.onclick = (ev) => { ev.stopPropagation(); deleteBookFile(b.id); };
+            const rnBtn = d.querySelector('[data-rename]');
+            if (rnBtn) rnBtn.onclick = (ev) => { ev.stopPropagation(); renameBookFile(b.id); };
             anchor.insertAdjacentElement('afterend', d);
         });
     }).catch(() => {});
 }
 
+let _renameBookId = null;
+function renameBookFile(id) {
+    bookGet(id).then(rec => {
+        if (!rec) return;
+        _renameBookId = id;
+        document.getElementById('rename-input').value = rec.name || '';
+        openModal('rename-modal');
+        setTimeout(() => document.getElementById('rename-input').focus(), 350);
+    }).catch(() => {});
+}
+function saveBookRename() {
+    const inp = document.getElementById('rename-input');
+    const name = (inp.value || '').trim();
+    if (!name || !_renameBookId) { closeModal('rename-modal'); return; }
+    bookGet(_renameBookId).then(rec => {
+        if (!rec) return;
+        rec.name = name;
+        return bookPut(rec);
+    }).then(() => {
+        _renameBookId = null;
+        closeModal('rename-modal');
+        renderUploadedBooks();
+    }).catch(() => showNotification(t('notif_book_fail')));
+}
 function deleteBookFile(id) {
     showConfirm(t('confirm_title'), t('confirm_msg'), () => {
         bookDel(id).then(() => renderUploadedBooks()).catch(() => {});

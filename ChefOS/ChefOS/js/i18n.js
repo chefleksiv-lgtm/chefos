@@ -405,6 +405,7 @@
             'notif_book_fail': { ru: 'Не удалось открыть файл', en: 'Could not open the file' },
             'book_translate': { ru: 'Перевести', en: 'Translate' },
             'book_open': { ru: 'Открыть', en: 'Open' },
+            'book_rename': { ru: 'Переименовать', en: 'Rename' },
             'book_page': { ru: 'Стр.', en: 'Page' },
             'tr_title': { ru: 'Перевод книги', en: 'Translating book' },
             'tr_cancel': { ru: 'Отмена', en: 'Cancel' },
