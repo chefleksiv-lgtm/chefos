@@ -106,7 +106,7 @@ class TursoBackend {
             const req = https.request({
                 hostname: self.baseUrl.hostname,
                 port: self.baseUrl.port || 443,
-                path: (self.baseUrl.pathname || '') + '/',
+                path: '/v2/pipeline',
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

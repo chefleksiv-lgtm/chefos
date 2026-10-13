@@ -88,13 +88,8 @@
             currentEmployeeId = emp.id;
             loginAs(emp.accessRole || 'cook', emp.name);
         }
-        // Подсказка с PIN-кодами под клавиатурой — обновляем при старте и смене PIN
-        function updatePinHint() {
-            const el = document.getElementById('pin-hint');
-            if (el && typeof pinCodes !== 'undefined') {
-                el.textContent = `Подсказка: Шеф: ${pinCodes.chef} | Повар: ${pinCodes.cook} | Касса: ${pinCodes.cashier}`;
-            }
-        }
+        // Подсказка с PIN-кодами отключена по требованию владельца (2026-10-13): коды не показываем на экране.
+        function updatePinHint() { /* отключено */ }
         function loginAs(role, empName) {
             currentAppRole = role;
             
