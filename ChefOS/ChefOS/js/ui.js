@@ -112,6 +112,9 @@
                 { value: 'wheat', label: t('alg_wheat') },
                 { value: 'soy', label: t('alg_soy') },
                 { value: 'sesame', label: t('alg_sesame') },
+                { value: 'gluten', label: t('alg_gluten') },
+                { value: 'mustard', label: t('alg_mustard') },
+                { value: 'sulphites', label: t('alg_sulphites') },
             ];
         }
         function syncMenuAllergenDropdown() {

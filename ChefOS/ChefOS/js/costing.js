@@ -1,7 +1,7 @@
         // --- АВТОКОСТИНГ / МАСШТАБИРОВАНИЕ / АЛЛЕРГЕНЫ (v1.6) ---
         // Чистые функции расчёта. Используют inventoryDB / menuDB на момент вызова.
 
-        const ALLERGENS = ['milk', 'eggs', 'fish', 'shellfish', 'nuts', 'peanuts', 'wheat', 'soy', 'sesame'];
+        const ALLERGENS = ['milk', 'eggs', 'fish', 'shellfish', 'nuts', 'peanuts', 'wheat', 'soy', 'sesame', 'gluten', 'mustard', 'sulphites'];
         const PRICE_RISE_ALERT_PCT = 5;
 
         // Группы совместимых единиц и коэффициенты к базовой (кг / л / шт)
