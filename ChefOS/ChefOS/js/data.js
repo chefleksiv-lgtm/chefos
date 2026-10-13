@@ -232,6 +232,11 @@
         // Заказы поставщикам (v1.7): [{id, date, supplier, items:[{name, qty, unit}], status}]
         let ordersDB = [];
 
+        // План зала (v2.3): столики [{id, name, seats, x, y (в % от плана), shape:'round'|'square'}]
+        let tablesDB = [];
+        // Открытые счета столиков (v2.3): [{id, tableId, items:{dishId:qty}, ts, kdsSent}]
+        let tableTabsDB = [];
+
         // Флаг одноразовой миграции v1.7
         let v17migrated = false;
 

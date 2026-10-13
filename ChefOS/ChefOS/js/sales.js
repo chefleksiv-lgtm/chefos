@@ -6,6 +6,8 @@
             document.getElementById('sales-search').value = '';
             filterSalesList();
             updateSalesTotal();
+            if (typeof floorEditMode !== 'undefined') floorEditMode = false;
+            if (typeof switchSalesTab === 'function') switchSalesTab('dishes');
             openModal('sales-modal');
         }
 
@@ -137,53 +139,8 @@
             btn.classList.add('pointer-events-none');
 
             setTimeout(() => {
-                let totalSold = 0; let sessionIncome = 0; let sessionCOGS = 0;
-
-                ids.forEach(id => {
-                    const d = menuDB.find(x => x.id == id);
-                    const qty = salesCart[id];
-                    if (!d || !qty) return;
-                    totalSold += qty;
-                    sessionIncome += (d.menuPrice || 0) * qty;
-                    sessionCOGS += (d.costPrice || 0) * qty;
-                    if (d.ingredients) d.ingredients.forEach(ing => deductFromInventory(ing.name, ing.weight, qty));
-                    if (d.subRecipes) d.subRecipes.forEach(sub => {
-                        if (sub.ingredients) sub.ingredients.forEach(subIng => {
-                            // Единый robust-парсер («Майонез 40g», «Чеснок 5 г»), как в costing.js.
-                            // Старый split(' ') ломался на «5 г» (единица отдельно): имя становилось «Чеснок 5»,
-                            // склад не находился и ингредиент тихо НЕ списывался — остатки не сходились.
-                            const p = (typeof parseSubIngredient === 'function') ? parseSubIngredient(subIng) : null;
-                            if (p && p.name && p.qty > 0) {
-                                deductFromInventory(p.name, p.qty + p.unit, qty);
-                            } else if (!p) {
-                                const parts = String(subIng).trim().split(' ');
-                                if (parts.length >= 2) deductFromInventory(parts.slice(0, -1).join(' '), parts[parts.length - 1], qty);
-                            }
-                        });
-                    });
-                });
-
-                const curMonth = getCurrentMonthKey();
-                if (!financeDB[curMonth]) financeDB[curMonth] = { income: 0, cogs: 0, payroll: 0, losses: 0 };
-                // Округление до центов на уровне итога месяца — иначе float-дрейф (0.1+0.2)
-                // накапливается и цифры перестают сходиться с чеками.
-                financeDB[curMonth].income = Math.round((financeDB[curMonth].income + sessionIncome) * 100) / 100;
-                financeDB[curMonth].cogs = Math.round((financeDB[curMonth].cogs + sessionCOGS) * 100) / 100;
-                // Продажи по блюдам для ABC-аналитики (v1.7)
-                if (!salesDB[curMonth]) salesDB[curMonth] = {};
-                ids.forEach(id => {
-                    const qty = salesCart[id];
-                    if (qty > 0) salesDB[curMonth][id] = (salesDB[curMonth][id] || 0) + qty;
-                });
-                // KDS (v2.2): кухонный тикет — кухня видит, что готовить
-                const kdsItems = ids.map(id => { const d = menuDB.find(x => x.id == id); const q = salesCart[id]; return (d && q > 0) ? { name: d.name, qty: q } : null; }).filter(Boolean);
-                if (kdsItems.length) {
-                    if (!Array.isArray(kdsDB)) kdsDB = [];
-                    const todayKey = new Date().toISOString().slice(0, 10);
-                    const num = kdsDB.filter(x => (x.ts || '').slice(0, 10) === todayKey).length + 1;
-                    kdsDB.unshift({ id: Date.now(), num, ts: new Date().toISOString(), items: kdsItems, status: 'new' });
-                }
-                markDirty();
+                const totalSold = commitSale(salesCart, {});
+                salesCart = {};
 
                 btn.innerHTML = `<i class="fa-solid fa-check mr-2"></i> <span>${t('sales_success')}</span>`;
                 btn.classList.replace('bg-emerald-500', 'bg-green-500');
@@ -196,8 +153,62 @@
                         btn.classList.remove('pointer-events-none');
                         btn.classList.replace('bg-green-500', 'bg-emerald-500');
                         document.getElementById('sales-list').innerHTML = '';
-                        salesCart = {};
                     }, 500);
                 }, 800);
             }, 600);
+        }
+
+        // Ядро проведения продажи (v2.3): финансы, склад, salesDB, KDS.
+        // items: {dishId: qty}. opts: {tableId, tableName} — для продаж со столика.
+        // Используют и быстрая касса, и счета столиков.
+        function commitSale(items, opts) {
+            opts = opts || {};
+            const ids = Object.keys(items || {});
+            let totalSold = 0; let sessionIncome = 0; let sessionCOGS = 0;
+
+            ids.forEach(id => {
+                const d = menuDB.find(x => x.id == id);
+                const qty = items[id];
+                if (!d || !qty) return;
+                totalSold += qty;
+                sessionIncome += (d.menuPrice || 0) * qty;
+                sessionCOGS += (d.costPrice || 0) * qty;
+                if (d.ingredients) d.ingredients.forEach(ing => deductFromInventory(ing.name, ing.weight, qty));
+                if (d.subRecipes) d.subRecipes.forEach(sub => {
+                    if (sub.ingredients) sub.ingredients.forEach(subIng => {
+                        const p = (typeof parseSubIngredient === 'function') ? parseSubIngredient(subIng) : null;
+                        if (p && p.name && p.qty > 0) {
+                            deductFromInventory(p.name, p.qty + p.unit, qty);
+                        } else if (!p) {
+                            const parts = String(subIng).trim().split(' ');
+                            if (parts.length >= 2) deductFromInventory(parts.slice(0, -1).join(' '), parts[parts.length - 1], qty);
+                        }
+                    });
+                });
+            });
+
+            const curMonth = getCurrentMonthKey();
+            if (!financeDB[curMonth]) financeDB[curMonth] = { income: 0, cogs: 0, payroll: 0, losses: 0 };
+            // Округление до центов на уровне итога месяца — иначе float-дрейф (0.1+0.2)
+            // накапливается и цифры перестают сходиться с чеками.
+            financeDB[curMonth].income = Math.round((financeDB[curMonth].income + sessionIncome) * 100) / 100;
+            financeDB[curMonth].cogs = Math.round((financeDB[curMonth].cogs + sessionCOGS) * 100) / 100;
+            // Продажи по блюдам для ABC-аналитики (v1.7)
+            if (!salesDB[curMonth]) salesDB[curMonth] = {};
+            ids.forEach(id => {
+                const qty = items[id];
+                if (qty > 0) salesDB[curMonth][id] = (salesDB[curMonth][id] || 0) + qty;
+            });
+            // KDS (v2.2): кухонный тикет — кухня видит, что готовить (v2.3: с номером столика)
+            const kdsItems = ids.map(id => { const d = menuDB.find(x => x.id == id); const q = items[id]; return (d && q > 0) ? { name: d.name, qty: q } : null; }).filter(Boolean);
+            if (kdsItems.length) {
+                if (!Array.isArray(kdsDB)) kdsDB = [];
+                const todayKey = new Date().toISOString().slice(0, 10);
+                const num = kdsDB.filter(x => (x.ts || '').slice(0, 10) === todayKey).length + 1;
+                const ticket = { id: Date.now(), num, ts: new Date().toISOString(), items: kdsItems, status: 'new' };
+                if (opts.tableName) ticket.table = opts.tableName;
+                kdsDB.unshift(ticket);
+            }
+            markDirty();
+            return totalSold;
         }
