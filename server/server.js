@@ -46,6 +46,7 @@ class FileBackend {
         this.dataDir = dataDir;
         this.usersFile = path.join(dataDir, 'users.json');
         this.usersDir = path.join(dataDir, 'users');
+        this.sessionsFile = path.join(dataDir, 'sessions.json');
     }
     _readJson(file, fallback) {
         try {
@@ -62,6 +63,16 @@ class FileBackend {
     }
     async loadUsers() { return this._readJson(this.usersFile, {}); }
     async saveUsers(users) { this._writeJsonAtomic(this.usersFile, users || {}); }
+    async loadSessions() { return this._readJson(this.sessionsFile, {}); }
+    async saveSession(token, sess) {
+        const all = this._readJson(this.sessionsFile, {});
+        all[token] = sess;
+        this._writeJsonAtomic(this.sessionsFile, all);
+    }
+    async deleteSession(token) {
+        const all = this._readJson(this.sessionsFile, {});
+        if (all[token]) { delete all[token]; this._writeJsonAtomic(this.sessionsFile, all); }
+    }
     async loadUserStore(userId) {
         const safe = String(userId).replace(/[^a-zA-Z0-9_-]/g, '');
         if (!safe) return null;
@@ -135,7 +146,8 @@ class TursoBackend {
     async _init() {
         await this._pipeline([
             { sql: 'CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, login TEXT UNIQUE NOT NULL, salt TEXT NOT NULL, hash TEXT NOT NULL, created_at INTEGER NOT NULL)' },
-            { sql: 'CREATE TABLE IF NOT EXISTS stores (user_id TEXT PRIMARY KEY, payload TEXT NOT NULL)' }
+            { sql: 'CREATE TABLE IF NOT EXISTS stores (user_id TEXT PRIMARY KEY, payload TEXT NOT NULL)' },
+            { sql: 'CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, login TEXT NOT NULL, created_at INTEGER NOT NULL)' }
         ]);
     }
     async loadUsers() {
@@ -184,6 +196,35 @@ class TursoBackend {
             args: [hranaValue(userId), hranaValue(payload)]
         }]);
     }
+    async loadSessions() {
+        await this._ready;
+        const [r] = await this._pipeline([
+            { sql: 'SELECT token, user_id, login, created_at FROM sessions' }
+        ]);
+        const out = {};
+        const result = r && r.response && r.response.result;
+        if (result && Array.isArray(result.rows)) {
+            for (const row of result.rows) {
+                const [token, userId, login, createdAt] = row.map(hranaCell);
+                if (token) out[token] = { userId, login, createdAt };
+            }
+        }
+        return out;
+    }
+    async saveSession(token, sess) {
+        await this._ready;
+        await this._pipeline([{
+            sql: 'INSERT INTO sessions (token, user_id, login, created_at) VALUES (?, ?, ?, ?) ' +
+                 'ON CONFLICT(token) DO UPDATE SET user_id=excluded.user_id, login=excluded.login',
+            args: [hranaValue(token), hranaValue(sess.userId), hranaValue(sess.login), hranaValue(sess.createdAt)]
+        }]);
+    }
+    async deleteSession(token) {
+        await this._ready;
+        await this._pipeline([
+            { sql: 'DELETE FROM sessions WHERE token = ?', args: [hranaValue(token)] }
+        ]);
+    }
 }
 
 function selectBackend() {
@@ -218,12 +259,28 @@ function validatePassword(password) {
     return typeof password === 'string' && password.length >= 6 && password.length <= 128;
 }
 
-// токен -> { userId, login, createdAt } (в памяти; после рестарта вход заново)
+// токен -> { userId, login, createdAt } (персистентно в бэкенде; переживает рестарт)
 const tokens = new Map();
-function issueToken(user) {
+async function issueToken(user) {
     const token = newToken();
-    tokens.set(token, { userId: user.userId, login: user.login, createdAt: Date.now() });
+    const sess = { userId: user.userId, login: user.login, createdAt: Date.now() };
+    tokens.set(token, sess);
+    try { await backend.saveSession(token, sess); } catch (e) { console.error('[chefos] saveSession failed:', e.message); }
     return token;
+}
+async function revokeToken(token) {
+    tokens.delete(token);
+    try { await backend.deleteSession(token); } catch (e) { /* ignore */ }
+}
+async function restoreSessions() {
+    try {
+        const saved = await backend.loadSessions();
+        let n = 0;
+        for (const [token, sess] of Object.entries(saved || {})) {
+            if (token && sess && sess.userId) { tokens.set(token, sess); n++; }
+        }
+        if (n) console.log('[chefos] restored ' + n + ' session(s)');
+    } catch (e) { console.error('[chefos] restoreSessions failed:', e.message); }
 }
 function authUser(req) {
     const h = req.headers['authorization'] || '';
@@ -334,6 +391,7 @@ const MIME = {
     '.svg': 'image/svg+xml',
     '.ico': 'image/x-icon',
     '.woff2': 'font/woff2',
+    '.webmanifest': 'application/manifest+json',
     '.txt': 'text/plain; charset=utf-8'
 };
 function serveStatic(req, res, pathname) {
@@ -409,7 +467,7 @@ const server = http.createServer(async (req, res) => {
                 } catch (e) { okPw = false; }
             }
             if (!user || !okPw) { send(res, 401, { ok: false, error: 'bad_credentials' }); return; }
-            const token = issueToken(user);
+            const token = await issueToken(user);
             send(res, 200, { ok: true, token, login: user.login, userId: user.userId });
             return;
         }
@@ -418,7 +476,7 @@ const server = http.createServer(async (req, res) => {
         if (req.method === 'POST' && p === '/api/logout') {
             const h = req.headers['authorization'] || '';
             const m = /^Bearer\s+(.+)$/.exec(String(h).trim());
-            if (m) tokens.delete(m[1]);
+            if (m) await revokeToken(m[1]);
             send(res, 200, { ok: true });
             return;
         }
@@ -461,3 +519,4 @@ server.listen(PORT, () => {
     const addr = server.address();
     console.log('[chefos] ChefOS v2.0 listening on port ' + (addr && addr.port) + ', front dir: ' + FRONT_DIR);
 });
+restoreSessions();
