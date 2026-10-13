@@ -30,3 +30,16 @@
             body > *:not(#print-area) { display: none !important; }
             #print-area { display: block !important; }
         }
+
+        /* Экран входа: поля логина/пароля всегда видимы (защита от quirks рендера) */
+        #account-screen input {
+            background-color: #2C2C2E !important;
+            color: #ffffff !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+        #account-screen input::placeholder {
+            color: #9ca3af !important;
+            opacity: 1 !important;
+        }
