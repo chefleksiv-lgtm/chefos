@@ -27,7 +27,10 @@
 
         function switchTeamTab(tabName) {
             activeTabs.team = tabName;
-            ['staff', 'schedule', 'requests', 'timeclock', 'tips'].forEach(i => { 
+            // Таб «Заготовки» — только для ролей с правом prepCheck (шеф/су-шеф/повар)
+            const _prepBtn = document.getElementById('team-tab-btn-prep');
+            if (_prepBtn) _prepBtn.style.display = ((typeof PERMISSIONS !== 'undefined' && PERMISSIONS[currentAppRole] && PERMISSIONS[currentAppRole].prepCheck) ? '' : 'none');
+            ['staff', 'schedule', 'requests', 'timeclock', 'tips', 'prep'].forEach(i => { 
                 const btn = document.getElementById(`team-tab-btn-${i}`);
                 const content = document.getElementById(`team-tab-${i}`);
                 if(btn) btn.className = `px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${i === tabName ? 'border-teal-500 text-teal-500' : 'border-transparent text-gray-500 hover:text-gray-300'}`;
@@ -41,6 +44,7 @@
             if (tabName === 'requests' && typeof renderRequests === 'function') renderRequests();
             if (tabName === 'timeclock') renderTimeclock();
             if (tabName === 'tips') renderTips();
+            if (tabName === 'prep' && typeof renderPrep === 'function') renderPrep();
         }
 
         // --- ТАБЕЛЬ (v2.2): отметки прихода/ухода, факт vs план ---

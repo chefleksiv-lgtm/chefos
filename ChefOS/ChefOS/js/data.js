@@ -233,6 +233,10 @@
         // Чаевые (v2.2): {id, date:'YYYY-MM-DD', employeeId, employeeName, amount, note}
         let tipsDB = [];
 
+        // Заготовки на смену (v2.9): [{id, date:'YYYY-MM-DD', shift, authorId, authorName,
+        //   items:[{name, qty, unit, note, done}], status:'draft'|'sent'|'approved', comment, createdAt, sentAt, decidedAt}]
+        let prepDB = [];
+
         // Заказы поставщикам (v1.7): [{id, date, supplier, items:[{name, qty, unit}], status}]
         let ordersDB = [];
 
