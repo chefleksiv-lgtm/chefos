@@ -98,7 +98,7 @@
     </div>
 
     <header class="w-full max-w-4xl mb-8 flex flex-col gap-4">
-        <div class="flex justify-between items-end">
+        <div class="flex flex-wrap justify-between items-end gap-3">
             <div><div class="flex items-center gap-3"><img src="img/logo.png" alt="ChefOS" class="w-11 h-11 rounded-full shadow-lg shadow-black/50"><div><h1 class="text-3xl font-semibold tracking-tight">ChefOS</h1><p id="current-kitchen-label" class="text-sm text-orange-500 mt-1 font-medium">Основная кухня</p></div></div></div>
             <div class="flex items-center gap-3">
                 <select id="location-selector" onchange="switchLocation(this.value)" class="h-10 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-full pl-4 pr-8 text-xs font-medium outline-none cursor-pointer appearance-none max-w-[160px] truncate" style="display:none"></select>
@@ -514,7 +514,7 @@
         <div class="max-w-4xl mx-auto p-6 sm:p-10 pb-20">
             <div class="flex justify-between items-center mb-6">
                 <button onclick="closeModal('ttk-details-modal')" class="text-gray-400 hover:text-white flex items-center gap-2 transition-colors"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
-                <div class="flex gap-2" id="ttk-action-buttons"></div>
+                <div class="flex flex-wrap gap-2" id="ttk-action-buttons"></div>
             </div>
             <div id="ttk-details-content" class="flex flex-col gap-8"></div>
         </div>
@@ -1217,8 +1217,8 @@
     <script src="js/settings.js"></script>
     <script src="js/sales.js"></script>
     <script src="js/tables.js"></script>
-    <script src="js/menu.js"></script>
-    <script src="js/ttk.js"></script>
+    <script src="js/menu.js?v=2d051e2"></script>
+    <script src="js/ttk.js?v=2d051e2"></script>
     <script src="js/books.js"></script>
     <script src="js/inventory.js"></script>
     <script src="js/invoice-ocr.js"></script>

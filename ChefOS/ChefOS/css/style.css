@@ -63,3 +63,6 @@
 
 /* Подписи плиток дашборда: без автопереносов со знаком дефиса */
 #tiles-grid h2 { -webkit-hyphens: manual; hyphens: manual; overflow-wrap: break-word; }
+
+        /* Кнопки действий в карточке ТТК: не рвём текст, переносим строкой */
+        #ttk-action-buttons button { white-space: nowrap; flex-shrink: 0; }
