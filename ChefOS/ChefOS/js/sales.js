@@ -1,5 +1,8 @@
-        // --- ВНЕСЕНИЕ ПРОДАЖ: карточки блюд, тап = +1 порция ---
-        let salesCart = {}; // id блюда -> кол-во порций
+        // --- КАССА (v2.9): экран кассира ---
+        let salesCart = {}; // id блюда -> кол-во порций (текущий чек)
+        let posPayMethod = 'cash'; // 'cash' | 'card'
+        // Ставка HST Онтарио для информационной строки «в т.ч. налог» (настройка ставки — со следующим шагом, HST-отчёт)
+        const POS_TAX_RATE = 0.13;
 
         function openSalesModal() {
             salesCart = {};
@@ -71,19 +74,95 @@
             });
         }
 
-        function updateSalesTotal() {
-            let total = 0, count = 0;
+        function posTotals() {
+            let subtotal = 0, count = 0;
             for (const id in salesCart) {
                 const d = menuDB.find(x => x.id == id);
-                if (d) { total += (d.menuPrice || 0) * salesCart[id]; count += salesCart[id]; }
+                if (d) { subtotal += (d.menuPrice || 0) * salesCart[id]; count += salesCart[id]; }
             }
-            document.getElementById('sales-total-value').textContent = `${currentCurrency}${total}`;
-            document.getElementById('sales-total-count').textContent = count > 0 ? `${count} ${t('unit_pcs')}` : '';
-            const btn = document.getElementById('sales-pay-btn');
-            if (btn) {
-                btn.classList.toggle('opacity-40', count === 0);
-                btn.classList.toggle('pointer-events-none', count === 0);
-            }
+            subtotal = Math.round(subtotal * 100) / 100;
+            const pctEl = document.getElementById('pos-disc-pct');
+            const amtEl = document.getElementById('pos-disc-amt');
+            const pct = Math.min(100, Math.max(0, parseFloat(pctEl && pctEl.value) || 0));
+            const amt = Math.max(0, parseFloat(amtEl && amtEl.value) || 0);
+            let discount = Math.round(subtotal * pct / 100 * 100) / 100 + amt;
+            discount = Math.min(discount, subtotal);
+            discount = Math.round(discount * 100) / 100;
+            const total = Math.round((subtotal - discount) * 100) / 100;
+            const taxIncl = Math.round((total - total / (1 + POS_TAX_RATE)) * 100) / 100;
+            return { subtotal, discount, total, count, taxIncl };
+        }
+        function updateSalesTotal() { renderTicket(); }
+        function renderTicket() {
+            const box = document.getElementById('pos-lines');
+            if (!box) return;
+            const tt = posTotals();
+            const ids = Object.keys(salesCart);
+            box.innerHTML = ids.length === 0
+                ? `<p class="text-gray-600 text-xs text-center py-4">${t('pos_empty_ticket')}</p>`
+                : ids.map(id => {
+                    const d = menuDB.find(x => x.id == id);
+                    if (!d) return '';
+                    const q = salesCart[id];
+                    const line = Math.round((d.menuPrice || 0) * q * 100) / 100;
+                    return `<div class="flex items-center gap-2 bg-white/5 rounded-xl px-2 py-1.5">
+                        <div class="flex-1 min-w-0"><div class="text-white text-xs font-medium truncate">${d.name}</div>
+                        <div class="text-gray-500 text-[11px]">${currentCurrency}${d.menuPrice || 0}</div></div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="posQty(${d.id},-1)" class="w-7 h-7 rounded-lg bg-black/50 text-white border border-white/15 active:scale-90">−</button>
+                            <span class="w-6 text-center text-white text-sm font-bold">${q}</span>
+                            <button onclick="posQty(${d.id},1)" class="w-7 h-7 rounded-lg bg-black/50 text-white border border-white/15 active:scale-90">+</button>
+                        </div>
+                        <div class="text-emerald-400 text-xs font-bold w-14 text-right">${currentCurrency}${line}</div>
+                    </div>`;
+                }).join('');
+            document.getElementById('pos-subtotal').textContent = `${currentCurrency}${tt.subtotal}`;
+            document.getElementById('pos-disc-line').textContent = `−${currentCurrency}${tt.discount}`;
+            document.getElementById('pos-total').textContent = `${currentCurrency}${tt.total}`;
+            document.getElementById('pos-tax').textContent = `${currentCurrency}${tt.taxIncl}`;
+            const tendered = parseFloat(document.getElementById('pos-tendered').value) || 0;
+            const change = posPayMethod === 'cash' ? Math.max(0, Math.round((tendered - tt.total) * 100) / 100) : 0;
+            document.getElementById('pos-change').textContent = `${currentCurrency}${change}`;
+            const btn = document.getElementById('pos-pay-btn');
+            const ok = tt.count > 0 && (posPayMethod === 'card' || tendered >= tt.total);
+            btn.classList.toggle('opacity-40', !ok);
+            btn.classList.toggle('pointer-events-none', !ok);
+            btn.querySelector('span').textContent = `${t('pos_pay')} ${currentCurrency}${tt.total}`;
+        }
+        function posQty(id, delta) {
+            salesCart[id] = (salesCart[id] || 0) + delta;
+            if (salesCart[id] <= 0) delete salesCart[id];
+            refreshSaleBadges();
+            renderTicket();
+            if (navigator.vibrate) navigator.vibrate(10);
+        }
+        function posClear() {
+            salesCart = {};
+            document.getElementById('pos-disc-pct').value = 0;
+            document.getElementById('pos-disc-amt').value = 0;
+            document.getElementById('pos-tendered').value = '';
+            refreshSaleBadges();
+            renderTicket();
+        }
+        function posDiscInput() { renderTicket(); }
+        function posTenderedInput() { renderTicket(); }
+        function posQuickCash(v) {
+            const el = document.getElementById('pos-tendered');
+            el.value = (parseFloat(el.value) || 0) + v;
+            renderTicket();
+        }
+        function posExact() {
+            document.getElementById('pos-tendered').value = posTotals().total;
+            renderTicket();
+        }
+        function posSetPay(m) {
+            posPayMethod = m;
+            const cash = document.getElementById('pos-pay-cash');
+            const card = document.getElementById('pos-pay-card');
+            cash.className = 'h-11 rounded-xl text-sm font-semibold ' + (m === 'cash' ? 'bg-emerald-500 text-white' : 'bg-[#2C2C2E] text-gray-300 border border-white/10');
+            card.className = 'h-11 rounded-xl text-sm font-semibold ' + (m === 'card' ? 'bg-emerald-500 text-white' : 'bg-[#2C2C2E] text-gray-300 border border-white/10');
+            document.getElementById('pos-cash-block').style.display = m === 'cash' ? '' : 'none';
+            renderTicket();
         }
 
         // Списание ингредиента со склада при продаже.
@@ -132,34 +211,43 @@
         }
 
         function processSales(event) {
-            const btn = event.currentTarget;
             const ids = Object.keys(salesCart);
             if (ids.length === 0) { showNotification(t('sales_empty')); return; }
-            const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> <span>${t('sales_processing')}</span>`;
+            const tt = posTotals();
+            const tendered = posPayMethod === 'cash' ? (parseFloat(document.getElementById('pos-tendered').value) || 0) : tt.total;
+            if (posPayMethod === 'cash' && tendered < tt.total) { showNotification(t('pos_short')); return; }
+            const change = posPayMethod === 'cash' ? Math.round((tendered - tt.total) * 100) / 100 : 0;
+            const btn = event.currentTarget;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i>`;
             btn.classList.add('pointer-events-none');
 
             setTimeout(() => {
                 const nameEl = document.getElementById('takeaway-name');
                 const customerName = nameEl ? nameEl.value.trim() : '';
-                const totalSold = commitSale(salesCart, { takeaway: true, customerName });
-                salesCart = {};
+                const pct = parseFloat(document.getElementById('pos-disc-pct').value) || 0;
+                const amt = parseFloat(document.getElementById('pos-disc-amt').value) || 0;
+                const receiptItems = ids.map(id => {
+                    const d = menuDB.find(x => x.id == id);
+                    return { id: Number(id), name: d ? d.name : '', qty: salesCart[id], price: d ? (d.menuPrice || 0) : 0 };
+                });
+                const receipt = {
+                    id: Date.now(), ts: new Date().toISOString(), items: receiptItems,
+                    subtotal: tt.subtotal, discountPct: pct, discountAmt: amt, total: tt.total,
+                    payMethod: posPayMethod, tendered: Math.round(tendered * 100) / 100, change,
+                    customerName, returned: 0
+                };
+                const totalSold = commitSale(salesCart, { takeaway: true, customerName, receipt });
+                posClear();
                 if (nameEl) nameEl.value = '';
 
-                btn.innerHTML = `<i class="fa-solid fa-check mr-2"></i> <span>${t('sales_success')}</span>`;
-                btn.classList.replace('bg-emerald-500', 'bg-green-500');
-
+                btn.innerHTML = `<i class="fa-solid fa-check mr-2"></i> <span>${t('pos_success')}</span>`;
                 setTimeout(() => {
                     closeModal('sales-modal');
-                    if (totalSold > 0) showNotification(`${t('sales_success')} (${totalSold})`);
-                    setTimeout(() => {
-                        btn.innerHTML = originalText;
-                        btn.classList.remove('pointer-events-none');
-                        btn.classList.replace('bg-green-500', 'bg-emerald-500');
-                        document.getElementById('sales-list').innerHTML = '';
-                    }, 500);
-                }, 800);
-            }, 600);
+                    showNotification(change > 0 ? `${t('pos_success')}. ${t('pos_change')}: ${currentCurrency}${change}` : `${t('pos_success')} (${totalSold})`);
+                    setTimeout(() => { btn.innerHTML = originalHTML; renderTicket(); }, 500);
+                }, 700);
+            }, 400);
         }
 
         // Ядро проведения продажи (v2.3): финансы, склад, salesDB, KDS.
@@ -203,6 +291,11 @@
                 const qty = items[id];
                 if (qty > 0) salesDB[curMonth][id] = (salesDB[curMonth][id] || 0) + qty;
             });
+            // Чеки кассы (v2.9): для возвратов, отчётов и HST
+            if (opts && opts.receipt) {
+                if (!receiptsDB[curMonth]) receiptsDB[curMonth] = [];
+                receiptsDB[curMonth].unshift(opts.receipt);
+            }
             // KDS (v2.2): кухонный тикет — кухня видит, что готовить (v2.3: с номером столика)
             const kdsItems = ids.map(id => { const d = menuDB.find(x => x.id == id); const q = items[id]; return (d && q > 0) ? { name: d.name, qty: q } : null; }).filter(Boolean);
             if (kdsItems.length && !(opts && opts.skipKds)) {

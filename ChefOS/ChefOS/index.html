@@ -238,24 +238,67 @@
                 <button id="sales-tab-floor" onclick="switchSalesTab('floor')" class="flex-1 h-10 rounded-xl bg-[#2C2C2E] text-gray-300 text-sm font-medium transition-colors"><i class="fa-solid fa-chair mr-2"></i><span data-i18n="sales_tab_floor">Зал</span></button>
             </div>
             <div id="sales-pane-dishes" class="p-6 pt-4">
-                <p class="text-sm text-gray-400 mb-3" data-i18n="takeaway_desc">Заказ на вынос: соберите блюда, укажите имя — кухня увидит тикет «На вынос».</p>
-                <input type="text" id="takeaway-name" maxlength="24" data-i18n="takeaway_name_ph" placeholder="Имя клиента (необязательно)" class="w-full h-11 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-4 mb-4 outline-none focus:border-emerald-500 text-sm">
-                <div class="relative w-full mb-4">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none text-sm"></i>
-                    <input type="text" id="sales-search" onkeyup="filterSalesList()" data-i18n="sales_search" placeholder="Быстрый поиск блюда..." class="w-full h-10 bg-[#2C2C2E] border border-white/10 text-white rounded-xl pl-9 pr-4 outline-none focus:border-emerald-500 text-sm">
-                </div>
-                <div id="sales-list" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 mb-4"></div>
-                <div class="sticky bottom-0 bg-[#1C1C1E] pt-3 pb-1 -mx-6 px-6 border-t border-white/5">
-                    <div class="flex items-center justify-between mb-3">
-                        <div>
-                            <div class="text-xs text-gray-400" data-i18n="sales_total">Итого</div>
-                            <div id="sales-total-value" class="text-2xl font-bold text-white">0</div>
+                <div class="flex flex-col lg:flex-row gap-6">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm text-gray-400 mb-3" data-i18n="takeaway_desc">Заказ на вынос: соберите блюда, укажите имя — кухня увидит тикет «На вынос».</p>
+                        <input type="text" id="takeaway-name" maxlength="24" data-i18n="takeaway_name_ph" placeholder="Имя клиента (необязательно)" class="w-full h-11 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-4 mb-4 outline-none focus:border-emerald-500 text-sm">
+                        <div class="relative w-full mb-4">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none text-sm"></i>
+                            <input type="text" id="sales-search" onkeyup="filterSalesList()" data-i18n="sales_search" placeholder="Быстрый поиск блюда..." class="w-full h-10 bg-[#2C2C2E] border border-white/10 text-white rounded-xl pl-9 pr-4 outline-none focus:border-emerald-500 text-sm">
                         </div>
-                        <div id="sales-total-count" class="text-sm text-gray-400"></div>
+                        <div id="sales-list" class="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-4"></div>
                     </div>
-                    <button id="sales-pay-btn" onclick="processSales(event)" class="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-all font-medium flex items-center justify-center shadow-lg shadow-emerald-500/20 opacity-40 pointer-events-none">
-                        <i class="fa-solid fa-cash-register mr-2"></i> <span data-i18n="sales_pay">Оплатить</span>
-                    </button>
+                    <div class="lg:w-[340px] shrink-0">
+                        <div class="lg:sticky lg:top-0 bg-black/40 border border-white/10 rounded-2xl p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-white font-semibold text-sm" data-i18n="pos_ticket">Чек</span>
+                                <button onclick="posClear()" class="text-xs text-gray-500 hover:text-red-400" data-i18n="pos_clear">Очистить</button>
+                            </div>
+                            <div id="pos-lines" class="flex flex-col gap-2 max-h-[30vh] lg:max-h-[36vh] overflow-y-auto show-scroll mb-3"></div>
+                            <div class="flex gap-2 mb-3">
+                                <div class="flex-1">
+                                    <div class="text-[11px] text-gray-500 mb-1" data-i18n="pos_discount">Скидка</div>
+                                    <div class="flex gap-1">
+                                        <div class="relative flex-1">
+                                            <input type="number" id="pos-disc-pct" min="0" max="100" value="0" oninput="posDiscInput()" class="w-full h-10 bg-[#2C2C2E] border border-white/10 text-white rounded-xl pl-3 pr-7 text-sm outline-none focus:border-emerald-500">
+                                            <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm">%</span>
+                                        </div>
+                                        <div class="relative flex-1">
+                                            <input type="number" id="pos-disc-amt" min="0" value="0" step="0.01" oninput="posDiscInput()" class="w-full h-10 bg-[#2C2C2E] border border-white/10 text-white rounded-xl pl-3 pr-7 text-sm outline-none focus:border-emerald-500">
+                                            <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-sm space-y-1 mb-3">
+                                <div class="flex justify-between text-gray-400"><span data-i18n="pos_subtotal">Подытог</span><span id="pos-subtotal">0</span></div>
+                                <div class="flex justify-between text-gray-400"><span data-i18n="pos_discount">Скидка</span><span id="pos-disc-line">0</span></div>
+                                <div class="flex justify-between text-white font-bold text-lg"><span data-i18n="pos_total">Итого</span><span id="pos-total">0</span></div>
+                                <div class="flex justify-between text-[11px] text-gray-600"><span data-i18n="pos_tax_incl">в т.ч. HST 13%</span><span id="pos-tax">0</span></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mb-3">
+                                <button id="pos-pay-cash" onclick="posSetPay('cash')" class="h-11 rounded-xl bg-emerald-500 text-white text-sm font-semibold"><i class="fa-solid fa-money-bill-wave mr-1"></i><span data-i18n="pos_cash">Наличные</span></button>
+                                <button id="pos-pay-card" onclick="posSetPay('card')" class="h-11 rounded-xl bg-[#2C2C2E] text-gray-300 text-sm font-semibold border border-white/10"><i class="fa-solid fa-credit-card mr-1"></i><span data-i18n="pos_card">Карта</span></button>
+                            </div>
+                            <div id="pos-cash-block">
+                                <div class="text-[11px] text-gray-500 mb-1" data-i18n="pos_tendered">Получено</div>
+                                <div class="flex gap-1 mb-2">
+                                    <input type="number" id="pos-tendered" min="0" step="0.01" oninput="posTenderedInput()" class="flex-1 h-11 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-3 text-sm outline-none focus:border-emerald-500">
+                                    <button onclick="posExact()" class="h-11 px-3 rounded-xl bg-[#2C2C2E] text-gray-300 text-xs border border-white/10" data-i18n="pos_exact">Точная</button>
+                                </div>
+                                <div class="flex gap-1 mb-3">
+                                    <button onclick="posQuickCash(5)" class="flex-1 h-9 rounded-lg bg-[#2C2C2E] text-gray-300 text-xs border border-white/10">$5</button>
+                                    <button onclick="posQuickCash(10)" class="flex-1 h-9 rounded-lg bg-[#2C2C2E] text-gray-300 text-xs border border-white/10">$10</button>
+                                    <button onclick="posQuickCash(20)" class="flex-1 h-9 rounded-lg bg-[#2C2C2E] text-gray-300 text-xs border border-white/10">$20</button>
+                                    <button onclick="posQuickCash(50)" class="flex-1 h-9 rounded-lg bg-[#2C2C2E] text-gray-300 text-xs border border-white/10">$50</button>
+                                </div>
+                                <div class="flex justify-between text-sm mb-3"><span class="text-gray-400" data-i18n="pos_change">Сдача</span><span id="pos-change" class="text-amber-400 font-bold">0</span></div>
+                            </div>
+                            <button id="pos-pay-btn" onclick="processSales(event)" class="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-all font-semibold flex items-center justify-center shadow-lg shadow-emerald-500/20 opacity-40 pointer-events-none">
+                                <i class="fa-solid fa-cash-register mr-2"></i><span data-i18n="pos_pay">Оплатить</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="sales-pane-floor" class="p-6 pt-4 hidden">

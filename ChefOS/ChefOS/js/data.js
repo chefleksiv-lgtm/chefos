@@ -201,6 +201,9 @@
         // Продажи по блюдам (v1.7): { 'YYYY-MM': { dishId: qty } } — для ABC-анализа меню
         let salesDB = {};
 
+        // Чеки кассы (v2.9): { 'YYYY-MM': [ {id, ts, items:[{id,name,qty,price}], subtotal, discountPct, discountAmt, total, payMethod:'cash'|'card', tendered, change, customerName} ] }
+        let receiptsDB = {};
+
         // KDS (v2.2): кухонные тикеты — {id, num, ts: ISO, items:[{name, qty}], status:'new'|'done'}
         let kdsDB = [];
         // Пороги таймера KDS в минутах: до green — норма, до amber — внимание, дальше — опоздание (меняет шеф)
