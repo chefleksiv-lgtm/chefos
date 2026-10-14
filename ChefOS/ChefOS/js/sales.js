@@ -18,7 +18,6 @@
             if (typeof floorEditMode !== 'undefined') floorEditMode = false;
             togglePosFloor(false);
             renderPosCtx();
-            const tn = document.getElementById('takeaway-name'); if (tn) tn.value = '';
             openModal('sales-modal');
         }
 
@@ -246,16 +245,16 @@
             }
             renderPosCtx();
         }
-        // Плашка «Стол N» в чеке кассира + скрытие поля имени на вынос
+        // Плашка «Стол N» в чеке кассира
         function posRenderTableCtx() {
             const chip = document.getElementById('pos-table-chip');
-            const nameInput = document.getElementById('takeaway-name');
+            if (!chip) return;
             if (posTableCtx) {
-                if (chip) { chip.classList.remove('hidden'); const s = chip.querySelector('span'); if (s) s.textContent = posTableCtx.tableName; }
-                if (nameInput) nameInput.classList.add('hidden');
+                chip.classList.remove('hidden');
+                const s = chip.querySelector('span');
+                if (s) s.textContent = posTableCtx.tableName;
             } else {
-                if (chip) chip.classList.add('hidden');
-                if (nameInput) { nameInput.classList.remove('hidden'); nameInput.value = ''; }
+                chip.classList.add('hidden');
             }
         }
         // Загрузить счёт столика в кассу: скидки, чаевые, способ оплаты — как на вынос
@@ -355,11 +354,10 @@
 
             setTimeout(() => {
                 try {
-                const nameEl = document.getElementById('takeaway-name');
-                const customerName = nameEl ? nameEl.value.trim() : '';
                 const pct = parseFloat(document.getElementById('pos-disc-pct').value) || 0;
                 const amt = parseFloat(document.getElementById('pos-disc-amt').value) || 0;
                 const tableCtx = posTableCtx;
+                const customerName = '';
                 const receiptItems = posTicket.map(l => {
                     const d = menuDB.find(x => x.id == l.dishId);
                     return { id: Number(l.dishId), name: d ? d.name : '', qty: l.qty, price: posLinePrice(l), mods: (l.mods || []).map(m => ({ name: m.name, price: m.price })) };
@@ -375,7 +373,6 @@
                     : { takeaway: true, customerName, receipt };
                 const totalSold = commitSale(posTicket, saleOpts);
                 posClear();
-                if (nameEl) nameEl.value = '';
                 // Счёт стола закрываем сразу (не ждём анимацию кнопки),
                 // чтобы план зала и тосты не гонялись за задержкой.
                 if (tableCtx && typeof tableTabsDB !== 'undefined') {
