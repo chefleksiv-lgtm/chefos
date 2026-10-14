@@ -51,7 +51,7 @@
             
             const ab = document.getElementById('ttk-action-buttons');
             if (currentAppRole === 'chef') {
-                ab.innerHTML = `${d.type==='dish'?(d.isTTKActive?`<button onclick="toggleDishInMenu(${d.id})" class="h-10 px-4 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 text-sm font-medium transition-colors"><i class="fa-solid fa-minus mr-1"></i> ${t('ttk_remove_from_menu')}</button>`:`<button onclick="toggleDishInMenu(${d.id})" class="h-10 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium transition-colors shadow-lg shadow-orange-500/20"><i class="fa-solid fa-plus mr-1"></i> ${t('ttk_add_to_menu')}</button>`):''}<button onclick="openCookMode(${d.id})" class="h-10 px-4 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 text-sm font-medium transition-colors"><i class="fa-solid fa-kitchen-set mr-1"></i> ${t('cook_mode')}</button><button class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors" onclick="openLabelModal('ttk', ${d.id})"><i class="fa-solid fa-tag mr-1"></i> ${t('label_btn')}</button><button onclick="printTTKSheet(${d.id})" class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"><i class="fa-solid fa-print mr-1"></i> ${t('print')}</button><button id="edit-ttk-btn" class="h-10 px-4 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors shadow-lg shadow-blue-500/20" onclick="openTTKEditor(${d.id})"><i class="fa-solid fa-pen mr-1"></i> ${t('edit')}</button>`;
+                ab.innerHTML = `${d.type==='dish'?(d.isTTKActive?`<button onclick="toggleDishInMenu(${d.id})" class="h-10 px-4 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 text-sm font-medium transition-colors"><i class="fa-solid fa-minus mr-1"></i> ${t('ttk_remove_from_menu')}</button>`:`<button onclick="toggleDishInMenu(${d.id})" class="h-10 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium transition-colors shadow-lg shadow-orange-500/20"><i class="fa-solid fa-plus mr-1"></i> ${t('ttk_add_to_menu')}</button>`):''}<button onclick="openCookMode(${d.id})" class="h-10 px-4 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 text-sm font-medium transition-colors"><i class="fa-solid fa-kitchen-set mr-1"></i> ${t('cook_mode')}</button><button class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors" onclick="openLabelModal('ttk', ${d.id})"><i class="fa-solid fa-tag mr-1"></i> ${t('label_btn')}</button><button onclick="printTTKSheet(${d.id})" class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"><i class="fa-solid fa-print mr-1"></i> ${t('print')}</button><button id="edit-ttk-btn" class="h-10 px-4 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors shadow-lg shadow-blue-500/20" onclick="openTTKEditor(${d.id})"><i class="fa-solid fa-pen mr-1"></i> ${t('edit')}</button><button onclick="deleteTTK(${d.id})" title="${t('ttk_delete_ttk')}" class="h-10 w-10 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white transition-colors flex items-center justify-center"><i class="fa-solid fa-trash-can text-sm"></i></button>`;
             } else {
                 ab.innerHTML = `<button onclick="openCookMode(${d.id})" class="h-10 px-4 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 text-sm font-medium transition-colors"><i class="fa-solid fa-kitchen-set mr-1"></i> ${t('cook_mode')}</button><button class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors" onclick="openLabelModal('ttk', ${d.id})"><i class="fa-solid fa-tag mr-1"></i> ${t('label_btn')}</button><button onclick="printTTKSheet(${d.id})" class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"><i class="fa-solid fa-print mr-1"></i> ${t('print')}</button>`;
             }
@@ -188,6 +188,19 @@
             openTTKDetails(id); filterTTK();
             if (!document.getElementById('menu-modal').classList.contains('hidden')) filterMenu();
             showNotification(t('ttk_cost_applied'));
+        }
+        // --- Удаление ТТК (блюда и заготовки) — только с предупреждающим окном, только шеф ---
+        function deleteTTK(id) {
+            const d = menuDB.find(i => i.id === id); if (!d) return;
+            showConfirm(t('ttk_delete_ttk'), '\u00AB' + d.name + '\u00BB ' + t('ttk_delete_warn'), () => {
+                const i = menuDB.findIndex(x => x.id === id);
+                if (i >= 0) menuDB.splice(i, 1);
+                markDirty();
+                closeModal('ttk-details-modal');
+                filterTTK();
+                if (!document.getElementById('menu-modal').classList.contains('hidden') && typeof filterMenu === 'function') filterMenu();
+                showNotification(t('ttk_deleted'));
+            });
         }
         function renderScaledLines(id) {
             const d = menuDB.find(i => i.id === id); if (!d) return;
