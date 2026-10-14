@@ -504,7 +504,6 @@
                         <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i>
                         <input type="text" id="ttk-search" onkeyup="filterTTK()" data-i18n="ttk_search" placeholder="Поиск ТТК..." class="w-full h-11 bg-[#1C1C1E] border border-white/10 text-white rounded-xl pl-10 pr-4 outline-none focus:border-blue-500 text-sm">
                     </div>
-                    <button onclick="openModal('ai-import-modal')" class="w-full sm:w-auto h-11 px-6 bg-violet-500/15 hover:bg-violet-500 text-violet-300 hover:text-white border border-violet-500/30 rounded-xl text-sm font-medium transition-colors flex items-center justify-center whitespace-nowrap"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i> <span data-i18n="ai_import">Импорт из текста</span></button>
                     <button id="ttk-add-btn" onclick="openTTKEditor(null)" class="w-full sm:w-auto h-11 px-6 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center whitespace-nowrap"><i class="fa-solid fa-plus mr-2"></i> <span data-i18n="create">Создать</span></button>
                 </div>
             </div>
@@ -814,18 +813,6 @@
 
 
 
-
-    <div id="ai-import-modal" onclick="if(event.target === this) closeModal('ai-import-modal')" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
-        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-md p-6 border border-white/10 transform scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto show-scroll">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-semibold text-white" data-i18n="ai_title">Импорт рецепта</h3>
-                <button onclick="closeModal('ai-import-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <p class="text-xs text-gray-500 mb-3" data-i18n="ai_hint">Вставь текст рецепта — разберу на ингредиенты, шаги и КБЖУ, открою в редакторе ТТК.</p>
-            <textarea id="ai-import-text" rows="7" data-i18n="ai_ph" placeholder="Например: Борщ на 4 порции..." class="w-full bg-[#2C2C2E] border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-violet-500 placeholder-gray-500"></textarea>
-            <button id="ai-import-btn" onclick="aiImportRecipe()" class="w-full h-12 mt-4 rounded-xl bg-violet-500 hover:bg-violet-600 text-white font-semibold transition-colors"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i><span data-i18n="ai_go">Распознать</span></button>
-        </div>
-    </div>
 
     <div id="reservation-modal" onclick="if(event.target === this) closeModal('reservation-modal')" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
         <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto show-scroll">
