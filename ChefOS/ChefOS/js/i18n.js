@@ -197,8 +197,6 @@
             'floor_hint_add': { ru: 'Нажмите на свободное место, чтобы добавить столик. Тяните столики, чтобы двигать.', en: 'Tap an empty spot to add a table. Drag tables to move them.' },
             'floor_hint_edit': { ru: 'Тяните столики, чтобы двигать. Нажмите на столик, чтобы изменить или удалить.', en: 'Drag tables to move. Tap a table to edit or delete.' },
             'floor_hint_view': { ru: 'Нажмите на столик, чтобы открыть счёт.', en: 'Tap a table to open its tab.' },
-            'table_free': { ru: 'свободен', en: 'free' },
-            'table_occupied': { ru: 'занят', en: 'occupied' },
             'table_seats_short': { ru: 'мест', en: 'seats' },
             'table_prefix': { ru: 'Стол', en: 'Table' },
             'table_tab_subtitle': { ru: 'Открытый счёт', en: 'Open tab' },
