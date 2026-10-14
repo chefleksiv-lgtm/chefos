@@ -544,7 +544,7 @@ const server = http.createServer(async (req, res) => {
             const base = (process.env.AI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
                 const sys = 'Ты помощник шеф-повара. Разбери текст рецепта и верни СТРОГО JSON без markdown и пояснений: {"name":"название блюда","portions":число порций,"yield_g":выход в граммах,"ingredients":[{"name":"название","weight_g":вес числом}],"steps":["шаг 1",...],"calories":ккал на весь выход,"protein":белки г на весь выход,"fat":жиры г,"carbs":углеводы г}. Все веса сам переведи в граммы (шт, мл, л, ст.л., ч.л. — оцени сам). Только JSON.';
                 // Перебор моделей: указанная в AI_MODEL, затем актуальные flash (v2.6.1)
-                const models = [process.env.AI_MODEL || 'gpt-4o-mini', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'].filter((v, i, a) => v && a.indexOf(v) === i);
+                const models = [process.env.AI_MODEL || 'gpt-4o-mini', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-2.0-flash'].filter((v, i, a) => v && a.indexOf(v) === i);
                 const sleep = ms => new Promise(r => setTimeout(r, ms));
                 let lastErr = 'fetch_error';
                 try {
@@ -574,8 +574,10 @@ const server = http.createServer(async (req, res) => {
                             if (r.status === 503 || r.status === 429) { await sleep(2500 * (attempt + 1)); continue; }
                             done = true;
                         }
-                        // 404 = нет такой модели — пробуем следующую; остальные ошибки — сразу наружу
-                        if (!/404|not found/i.test(String(lastErr))) break;
+                        // 404 (нет модели) и 503/429 (перегруз) — пробуем следующую модель; остальные ошибки — сразу наружу
+                        if (/404|not found/i.test(String(lastErr))) continue;
+                        if (/503|429|overload|exhausted/i.test(String(lastErr))) continue;
+                        break;
                     }
                     send(res, 502, { ok: false, error: 'ai_upstream', detail: String(lastErr).slice(0, 160) });
                 } catch (e) { send(res, 502, { ok: false, error: 'ai_failed', detail: String(lastErr).slice(0, 160) }); }
