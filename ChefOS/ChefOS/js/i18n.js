@@ -266,7 +266,6 @@
             'ttk_modifiers': { ru: 'Модификаторы (добавки на кассе)', en: 'Modifiers (POS add-ons)' },
             'ttk_mod_name_ph': { ru: 'Название (Двойной сыр)', en: 'Name (Extra cheese)' },
             'ttk_mod_price_ph': { ru: '+$', en: '+$' },
-            'takeaway_desc': { ru: 'Заказ на вынос: соберите блюда, укажите имя — кухня увидит тикет «На вынос».', en: 'Takeaway order: pick dishes, add a name — the kitchen sees a Takeaway ticket.' },
             'takeaway_name_ph': { ru: 'Имя клиента (необязательно)', en: 'Customer name (optional)' },
             'takeaway_tag': { ru: 'НА ВЫНОС', en: 'TAKEAWAY' },
             'table_is_free': { ru: 'СВОБОДЕН', en: 'FREE' },
