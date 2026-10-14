@@ -1,12 +1,17 @@
         // --- КАССА (v2.9): экран кассира ---
         let posTicket = []; // [{key, dishId, qty, mods:[{id,name,price}]}] — строки чека
         let posPayMethod = 'cash'; // 'cash' | 'card'
+        // Контекст оплаты столика: кассир пробивает счёт стола через полную кассу
+        // (скидки, чаевые, способ оплаты, чек). null — обычный заказ на вынос.
+        let posTableCtx = null; // {tabId, tableId, tableName, allergies}
         let modDishId = null; // блюдо, для которого выбираем модификаторы
         // Ставка налога из настроек (HST Онтарио по умолчанию) — для строки «в т.ч. налог»
         function posTaxRate() { return (typeof taxRate === 'number' ? taxRate : 13) / 100; }
 
         function openSalesModal() {
             posTicket = [];
+            posTableCtx = null;
+            posRenderTableCtx();
             document.getElementById('sales-search').value = '';
             filterSalesList();
             updateSalesTotal();
@@ -180,10 +185,42 @@
         }
         function posClear() {
             posTicket = [];
+            posTableCtx = null;
+            posRenderTableCtx();
             document.getElementById('pos-disc-pct').value = 0;
             document.getElementById('pos-disc-amt').value = 0;
             document.getElementById('pos-tendered').value = '';
             refreshSaleBadges();
+            renderTicket();
+        }
+        // Плашка «Стол N» в чеке кассира + скрытие поля имени на вынос
+        function posRenderTableCtx() {
+            const chip = document.getElementById('pos-table-chip');
+            const nameInput = document.getElementById('takeaway-name');
+            if (posTableCtx) {
+                if (chip) { chip.classList.remove('hidden'); const s = chip.querySelector('span'); if (s) s.textContent = posTableCtx.tableName; }
+                if (nameInput) nameInput.classList.add('hidden');
+            } else {
+                if (chip) chip.classList.add('hidden');
+                if (nameInput) { nameInput.classList.remove('hidden'); nameInput.value = ''; }
+            }
+        }
+        // Загрузить счёт столика в кассу: скидки, чаевые, способ оплаты — как на вынос
+        function posLoadTableTab(tabId) {
+            const tabs = (typeof tableTabsDB !== 'undefined' && Array.isArray(tableTabsDB)) ? tableTabsDB : [];
+            const tab = tabs.find(x => x.id === tabId);
+            if (!tab) return;
+            const items = tab.items || {};
+            const count = Object.keys(items).reduce((s, id) => s + (items[id] || 0), 0);
+            if (!count) { showNotification(t('sales_empty')); return; }
+            const tb = (typeof tablesDB !== 'undefined' ? tablesDB : []).find(v => v.id === tab.tableId);
+            const tableName = t('table_prefix') + ' ' + (tb ? tb.name : '');
+            if (typeof closeTableTabModal === 'function') closeTableTabModal();
+            openSalesModal();
+            const stamp = Date.now();
+            posTicket = Object.keys(items).map(id => ({ key: 'tbl' + id + '_' + stamp, dishId: Number(id), qty: items[id], mods: [] }));
+            posTableCtx = { tabId: tab.id, tableId: tab.tableId, tableName, allergies: Array.isArray(tab.allergies) ? tab.allergies.slice() : [] };
+            posRenderTableCtx();
             renderTicket();
         }
         function posDiscInput() { renderTicket(); }
@@ -268,6 +305,7 @@
                 const customerName = nameEl ? nameEl.value.trim() : '';
                 const pct = parseFloat(document.getElementById('pos-disc-pct').value) || 0;
                 const amt = parseFloat(document.getElementById('pos-disc-amt').value) || 0;
+                const tableCtx = posTableCtx;
                 const receiptItems = posTicket.map(l => {
                     const d = menuDB.find(x => x.id == l.dishId);
                     return { id: Number(l.dishId), name: d ? d.name : '', qty: l.qty, price: posLinePrice(l), mods: (l.mods || []).map(m => ({ name: m.name, price: m.price })) };
@@ -276,16 +314,26 @@
                     id: Date.now(), ts: new Date().toISOString(), items: receiptItems,
                     subtotal: tt.subtotal, discountPct: pct, discountAmt: amt, total: tt.total,
                     payMethod: posPayMethod, tendered: Math.round(tendered * 100) / 100, change,
-                    customerName, returned: 0
+                    customerName, tableName: tableCtx ? tableCtx.tableName : null, returned: 0
                 };
-                const totalSold = commitSale(posTicket, { takeaway: true, customerName, receipt });
+                const saleOpts = tableCtx
+                    ? { tableId: tableCtx.tableId, tableName: tableCtx.tableName, allergies: tableCtx.allergies, receipt }
+                    : { takeaway: true, customerName, receipt };
+                const totalSold = commitSale(posTicket, saleOpts);
                 posClear();
                 if (nameEl) nameEl.value = '';
 
                 btn.innerHTML = `<i class="fa-solid fa-check mr-2"></i> <span>${t('pos_success')}</span>`;
                 setTimeout(() => {
                     closeModal('sales-modal');
-                    showNotification(change > 0 ? `${t('pos_success')}. ${t('pos_change')}: ${currentCurrency}${change}` : `${t('pos_success')} (${totalSold})`);
+                    if (tableCtx) {
+                        const ti = (typeof tableTabsDB !== 'undefined' ? tableTabsDB : []).findIndex(x => x.id === tableCtx.tabId);
+                        if (ti >= 0) tableTabsDB.splice(ti, 1);
+                        markDirty();
+                        if (typeof renderFloorPlan === 'function') renderFloorPlan();
+                    }
+                    const okMsg = tableCtx ? `${t('pos_success')}: ${tableCtx.tableName}` : (change > 0 ? `${t('pos_success')}. ${t('pos_change')}: ${currentCurrency}${change}` : `${t('pos_success')} (${totalSold})`);
+                    showNotification(okMsg);
                     setTimeout(() => { btn.innerHTML = originalHTML; renderTicket(); }, 500);
                 }, 700);
             }, 400);

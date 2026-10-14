@@ -251,7 +251,10 @@
                     <div class="lg:w-[340px] shrink-0">
                         <div class="lg:sticky lg:top-0 bg-black/40 border border-white/10 rounded-2xl p-4">
                             <div class="flex items-center justify-between mb-2">
-                                <span class="text-white font-semibold text-sm" data-i18n="pos_ticket">Чек</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-white font-semibold text-sm" data-i18n="pos_ticket">Чек</span>
+                                    <span id="pos-table-chip" class="hidden text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 whitespace-nowrap"><i class="fa-solid fa-chair mr-1"></i><span></span></span>
+                                </div>
                                 <div class="flex gap-3">
                                     <button onclick="openReturnModal()" class="text-xs text-gray-500 hover:text-amber-400" data-i18n="pos_return">Возврат</button>
                                     <button onclick="posClear()" class="text-xs text-gray-500 hover:text-red-400" data-i18n="pos_clear">Очистить</button>

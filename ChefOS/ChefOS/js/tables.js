@@ -548,10 +548,13 @@
             showNotification(`${t('table_sent_kitchen')}: ${tableName}`);
         }
 
-        // Оплатить счёт: проводим продажу с привязкой к столику, закрываем счёт
+        // Оплатить счёт: счёт столика уходит в кассу — скидки, чаевые,
+        // способ оплаты и чек как на вынос. Счёт закроется после оплаты.
         function payTableTab() {
             const tab = activeTab();
             if (!tab) return;
+            if (typeof posLoadTableTab === 'function') { posLoadTableTab(tab.id); return; }
+            // Фолбэк, если касса недоступна: старое прямое проведение
             const { count } = tableTabTotals();
             if (count === 0) { showNotification(t('sales_empty')); return; }
             const tb = tablesDB.find(v => v.id === tab.tableId);
