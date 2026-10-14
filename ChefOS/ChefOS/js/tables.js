@@ -26,7 +26,7 @@
             });
             if (dishesPane) dishesPane.classList.toggle('hidden', tab !== 'dishes');
             if (floorPane) floorPane.classList.toggle('hidden', tab !== 'floor');
-            if (tab === 'floor') renderFloorPlan();
+            if (tab === 'floor') { renderFloorPlan(); if (typeof renderReservations === 'function') renderReservations(); }
         }
 
         const TABLE_SIZES = { s: 56, m: 72, l: 92 };

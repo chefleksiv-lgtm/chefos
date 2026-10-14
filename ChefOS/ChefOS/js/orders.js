@@ -58,9 +58,62 @@
             });
             markDirty();
             renderOrdersList();
+            if (typeof renderForecastList === 'function') renderForecastList();
             showNotification(created > 0 ? t('orders_created') + ': ' + created : t('orders_updated'));
         }
 
+        // --- ПРОГНОЗ ЗАПАСОВ (v2.6): «хватит на N дней» по истории продаж ---
+        // Показываем позиции, которые закончатся раньше/около следующего заказа.
+        function forecastRows() {
+            const rows = [];
+            (typeof inventoryDB !== 'undefined' ? inventoryDB : []).forEach(it => {
+                if (!it.supplier) return;
+                const daily = (typeof ingredientDailyUse === 'function') ? ingredientDailyUse(it) : 0;
+                if (!(daily > 0)) return;
+                const daysLeft = (it.quantity || 0) / daily;
+                const sup = (typeof supplierByName === 'function') ? supplierByName(it.supplier) : null;
+                const lead = (sup && sup.leadDays) || 0;
+                const cover = ((typeof daysToNextOrderDay === 'function') ? daysToNextOrderDay(it.supplier) : 7) + lead + 1;
+                const status = daysLeft <= lead + 1 ? 'urgent' : (daysLeft <= cover ? 'soon' : 'ok');
+                rows.push({ item: it, daily: daily, daysLeft: daysLeft, status: status });
+            });
+            rows.sort((a, b) => a.daysLeft - b.daysLeft);
+            return rows;
+        }
+        function renderForecastList() {
+            const box = document.getElementById('forecast-list');
+            if (!box) return;
+            const rows = forecastRows().filter(r => r.status !== 'ok').slice(0, 12);
+            if (!rows.length) { box.innerHTML = `<div class="text-sm text-gray-500 py-2">${t('forecast_empty')}</div>`; return; }
+            box.innerHTML = rows.map(r => {
+                const col = r.status === 'urgent' ? 'text-red-400' : 'text-amber-400';
+                const dot = r.status === 'urgent' ? 'bg-red-500' : 'bg-amber-500';
+                const dl = r.daysLeft < 1 ? '<1' : Math.floor(r.daysLeft);
+                return `<div class="bg-[#1C1C1E] border border-white/5 rounded-xl p-3 flex items-center gap-3">`
+                    + `<span class="w-2 h-2 rounded-full ${dot} shrink-0"></span>`
+                    + `<div class="flex-1 min-w-0"><p class="text-sm font-medium text-white truncate">${escapeHtml(r.item.name)}</p>`
+                    + `<p class="text-[11px] text-gray-500">${trimNum(r.item.quantity)} ${t('unit_' + r.item.unit) || r.item.unit} · ${t('forecast_per_day')}: ${trimNum(Math.round(r.daily * 100) / 100)}</p></div>`
+                    + `<span class="text-sm font-bold ${col} whitespace-nowrap">${t('forecast_left')} ${dl} ${t('forecast_days')}</span>`
+                    + `<button onclick="forecastAddToOrder('${r.item.id}')" class="h-9 px-3 rounded-xl bg-orange-500/15 text-orange-400 hover:bg-orange-500 hover:text-white text-xs font-semibold transition-colors whitespace-nowrap active:scale-95">${t('forecast_add')}</button>`
+                    + `</div>`;
+            }).join('');
+        }
+        function forecastAddToOrder(id) {
+            const it = (typeof inventoryDB !== 'undefined' ? inventoryDB : []).find(x => String(x.id) === String(id));
+            if (!it || !it.supplier || typeof suggestedOrderQty !== 'function') return;
+            const qty = suggestedOrderQty(it);
+            if (!(qty > 0)) { showNotification(t('orders_nothing')); return; }
+            const line = { name: it.name, qty: qty, unit: it.unit };
+            let open = (typeof ordersDB !== 'undefined' ? ordersDB : []).find(o => o.supplier === it.supplier && o.status === 'new');
+            if (open) {
+                const ex = open.items.find(x => x.name === it.name && x.unit === it.unit);
+                if (ex) ex.qty = Math.round((ex.qty + qty) * 100) / 100; else open.items.push(line);
+            } else {
+                ordersDB.push({ id: Date.now(), date: new Date().toISOString().slice(0, 10), supplier: it.supplier, items: [line], status: 'new' });
+            }
+            markDirty(); renderOrdersList(); renderForecastList();
+            showNotification(t('forecast_added'));
+        }
         function toggleOrderStatus(id) {
             if (currentAppRole !== 'chef') { showNotification(t('chef_only')); return; }
             const o = ordersDB.find(x => x.id === id); if (!o) return;

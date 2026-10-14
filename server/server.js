@@ -9,6 +9,7 @@
 //   POST /api/logout                        (Bearer) -> 200 {ok:true}
 //   GET  /api/pull                          (Bearer) -> {state, keyTs} — данные ТОЛЬКО этого пользователя
 //   POST /api/push {deviceId, state, keyTs} (Bearer) -> {state, keyTs} — merge per-collection LWW внутри аккаунта
+//   POST /api/ai-import {text}                 (Bearer) -> {ok, recipe} — разбор рецепта через LLM (нужен AI_API_KEY)
 //   GET  /...                               -> статика фронта (FRONT_DIR)
 //
 // Авторизация: заголовок Authorization: Bearer <token>. Токены — crypto.randomBytes,
@@ -526,6 +527,35 @@ const server = http.createServer(async (req, res) => {
             await backend.saveUserStore(user.userId, merged);
             console.log('[chefos] push', user.login, 'device', body.deviceId || '?', '-> keys:', Object.keys(merged.state).length);
             send(res, 200, { state: merged.state, keyTs: merged.keyTs });
+            return;
+        }
+
+        // --- ai-import (v2.6): разбор текста рецепта через LLM ---
+        if (req.method === 'POST' && p === '/api/ai-import') {
+            const user = requireAuth(req, res);
+            if (!user) return;
+            if (!rateLimit('ai:' + user.userId, 20, 3600 * 1000)) { send(res, 429, { ok: false, error: 'rate_limited' }); return; }
+            const key = process.env.AI_API_KEY || '';
+            if (!key) { send(res, 503, { ok: false, error: 'no_key' }); return; }
+            const body = await readJsonBody(req, res);
+            if (!body) return;
+            const text = String(body.text || '').slice(0, 6000).trim();
+            if (!text) { send(res, 400, { ok: false, error: 'validation' }); return; }
+            try {
+                const base = (process.env.AI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
+                const model = process.env.AI_MODEL || 'gpt-4o-mini';
+                const sys = 'Ты помощник шеф-повара. Разбери текст рецепта и верни СТРОГО JSON без markdown и пояснений: {"name":"название блюда","portions":число порций,"yield_g":выход в граммах,"ingredients":[{"name":"название","weight_g":вес числом}],"steps":["шаг 1",...],"calories":ккал на весь выход,"protein":белки г на весь выход,"fat":жиры г,"carbs":углеводы г}. Все веса сам переведи в граммы (шт, мл, л, ст.л., ч.л. — оцени сам). Только JSON.';
+                const r = await fetch(base + '/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+                    body: JSON.stringify({ model, temperature: 0.2, max_tokens: 2000, messages: [{ role: 'system', content: sys }, { role: 'user', content: text }] })
+                });
+                const j = await r.json();
+                const content = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+                const m = content.match(/\{[\s\S]*\}/);
+                if (!m) { send(res, 502, { ok: false, error: 'bad_ai_response' }); return; }
+                send(res, 200, { ok: true, recipe: JSON.parse(m[0]) });
+            } catch (e) { send(res, 502, { ok: false, error: 'ai_failed' }); }
             return;
         }
 

@@ -309,3 +309,44 @@
                 </div>`;
             setTimeout(() => window.print(), 50);
         }
+
+        // --- AI-ИМПОРТ РЕЦЕПТА (v2.6): текст -> черновик ТТК ---
+        async function aiImportRecipe() {
+            const ta = document.getElementById('ai-import-text');
+            const btn = document.getElementById('ai-import-btn');
+            const text = (ta.value || '').trim();
+            if (!text) { showNotification(t('ai_empty')); return; }
+            btn.disabled = true; btn.classList.add('opacity-60');
+            try {
+                const r = await fetch('/api/ai-import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (typeof syncAuthToken === 'function' ? syncAuthToken() : '') },
+                    body: JSON.stringify({ text: text.slice(0, 6000) })
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok || !j.ok || !j.recipe) {
+                    showNotification(t(j.error === 'no_key' ? 'ai_no_key' : 'ai_failed'));
+                    return;
+                }
+                const rc = j.recipe;
+                closeModal('ai-import-modal');
+                openTTKEditor(null);
+                const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v === undefined || v === null) ? '' : v; };
+                set('edit-ttk-name', rc.name || '');
+                set('edit-ttk-portions', rc.portions || 1);
+                set('edit-ttk-yield', rc.yield_g || '');
+                set('edit-ttk-cal', rc.calories || '');
+                set('edit-ttk-prot', rc.protein || '');
+                set('edit-ttk-fat', rc.fat || '');
+                set('edit-ttk-carb', rc.carbs || '');
+                tempEditIngredients = (rc.ingredients || []).map(i => ({ name: String(i.name || '').slice(0, 80), weight: Math.round((parseFloat(i.weight_g) || 0) * 10) / 10, noScale: false })).filter(i => i.name && i.weight > 0);
+                tempEditSteps = (rc.steps || []).map(s => String(s).slice(0, 500)).filter(Boolean);
+                renderEditIngredients(); renderEditSteps();
+                ta.value = '';
+                showNotification(t('ai_done'));
+            } catch (e) {
+                showNotification(t('ai_failed'));
+            } finally {
+                btn.disabled = false; btn.classList.remove('opacity-60');
+            }
+        }

@@ -241,6 +241,9 @@
         // Открытые счета столиков (v2.3): [{id, tableId, items:{dishId:qty}, ts, kdsSent}]
         let tableTabsDB = [];
 
+        // Бронирование столиков (v2.6): [{id, date, time, name, phone, guests, tableId, note, status}]
+        let reservationsDB = [];
+
         // Флаг одноразовой миграции v1.7
         let v17migrated = false;
 

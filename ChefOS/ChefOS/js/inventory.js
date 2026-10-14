@@ -26,7 +26,7 @@
                 }
             });
             if (tabName === 'ingredients') renderInventoryList(); 
-            if (tabName === 'suppliers') { renderSuppliersList(); if (typeof renderAutoOrderSettings === 'function') renderAutoOrderSettings(); renderOrdersList(); }
+            if (tabName === 'suppliers') { renderSuppliersList(); if (typeof renderAutoOrderSettings === 'function') renderAutoOrderSettings(); renderOrdersList(); if (typeof renderForecastList === 'function') renderForecastList(); }
         }
 
         function renderInventoryList(sq = '', fc = 'all', fs = 'all') {
