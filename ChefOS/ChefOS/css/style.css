@@ -71,3 +71,10 @@
 body.modal-open { overflow: hidden; }
 [id$="-modal"].overflow-y-auto,
 [id$="-modal"] .overflow-y-auto { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+
+/* Видимый тонкий скроллбар для окон (v2.6.1) */
+.show-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.28) transparent; }
+.show-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+.show-scroll::-webkit-scrollbar-track { background: transparent; }
+.show-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.28); border-radius: 3px; }
+.show-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.45); }
