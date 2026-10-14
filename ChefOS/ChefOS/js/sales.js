@@ -322,16 +322,18 @@
                 const totalSold = commitSale(posTicket, saleOpts);
                 posClear();
                 if (nameEl) nameEl.value = '';
+                // Счёт стола закрываем сразу (не ждём анимацию кнопки),
+                // чтобы план зала и тосты не гонялись за задержкой.
+                if (tableCtx && typeof tableTabsDB !== 'undefined') {
+                    const ti = tableTabsDB.findIndex(x => x.id === tableCtx.tabId);
+                    if (ti >= 0) tableTabsDB.splice(ti, 1);
+                    markDirty();
+                }
 
                 btn.innerHTML = `<i class="fa-solid fa-check mr-2"></i> <span>${t('pos_success')}</span>`;
                 setTimeout(() => {
                     closeModal('sales-modal');
-                    if (tableCtx) {
-                        const ti = (typeof tableTabsDB !== 'undefined' ? tableTabsDB : []).findIndex(x => x.id === tableCtx.tabId);
-                        if (ti >= 0) tableTabsDB.splice(ti, 1);
-                        markDirty();
-                        if (typeof renderFloorPlan === 'function') renderFloorPlan();
-                    }
+                    if (tableCtx && typeof renderFloorPlan === 'function') renderFloorPlan();
                     const okMsg = tableCtx ? `${t('pos_success')}: ${tableCtx.tableName}` : (change > 0 ? `${t('pos_success')}. ${t('pos_change')}: ${currentCurrency}${change}` : `${t('pos_success')} (${totalSold})`);
                     showNotification(okMsg);
                     setTimeout(() => { btn.innerHTML = originalHTML; renderTicket(); }, 500);
