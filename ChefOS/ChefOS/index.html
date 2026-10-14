@@ -712,99 +712,6 @@
             <div id="inv-tab-suppliers" class="hidden">
                 <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-semibold text-white" data-i18n="sup_title">База поставщиков</h3><button onclick="openSupplierEditModal(null)" class="px-4 h-11 bg-[#2C2C2E] hover:bg-[#3A3A3C] text-white rounded-xl text-sm font-medium transition-colors inline-flex items-center justify-center"><i class="fa-solid fa-plus mr-1"></i> <span data-i18n="add">Добавить</span></button></div>
                 <div id="suppliers-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                <div class="mt-10">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold text-white" data-i18n="autoorder_settings">Настройки автозаказа</h3>
-                    </div>
-                    <p class="text-sm text-gray-500 mb-4" data-i18n="autoorder_settings_desc">Дни, когда поставщик принимает заказы, и срок поставки в днях.</p>
-                    <div id="autoorder-settings" class="space-y-3 mb-10"></div>
-                    <div class="flex justify-between items-center mb-2 mt-2">
-                        <h3 class="text-xl font-semibold text-white" data-i18n="forecast_title">Прогноз запасов</h3>
-                    </div>
-                    <p class="text-sm text-gray-500 mb-4" data-i18n="forecast_desc">Расход по истории продаж — что закончится раньше следующего заказа.</p>
-                    <div id="forecast-list" class="flex flex-col gap-2 mb-10"></div>
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold text-white" data-i18n="orders_title">Заказы поставщикам</h3>
-                        <button id="gen-orders-btn" onclick="generateOrders()" class="px-4 h-11 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-medium transition-colors inline-flex items-center justify-center shadow-lg shadow-orange-500/20"><i class="fa-solid fa-cart-plus mr-1"></i> <span data-i18n="orders_generate">Сформировать заказ</span></button>
-                    </div>
-                    <div id="orders-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                </div>
-            </div>
-            
-        </div>
-    </div>
-    <div id="finance-modal" onclick="if(event.target === this) closeModal('finance-modal')" class="hidden fixed inset-0 z-50 bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
-        <div class="max-w-4xl mx-auto p-6 sm:p-10 pb-20">
-            <button onclick="closeModal('finance-modal')" class="text-gray-400 hover:text-white mb-6 flex items-center gap-2 transition-colors"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
-            <div class="mb-8"><h2 class="text-3xl font-bold text-white" data-i18n="tile_money">Деньги</h2><p id="finance-kitchen-subtitle" class="text-amber-500 mt-1 font-medium"></p></div>
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                    <h3 class="text-xl font-semibold text-white" data-i18n="fin_title">Бухгалтерия и Сводка</h3>
-                    <div class="flex items-center gap-2">
-                        <button onclick="exportFinanceCSV()" class="h-11 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-xl text-sm font-medium transition-colors flex items-center"><i class="fa-solid fa-file-csv mr-2 text-green-400"></i><span data-i18n="fin_export_csv">Экспорт CSV</span></button>
-                        <input type="month" id="finance-month-selector" class="h-11 bg-[#2C2C2E] border border-white/10 rounded-xl px-4 text-white text-sm outline-none focus:border-indigo-500 cursor-pointer" onchange="renderFinanceTab()">
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
-                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_income">Доходы от продаж</p>
-                        <p id="finance-income" class="text-2xl font-bold text-green-400">0</p>
-                    </div>
-                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
-                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_cogs">Фуд-кост (Сырье)</p>
-                        <p id="finance-cogs" class="text-2xl font-bold text-orange-400">0</p>
-                    </div>
-                    <div onclick="openPayrollModal()" class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm cursor-pointer hover:border-blue-500/40 transition-colors">
-                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_payroll">Зарплатный фонд</p>
-                        <p id="finance-payroll" class="text-2xl font-bold text-blue-400">0</p>
-                        <p class="text-[11px] text-blue-400/70 mt-1" data-i18n="fin_payroll_open">Журнал выплат →</p>
-                    </div>
-                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
-                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_losses">Списания (Убытки)</p>
-                        <p id="finance-losses" class="text-2xl font-bold text-red-400">0</p>
-                    </div>
-                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
-                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_other_in">Прочие доходы</p>
-                        <p id="finance-other-in" class="text-2xl font-bold text-teal-400">0</p>
-                    </div>
-                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
-                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_other_out">Прочие расходы</p>
-                        <p id="finance-other-out" class="text-2xl font-bold text-rose-400">0</p>
-                    </div>
-                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
-                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_labor_pct">Зарплаты, %</p>
-                        <p id="finance-labor-pct" class="text-2xl font-bold text-sky-400">—</p>
-                    </div>
-                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
-                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_prime_cost">Прайм-кост, %</p>
-                        <p id="finance-prime-cost" class="text-2xl font-bold text-amber-400">—</p>
-                    </div>
-                </div>
-                <div class="bg-[#1C1C1E] border border-indigo-500/30 rounded-2xl p-6 shadow-[inset_0_0_20px_rgba(99,102,241,0.05)] mb-8">
-                    <p class="text-xs text-indigo-400 font-medium uppercase tracking-wider mb-1" data-i18n="fin_profit">Валовая прибыль (Чистыми)</p>
-                    <p id="finance-profit" class="text-3xl font-bold text-white">0</p>
-                </div>
-                <div class="mb-8">
-                    <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
-                        <h3 class="text-xl font-semibold text-white" data-i18n="money_manual">Ручные записи</h3>
-                        <div class="flex flex-wrap gap-2">
-                            <button onclick="openMoneyTxModal('in')" class="h-11 px-4 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-xl text-sm font-medium transition-colors whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i><span data-i18n="money_add_in">+ Доход</span></button>
-                            <button onclick="openMoneyTxModal('out')" class="h-11 px-4 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl text-sm font-medium transition-colors whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i><span data-i18n="money_add_out">+ Расход</span></button>
-                        </div>
-                    </div>
-                    <p id="money-tx-empty" class="text-sm text-gray-500" data-i18n="money_empty">Записей за этот месяц нет</p>
-                    <div id="money-tx-list" class="space-y-2 mt-2"></div>
-                <div class="mt-10">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-2">
-                        <div><h3 class="text-xl font-semibold text-white" data-i18n="sq_title">Импорт продаж из Square</h3>
-                        <p class="text-xs text-gray-500 mt-1" data-i18n="sq_desc">Продажи за день из кассы Square — в учёт ChefOS.</p>
-                        <div id="square-auth" class="mt-2"></div></div>
-                        <div class="flex items-center gap-2">
-                            <input type="date" id="square-date" class="h-11 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-indigo-500">
-                            <button onclick="sqLoadDay()" class="h-11 px-4 bg-indigo-500/20 hover:bg-indigo-500 hover:text-white text-indigo-300 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap"><i class="fa-solid fa-download mr-1"></i><span data-i18n="sq_load">Загрузить</span></button>
-                        </div>
-                    </div>
-                    <div id="square-preview" class="flex flex-col gap-2"></div>
-                </div>
                 </div>
                 <div class="bg-gradient-to-r from-[#1C1C1E] to-[#252529] border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div class="text-center md:text-left w-full md:w-auto">
@@ -1327,7 +1234,6 @@
     <script src="js/sales.js"></script>
     <script src="js/tables.js"></script>
     <script src="js/reservations.js"></script>
-    <script src="js/square.js"></script>
     <script src="js/menu.js?v=2d051e2"></script>
     <script src="js/ttk.js?v=2d051e2"></script>
     <script src="js/books.js"></script>
