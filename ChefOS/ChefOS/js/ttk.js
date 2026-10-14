@@ -2,16 +2,15 @@
         function openTTKModal() { document.getElementById('ttk-search').value = ''; toggleTTKFilter('dishes'); openModal('ttk-modal'); }
         function toggleTTKFilter(type) {
             activeTTKFilter = type;
-            const bd = document.getElementById('filter-ttk-dishes'), bp = document.getElementById('filter-ttk-preps'), bs = document.getElementById('filter-ttk-shift');
+            const bd = document.getElementById('filter-ttk-dishes'), bp = document.getElementById('filter-ttk-preps');
             const on = "h-8 px-4 rounded-full border border-blue-500 bg-blue-500/20 text-white text-xs font-medium transition-colors whitespace-nowrap";
             const off = "h-8 px-4 rounded-full border border-white/20 text-gray-300 text-xs font-medium hover:bg-white/10 transition-colors whitespace-nowrap";
-            bd.className = type === 'dishes' ? on : off; bp.className = type === 'preps' ? on : off; if (bs) bs.className = type === 'shift' ? on : off;
-            const grid = document.getElementById('ttk-grid'), panel = document.getElementById('ttk-shift-panel');
-            if (type === 'shift') { if (grid) grid.classList.add('hidden'); if (panel) { panel.classList.remove('hidden'); renderShiftPrep(); } }
-            else { if (grid) grid.classList.remove('hidden'); if (panel) panel.classList.add('hidden'); filterTTK(); }
+            bd.className = type === 'dishes' ? on : off; bp.className = type === 'preps' ? on : off;
+            const grid = document.getElementById('ttk-grid');
+            if (grid) grid.classList.remove('hidden');
+            filterTTK();
         }
         function filterTTK() {
-            if (activeTTKFilter === 'shift') return;
             const q = document.getElementById('ttk-search').value.toLowerCase(), grid = document.getElementById('ttk-grid'); grid.innerHTML = '';
             let f = menuDB.filter(d => activeTTKFilter === 'dishes' ? d.type === 'dish' : d.type === 'prep');
             if(q) f = f.filter(d => d.name.toLowerCase().includes(q));
@@ -180,72 +179,6 @@
             closeModal('ttk-edit-modal'); showNotification(t('notif_ttk_saved'));
         }
 
-
-        // --- PREP LIST НА СМЕНУ (v1.6) ---
-        let shiftPrepPortions = {}; // dishId -> порций
-
-        function renderShiftPrep() {
-            const panel = document.getElementById('ttk-shift-panel'); if (!panel) return;
-            const dishes = menuDB.filter(d => d.type === 'dish' && d.isTTKActive);
-            const rows = dishes.map(d => `
-                <div class="flex items-center gap-3 bg-[#1C1C1E] border border-white/5 rounded-xl p-3">
-                    <input type="checkbox" id="shift-dish-${d.id}" ${shiftPrepPortions[d.id] > 0 ? 'checked' : ''} onchange="toggleShiftDish(${d.id})" class="w-4 h-4 accent-blue-500 shrink-0 cursor-pointer">
-                    <span class="flex-1 text-sm text-white truncate">${escapeHtml(d.name)}</span>
-                    <input type="number" min="0" id="shift-portions-${d.id}" value="${shiftPrepPortions[d.id] || ''}" placeholder="0" oninput="setShiftPortions(${d.id}, this.value)" class="w-20 h-9 bg-[#2C2C2E] text-white rounded-lg px-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                    <span class="text-xs text-gray-500 w-14 shrink-0">${t('shift_portions')}</span>
-                </div>`).join('');
-            panel.innerHTML = `
-                <div class="max-w-3xl">
-                    <h3 class="text-xl font-semibold text-white mb-1">${t('shift_title')}</h3>
-                    <p class="text-sm text-gray-500 mb-4">${t('shift_hint')}</p>
-                    <div class="flex flex-col gap-2 mb-4">${rows || `<p class="text-gray-500 text-sm">${t('menu_not_found')}</p>`}</div>
-                    <button onclick="generateShiftPrep()" class="h-11 px-6 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors mb-6"><i class="fa-solid fa-list-check mr-2"></i>${t('shift_generate')}</button>
-                    <div id="shift-prep-result"></div>
-                </div>`;
-        }
-        function toggleShiftDish(id) {
-            const cb = document.getElementById(`shift-dish-${id}`);
-            if (cb && cb.checked) { setShiftPortions(id, document.getElementById(`shift-portions-${id}`).value || 10); document.getElementById(`shift-portions-${id}`).value = shiftPrepPortions[id]; }
-            else delete shiftPrepPortions[id];
-        }
-        function setShiftPortions(id, v) {
-            const n = parseInt(v) || 0;
-            if (n > 0) { shiftPrepPortions[id] = n; const cb = document.getElementById(`shift-dish-${id}`); if (cb) cb.checked = true; }
-            else delete shiftPrepPortions[id];
-        }
-        function generateShiftPrep() {
-            const res = document.getElementById('shift-prep-result'); if (!res) return;
-            const ids = Object.keys(shiftPrepPortions).filter(id => shiftPrepPortions[id] > 0);
-            if (!ids.length) { res.innerHTML = `<p class="text-gray-500 text-sm">${t('shift_empty')}</p>`; return; }
-            const agg = {};
-            const addAgg = (l, factor) => {
-                const key = String(l.name).trim().toLowerCase();
-                if (!agg[key]) agg[key] = { name: l.name, qty: 0, unit: l.unit };
-                const q = convertQty(l.qty * factor, l.unit, agg[key].unit);
-                if (q !== null) agg[key].qty += q;
-            };
-            ids.forEach(id => {
-                const d = menuDB.find(x => x.id == id); if (!d) return;
-                const portions = shiftPrepPortions[id];
-                const c = costOfDish(d);
-                const factor = (d.type === 'prep' && d.portions > 0) ? portions / d.portions : portions;
-                c.lines.forEach(l => {
-                    if (l.isSub && l.subLines) { l.subLines.forEach(sl => addAgg(sl, factor)); return; }
-                    if (l.qty === null) return;
-                    addAgg(l, l.noScale ? 1 : factor);
-                });
-            });
-            const items = Object.values(agg).sort((a, b) => String(a.name).localeCompare(String(b.name), 'ru'));
-            res.innerHTML = `<div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5">
-                <div class="flex justify-between items-center mb-3"><h4 class="font-semibold text-white">${t('shift_title')}</h4><span class="text-xs text-gray-500">${t('shift_total')} ${items.length}</span></div>
-                <div class="flex flex-col">${items.map(it => `
-                    <label class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0 cursor-pointer">
-                        <input type="checkbox" class="w-4 h-4 accent-green-500 shrink-0 cursor-pointer">
-                        <span class="flex-1 text-sm text-gray-300">${escapeHtml(it.name)}</span>
-                        <span class="text-sm font-semibold text-white whitespace-nowrap">${formatQty(it.qty, it.unit)}</span>
-                    </label>`).join('')}
-                </div></div>`;
-        }
 
         // --- АВТОКОСТИНГ + МАСШТАБИРОВАНИЕ В КАРТОЧКЕ ТТК (v1.6) ---
         function applyAutoCost(id) {
