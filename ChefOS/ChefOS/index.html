@@ -638,8 +638,8 @@
 
     <div id="ttk-details-modal" onclick="if(event.target === this) closeModal('ttk-details-modal')" class="hidden fixed inset-0 z-[60] bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
         <div class="max-w-4xl mx-auto p-6 sm:p-10 pb-20">
-            <div class="flex justify-between items-center mb-6">
-                <button onclick="closeModal('ttk-details-modal')" class="text-gray-400 hover:text-white flex items-center gap-2 transition-colors"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
+            <div class="flex flex-col gap-3 mb-6">
+                <button onclick="closeModal('ttk-details-modal')" class="text-gray-400 hover:text-white flex items-center gap-2 transition-colors self-start"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
                 <div class="flex flex-wrap gap-2" id="ttk-action-buttons"></div>
             </div>
             <div id="ttk-details-content" class="flex flex-col gap-8"></div>
