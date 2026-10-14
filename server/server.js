@@ -9,7 +9,11 @@
 //   POST /api/logout                        (Bearer) -> 200 {ok:true}
 //   GET  /api/pull                          (Bearer) -> {state, keyTs} — данные ТОЛЬКО этого пользователя
 //   POST /api/push {deviceId, state, keyTs} (Bearer) -> {state, keyTs} — merge per-collection LWW внутри аккаунта
-//   POST /api/square-import {date}              (Bearer) -> {ok, items:[{name,qty}], orders} — продажи дня из Square (нужны SQUARE_ACCESS_TOKEN, SQUARE_LOCATION_ID)
+//   GET  /api/square/oauth/start                 (Bearer) -> 302 на Square OAuth
+//   GET  /api/square/oauth/callback?code=&state=   -> обмен кода на токен (нужны SQUARE_APP_ID, SQUARE_APP_SECRET)
+//   GET  /api/square/status                       (Bearer) -> {ok, connected}
+//   POST /api/square/disconnect                   (Bearer) -> {ok}
+//   POST /api/square-import {date}              (Bearer) -> {ok, items:[{name,qty}], orders} — продажи дня из Square (OAuth-токен пользователя)
 //   GET  /...                               -> статика фронта (FRONT_DIR)
 //
 // Авторизация: заголовок Authorization: Bearer <token>. Токены — crypto.randomBytes,
@@ -87,6 +91,14 @@ class FileBackend {
         this._writeJsonAtomic(path.join(this.usersDir, safe + '.json'),
             { state: (store && store.state) || {}, keyTs: (store && store.keyTs) || {} });
     }
+    // --- Square OAuth токены (v2.8, файловый бэкенд) ---
+    _squareFile(userId) {
+        const safe = String(userId).replace(/[^a-zA-Z0-9_-]/g, '');
+        return path.join(this.usersDir, 'square_' + safe + '.json');
+    }
+    async saveSquareToken(userId, tok) { this._writeJsonAtomic(this._squareFile(userId), Object.assign({}, tok, { updated_at: Date.now() })); }
+    async getSquareToken(userId) { return this._readJson(this._squareFile(userId), null); }
+    async deleteSquareToken(userId) { try { require('fs').unlinkSync(this._squareFile(userId)); } catch (e) {} }
 }
 
 // --- Turso через Hrana HTTP API (built-in https, ноль зависимостей) ---
@@ -148,7 +160,8 @@ class TursoBackend {
         await this._pipeline([
             { sql: 'CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, login TEXT UNIQUE NOT NULL, salt TEXT NOT NULL, hash TEXT NOT NULL, created_at INTEGER NOT NULL)' },
             { sql: 'CREATE TABLE IF NOT EXISTS stores (user_id TEXT PRIMARY KEY, payload TEXT NOT NULL)' },
-            { sql: 'CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, login TEXT NOT NULL, created_at INTEGER NOT NULL)' }
+            { sql: 'CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, login TEXT NOT NULL, created_at INTEGER NOT NULL)' },
+            { sql: 'CREATE TABLE IF NOT EXISTS square_tokens (user_id TEXT PRIMARY KEY, access_token TEXT NOT NULL, refresh_token TEXT NOT NULL, merchant_id TEXT, expires_at INTEGER, created_at INTEGER NOT NULL)' }
         ]);
     }
     async loadUsers() {
@@ -196,6 +209,27 @@ class TursoBackend {
                  'ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload',
             args: [hranaValue(userId), hranaValue(payload)]
         }]);
+    }
+    // --- Square OAuth токены (v2.8) ---
+    async saveSquareToken(userId, tok) {
+        await this._ready;
+        await this._pipeline([{
+            sql: 'INSERT INTO square_tokens (user_id, access_token, refresh_token, merchant_id, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?) ' +
+                 'ON CONFLICT(user_id) DO UPDATE SET access_token=excluded.access_token, refresh_token=excluded.refresh_token, merchant_id=excluded.merchant_id, expires_at=excluded.expires_at',
+            args: [hranaValue(userId), hranaValue(tok.access_token || ''), hranaValue(tok.refresh_token || ''), hranaValue(tok.merchant_id || ''), hranaValue(tok.expires_at || 0), hranaValue(Date.now())]
+        }]);
+    }
+    async getSquareToken(userId) {
+        await this._ready;
+        const [r] = await this._pipeline([{ sql: 'SELECT access_token, refresh_token, merchant_id, expires_at FROM square_tokens WHERE user_id = ?', args: [hranaValue(userId)] }]);
+        const result = r && r.response && r.response.result;
+        const row = result && result.rows && result.rows[0];
+        if (!row) return null;
+        return { access_token: hranaCell(row[0]), refresh_token: hranaCell(row[1]), merchant_id: hranaCell(row[2]), expires_at: Number(hranaCell(row[3])) };
+    }
+    async deleteSquareToken(userId) {
+        await this._ready;
+        await this._pipeline([{ sql: 'DELETE FROM square_tokens WHERE user_id = ?', args: [hranaValue(userId)] }]);
     }
     async loadSessions() {
         await this._ready;
@@ -530,14 +564,122 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        // --- Square OAuth (v2.8): каждый пользователь подключает свой Square ---
+        const _sqStates = (global._sqStates || (global._sqStates = new Map())); // state -> {userId, exp}
+        function sqRedirectUri(req) {
+            if (process.env.SQUARE_REDIRECT_URI) return process.env.SQUARE_REDIRECT_URI;
+            const host = (req.headers && req.headers.host) || 'chefos-oreq.onrender.com';
+            return 'https://' + host + '/api/square/oauth/callback';
+        }
+        function sqNewState() { try { return require('crypto').randomBytes(24).toString('hex'); } catch (e) { return 'st' + Date.now().toString(36) + Math.random().toString(36).slice(2); } }
+        // Токен пользователя: из OAuth (с автообновлением) либо общий env-фолбэк
+        async function sqUserToken(userId) {
+            try {
+                const t = await backend.getSquareToken(userId);
+                if (t && t.access_token) {
+                    if (t.expires_at && t.expires_at - Date.now() < 5 * 60 * 1000 && t.refresh_token && process.env.SQUARE_APP_ID && process.env.SQUARE_APP_SECRET) {
+                        try {
+                            const r = await fetch('https://connect.squareup.com/oauth2/token', {
+                                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ client_id: process.env.SQUARE_APP_ID, client_secret: process.env.SQUARE_APP_SECRET, grant_type: 'refresh_token', refresh_token: t.refresh_token })
+                            });
+                            const j = await r.json().catch(() => ({}));
+                            if (r.ok && j.access_token) {
+                                const nt = { access_token: j.access_token, refresh_token: j.refresh_token || t.refresh_token, merchant_id: j.merchant_id || t.merchant_id, expires_at: Date.parse(j.expires_at) || 0 };
+                                await backend.saveSquareToken(userId, nt);
+                                return nt.access_token;
+                            }
+                        } catch (e) {}
+                    }
+                    return t.access_token;
+                }
+            } catch (e) {}
+            return process.env.SQUARE_ACCESS_TOKEN || '';
+        }
+        // Location: из OAuth — первая активная через API; иначе env
+        async function sqLocationId(token) {
+            if (process.env.SQUARE_LOCATION_ID) return process.env.SQUARE_LOCATION_ID;
+            try {
+                const r = await fetch('https://connect.squareup.com/v2/locations', { headers: { 'Authorization': 'Bearer ' + token, 'Square-Version': '2024-01-18' } });
+                const j = await r.json().catch(() => ({}));
+                const locs = (j.locations || []).filter(l => l.status === 'ACTIVE');
+                const pick = locs[0] || (j.locations || [])[0];
+                if (pick && pick.id) return pick.id;
+            } catch (e) {}
+            return '';
+        }
+        function sqHtml(title, msg, ok) {
+            return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + title +
+                '</title></head><body style="background:#0F0F11;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:90vh;text-align:center">' +
+                '<div><div style="font-size:48px;margin-bottom:16px">' + (ok ? '&#9989;' : '&#10060;') + '</div><h2>' + title +
+                '</h2><p style="color:#888">' + msg + '</p><script>setTimeout(function(){try{window.close()}catch(e){}},1500)</script></div></body></html>';
+        }
+        // Старт OAuth: редирект на Square
+        if (req.method === 'GET' && p === '/api/square/oauth/start') {
+            const user = requireAuth(req, res);
+            if (!user) return;
+            const appId = process.env.SQUARE_APP_ID || '';
+            if (!appId) { send(res, 503, { ok: false, error: 'no_square_app' }); return; }
+            const state = sqNewState();
+            _sqStates.set(state, { userId: user.userId, exp: Date.now() + 10 * 60 * 1000 });
+            const redirectUri = sqRedirectUri(req);
+            const scopes = ['ORDERS_READ', 'PAYMENTS_READ', 'MERCHANT_PROFILE_READ'].join(' ');
+            const url = 'https://connect.squareup.com/oauth2/authorize?client_id=' + encodeURIComponent(appId) +
+                '&scope=' + encodeURIComponent(scopes) + '&session=false&state=' + encodeURIComponent(state) +
+                '&redirect_uri=' + encodeURIComponent(redirectUri);
+            res.writeHead(302, { Location: url });
+            res.end();
+            return;
+        }
+        // Колбэк OAuth: обмен кода на токен
+        if (req.method === 'GET' && p === '/api/square/oauth/callback') {
+            const q = url.searchParams;
+            const rec = _sqStates.get(q.get('state') || '');
+            _sqStates.delete(q.get('state') || '');
+            const sendHtml = (code, html) => { res.writeHead(code, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(html); };
+            if (!rec || rec.exp < Date.now() || !q.get('code')) { sendHtml(400, sqHtml('Ошибка', 'Ссылка устарела. Попробуй подключить ещё раз.', false)); return; }
+            const appId = process.env.SQUARE_APP_ID || '', appSecret = process.env.SQUARE_APP_SECRET || '';
+            try {
+                const r = await fetch('https://connect.squareup.com/oauth2/token', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ client_id: appId, client_secret: appSecret, code: q.get('code'), grant_type: 'authorization_code', redirect_uri: sqRedirectUri(req) })
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok || !j.access_token) { sendHtml(502, sqHtml('Не вышло', 'Square отклонил подключение. Попробуй ещё раз.', false)); return; }
+                await backend.saveSquareToken(rec.userId, {
+                    access_token: j.access_token, refresh_token: j.refresh_token || '',
+                    merchant_id: j.merchant_id || '', expires_at: Date.parse(j.expires_at) || 0
+                });
+                console.log('[chefos] square oauth connected', rec.userId);
+                sendHtml(200, sqHtml('Square подключён', 'Окно можно закрыть.', true));
+            } catch (e) { sendHtml(502, sqHtml('Не вышло', 'Ошибка соединения. Попробуй ещё раз.', false)); }
+            return;
+        }
+        if (req.method === 'GET' && p === '/api/square/status') {
+            const user = requireAuth(req, res);
+            if (!user) return;
+            let connected = false;
+            try { const t = await backend.getSquareToken(user.userId); connected = !!(t && t.access_token); } catch (e) {}
+            send(res, 200, { ok: true, connected });
+            return;
+        }
+        if (req.method === 'POST' && p === '/api/square/disconnect') {
+            const user = requireAuth(req, res);
+            if (!user) return;
+            try { await backend.deleteSquareToken(user.userId); } catch (e) {}
+            send(res, 200, { ok: true });
+            return;
+        }
+
         // --- square-import (v2.7): продажи дня из Square ---
         if (req.method === 'POST' && p === '/api/square-import') {
             const user = requireAuth(req, res);
             if (!user) return;
             if (!rateLimit('sq:' + user.userId, 10, 3600 * 1000)) { send(res, 429, { ok: false, error: 'rate_limited' }); return; }
-            const token = process.env.SQUARE_ACCESS_TOKEN || '';
-            const locationId = process.env.SQUARE_LOCATION_ID || '';
-            if (!token || !locationId) { send(res, 503, { ok: false, error: 'no_square' }); return; }
+            const token = await sqUserToken(user.userId);
+            if (!token) { send(res, 503, { ok: false, error: 'no_square' }); return; }
+            const locationId = await sqLocationId(token);
+            if (!locationId) { send(res, 503, { ok: false, error: 'no_square_location' }); return; }
             const body = await readJsonBody(req, res);
             if (!body) return;
             const date = String(body.date || '').slice(0, 10);

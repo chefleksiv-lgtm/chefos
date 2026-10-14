@@ -239,4 +239,5 @@
             openModal('finance-modal');
             renderFinanceTab();
             if (typeof renderWasteTab === 'function') renderWasteTab();
+            if (typeof sqRenderAuth === 'function') { try { sqRenderAuth(); } catch (e) {} }
         }
