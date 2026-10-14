@@ -25,6 +25,15 @@
         }
 
         async function openPreordersModal() {
+            // locationsDB нужен публичной странице (название локации); LWW мог его не отправить,
+            // если он не менялся после baseline, — помечаем для следующего синка.
+            try {
+                if (typeof syncMeta !== 'undefined' && syncMeta.keyTs && !syncMeta.keyTs.locationsDB) {
+                    syncMeta.keyTs.locationsDB = Date.now();
+                    if (typeof markDirty === 'function') markDirty();
+                    if (typeof saveState === 'function') saveState();
+                }
+            } catch (e) {}
             const link = poLink();
             const linkBox = document.getElementById('po-link');
             if (linkBox) linkBox.textContent = link || '—';

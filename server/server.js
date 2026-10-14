@@ -651,15 +651,17 @@ const server = http.createServer(async (req, res) => {
             if (!uid || !lid) return null;
             const store = await backend.loadUserStore(uid);
             const state = (store && store.state) || {};
+            // locationData — главный источник (синкается при любом изменении меню);
+            // locationsDB может отсутствовать на сервере, если не менялся (LWW) — имя тогда по умолчанию.
+            const ld = (state.locationData && state.locationData[lid]) || {};
+            if (!ld || !Array.isArray(ld.menuDB)) return null;
             const locs = state.locationsDB || [];
             const locRec = locs.find(l => String(l.id) === lid);
-            if (!locRec) return null;
-            const ld = (state.locationData && state.locationData[lid]) || {};
-            const menu = Array.isArray(ld.menuDB) ? ld.menuDB : [];
+            const menu = ld.menuDB;
             const items = menu
                 .filter(d => d && d.name && (d.menuPrice || 0) > 0 && d.status !== 'stop')
                 .map(d => ({ id: String(d.id), name: String(d.name).slice(0, 80), price: Math.round(d.menuPrice * 100) / 100, low: d.status === 'low' }));
-            return { locationName: String(locRec.name || '').slice(0, 60), items };
+            return { locationName: locRec ? String(locRec.name || '').slice(0, 60) : '', items };
         }
         if (req.method === 'GET' && p === '/api/me') {
             const user = requireAuth(req, res);
