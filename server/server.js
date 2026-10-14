@@ -69,38 +69,6 @@ class FileBackend {
     }
     async loadUsers() { return this._readJson(this.usersFile, {}); }
     async saveUsers(users) { this._writeJsonAtomic(this.usersFile, users || {}); }
-    // --- предзаказы (v2.7) ---
-    async addPreorder(po) {
-        await this._ready;
-        await this._pipeline([{
-            sql: 'INSERT INTO preorders (id, user_id, location_id, payload, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-            args: [hranaValue(po.id), hranaValue(po.userId), hranaValue(po.locationId || ''), hranaValue(JSON.stringify(po.payload)), hranaValue('new'), hranaValue(Date.now())]
-        }]);
-    }
-    async listPreorders(userId) {
-        await this._ready;
-        const [r] = await this._pipeline([{
-            sql: 'SELECT id, location_id, payload, status, created_at FROM preorders WHERE user_id = ? ORDER BY created_at DESC LIMIT 200',
-            args: [hranaValue(userId)]
-        }]);
-        const result = r && r.response && r.response.result;
-        const rows = (result && result.rows) || [];
-        return rows.map(row => {
-            let payload = {};
-            try { payload = JSON.parse(hranaCell(row[2]) || '{}'); } catch (e) {}
-            return { id: hranaCell(row[0]), location_id: hranaCell(row[1]), payload, status: hranaCell(row[3]), created_at: Number(hranaCell(row[4])) };
-        });
-    }
-    async setPreorderStatus(userId, id, status) {
-        await this._ready;
-        const ok = ['new', 'accepted', 'done', 'cancelled'].includes(status);
-        if (!ok) return false;
-        await this._pipeline([{
-            sql: 'UPDATE preorders SET status = ? WHERE id = ? AND user_id = ?',
-            args: [hranaValue(status), hranaValue(id), hranaValue(userId)]
-        }]);
-        return true;
-    }
     async loadSessions() { return this._readJson(this.sessionsFile, {}); }
     async saveSession(token, sess) {
         const all = this._readJson(this.sessionsFile, {});
@@ -259,6 +227,37 @@ class TursoBackend {
                  'ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload',
             args: [hranaValue(userId), hranaValue(payload)]
         }]);
+    }
+    // --- предзаказы (v2.7) ---
+    async addPreorder(po) {
+        await this._ready;
+        await this._pipeline([{
+            sql: 'INSERT INTO preorders (id, user_id, location_id, payload, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+            args: [hranaValue(po.id), hranaValue(po.userId), hranaValue(po.locationId || ''), hranaValue(JSON.stringify(po.payload)), hranaValue('new'), hranaValue(Date.now())]
+        }]);
+    }
+    async listPreorders(userId) {
+        await this._ready;
+        const [r] = await this._pipeline([{
+            sql: 'SELECT id, location_id, payload, status, created_at FROM preorders WHERE user_id = ? ORDER BY created_at DESC LIMIT 200',
+            args: [hranaValue(userId)]
+        }]);
+        const result = r && r.response && r.response.result;
+        const rows = (result && result.rows) || [];
+        return rows.map(row => {
+            let payload = {};
+            try { payload = JSON.parse(hranaCell(row[2]) || '{}'); } catch (e) {}
+            return { id: hranaCell(row[0]), location_id: hranaCell(row[1]), payload, status: hranaCell(row[3]), created_at: Number(hranaCell(row[4])) };
+        });
+    }
+    async setPreorderStatus(userId, id, status) {
+        await this._ready;
+        if (!['new', 'accepted', 'done', 'cancelled'].includes(status)) return false;
+        await this._pipeline([{
+            sql: 'UPDATE preorders SET status = ? WHERE id = ? AND user_id = ?',
+            args: [hranaValue(status), hranaValue(id), hranaValue(userId)]
+        }]);
+        return true;
     }
     async loadSessions() {
         await this._ready;
