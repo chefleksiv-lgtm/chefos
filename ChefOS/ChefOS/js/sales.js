@@ -16,7 +16,8 @@
             filterSalesList();
             updateSalesTotal();
             if (typeof floorEditMode !== 'undefined') floorEditMode = false;
-            if (typeof switchSalesTab === 'function') switchSalesTab('dishes');
+            togglePosFloor(false);
+            renderPosCtx();
             const tn = document.getElementById('takeaway-name'); if (tn) tn.value = '';
             openModal('sales-modal');
         }
@@ -192,6 +193,56 @@
             document.getElementById('pos-tendered').value = '';
             refreshSaleBadges();
             renderTicket();
+            if (typeof renderPosCtx === 'function') renderPosCtx();
+        }
+        // Единая касса: строка контекста «На вынос / Столы / План зала» вместо вкладок
+        function renderPosCtx() {
+            const row = document.getElementById('pos-ctx-row');
+            if (!row) return;
+            const tabs = (typeof tableTabsDB !== 'undefined' && Array.isArray(tableTabsDB)) ? tableTabsDB : [];
+            const tables = (typeof tablesDB !== 'undefined' && Array.isArray(tablesDB)) ? tablesDB : [];
+            const chips = [];
+            const takeawayOn = !posTableCtx;
+            chips.push(`<button onclick="posCtxTakeaway()" class="shrink-0 h-10 px-4 rounded-xl text-sm font-medium transition-colors ${takeawayOn ? 'bg-emerald-500 text-white' : 'bg-[#2C2C2E] text-gray-300'}"><i class="fa-solid fa-bag-shopping mr-2"></i><span>${t('sales_tab_takeaway')}</span></button>`);
+            tables.forEach(tb => {
+                const tab = tabs.find(x => x.tableId === tb.id);
+                const occupied = !!tab;
+                const isLoaded = !!(posTableCtx && tab && posTableCtx.tabId === tab.id);
+                const sum = (occupied && typeof tableTabSum === 'function') ? tableTabSum(tab) : 0;
+                const cls = isLoaded ? 'bg-emerald-500 text-white border-emerald-500'
+                    : occupied ? 'bg-amber-500/15 text-amber-200 border-amber-500/40'
+                    : 'bg-[#2C2C2E] text-gray-300 border-white/10';
+                chips.push(`<button onclick="posCtxTable(${tb.id})" class="shrink-0 h-10 px-4 rounded-xl text-sm font-medium transition-colors border ${cls}"><i class="fa-solid fa-chair mr-2"></i><span>${t('table_prefix')} ${tb.name}</span>${occupied ? ` <span class="opacity-80">• ${currentCurrency}${sum}</span>` : ''}</button>`);
+            });
+            const wrap = document.getElementById('pos-floor-wrap');
+            const floorOpen = wrap && !wrap.classList.contains('hidden');
+            chips.push(`<button onclick="togglePosFloor()" class="shrink-0 h-10 px-4 rounded-xl text-sm font-medium transition-colors ${floorOpen ? 'bg-purple-500 text-white' : 'bg-[#2C2C2E] text-gray-300'}"><i class="fa-solid fa-map mr-2"></i><span>${t('pos_floor_plan')}</span></button>`);
+            row.innerHTML = chips.join('');
+        }
+        function posCtxTakeaway() {
+            if (posTableCtx || posTicket.length) posClear();
+            renderPosCtx();
+        }
+        function posCtxTable(tableId) {
+            const tabs = (typeof tableTabsDB !== 'undefined' && Array.isArray(tableTabsDB)) ? tableTabsDB : [];
+            const tab = tabs.find(x => x.tableId === tableId);
+            if (tab) {
+                const count = Object.keys(tab.items || {}).reduce((s, id) => s + (tab.items[id] || 0), 0);
+                if (count > 0) { posLoadTableTab(tab.id); renderPosCtx(); return; }
+            }
+            if (typeof openTableTab === 'function') openTableTab(tableId);
+            renderPosCtx();
+        }
+        function togglePosFloor(force) {
+            const wrap = document.getElementById('pos-floor-wrap');
+            if (!wrap) return;
+            const show = (typeof force === 'boolean') ? force : wrap.classList.contains('hidden');
+            wrap.classList.toggle('hidden', !show);
+            if (show) {
+                if (typeof renderFloorPlan === 'function') renderFloorPlan();
+                if (typeof renderReservations === 'function') renderReservations();
+            }
+            renderPosCtx();
         }
         // Плашка «Стол N» в чеке кассира + скрытие поля имени на вынос
         function posRenderTableCtx() {
@@ -328,6 +379,7 @@
                     const ti = tableTabsDB.findIndex(x => x.id === tableCtx.tabId);
                     if (ti >= 0) tableTabsDB.splice(ti, 1);
                     markDirty();
+                    renderPosCtx();
                 }
 
                 btn.innerHTML = `<i class="fa-solid fa-check mr-2"></i> <span>${t('pos_success')}</span>`;

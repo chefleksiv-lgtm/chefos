@@ -190,6 +190,7 @@
             'sales_success': { ru: 'Успешно списано', en: 'Successfully deducted' },
             'sales_tab_dishes': { ru: 'Блюда', en: 'Dishes' },
             'sales_tab_floor': { ru: 'Зал', en: 'Floor' },
+            'pos_floor_plan': { ru: 'План зала', en: 'Floor plan' },
             'floor_edit': { ru: 'Редактировать', en: 'Edit' },
             'floor_done': { ru: 'Готово', en: 'Done' },
             'floor_hint_empty': { ru: 'План зала пуст. Нажмите «Редактировать», чтобы расставить столики.', en: 'Floor plan is empty. Tap Edit to place tables.' },

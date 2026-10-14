@@ -12,23 +12,6 @@
         }
 
         // Вкладки кассы: блюда / зал
-        function switchSalesTab(tab) {
-            const dishesBtn = document.getElementById('sales-tab-dishes');
-            const floorBtn = document.getElementById('sales-tab-floor');
-            const dishesPane = document.getElementById('sales-pane-dishes');
-            const floorPane = document.getElementById('sales-pane-floor');
-            const on = ['bg-emerald-500', 'text-white'];
-            const off = ['bg-[#2C2C2E]', 'text-gray-300'];
-            [[dishesBtn, tab === 'dishes'], [floorBtn, tab === 'floor']].forEach(([b, active]) => {
-                if (!b) return;
-                b.classList.remove(...(active ? off : on));
-                b.classList.add(...(active ? on : off));
-            });
-            if (dishesPane) dishesPane.classList.toggle('hidden', tab !== 'dishes');
-            if (floorPane) floorPane.classList.toggle('hidden', tab !== 'floor');
-            if (tab === 'floor') { renderFloorPlan(); if (typeof renderReservations === 'function') renderReservations(); }
-        }
-
         const TABLE_SIZES = { s: 56, m: 72, l: 92 };
         function tableSizePx(tb) { return TABLE_SIZES[tb.size] || TABLE_SIZES.m; }
         function tableElapsedMin(tab) {
