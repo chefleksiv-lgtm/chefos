@@ -192,7 +192,7 @@
 
     <!-- ГЛОБАЛЬНАЯ МОДАЛКА ПОДТВЕРЖДЕНИЯ -->
     <div id="confirm-modal" onclick="if(event.target === this) closeConfirmModal()" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
-        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 text-center">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 text-center max-h-[90vh] overflow-y-auto">
             <h3 class="text-xl font-semibold text-white mb-2" id="confirm-title" data-i18n="confirm_title">Подтвердите действие</h3>
             <p class="text-gray-400 text-sm mb-6" id="confirm-message" data-i18n="confirm_msg">Вы уверены?</p>
             <div class="flex gap-3">
@@ -204,7 +204,7 @@
 
     <!-- Модальные окна системные -->
     <div id="add-kitchen-modal" onclick="if(event.target === this) closeModal('add-kitchen-modal')" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300">
-        <div class="bg-[#1C1C1E] rounded-3xl w-[90%] max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300">
+        <div class="bg-[#1C1C1E] rounded-3xl w-[90%] max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto">
             <h3 class="text-xl font-semibold mb-5 text-center text-white" data-i18n="add_kitchen_title">Новый цех</h3>
             <input type="text" id="kitchen-name-input" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500 mb-6 placeholder-gray-500" data-i18n="add_kitchen_placeholder" placeholder="Название (напр. Горячий цех)">
             <div class="flex gap-3">
@@ -215,7 +215,7 @@
     </div>
 
     <div id="rename-kitchen-modal" onclick="if(event.target === this) closeModal('rename-kitchen-modal')" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300">
-        <div class="bg-[#1C1C1E] rounded-3xl w-[90%] max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300">
+        <div class="bg-[#1C1C1E] rounded-3xl w-[90%] max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto">
             <h3 class="text-xl font-semibold mb-5 text-center text-white" data-i18n="rename_kitchen_title">Переименовать цех</h3>
             <input type="text" id="rename-kitchen-input" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500 mb-6 placeholder-gray-500" data-i18n="rename_kitchen_placeholder" placeholder="Новое название">
             <div class="flex gap-3">
@@ -445,7 +445,7 @@
     </div>
 
     <div id="foodcost-modal" onclick="if(event.target === this) closeModal('foodcost-modal')" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300">
-        <div class="bg-[#1C1C1E] rounded-3xl w-[90%] max-w-sm border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col">
+        <div class="bg-[#1C1C1E] rounded-3xl w-[90%] max-w-sm border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center p-6 pb-4 border-b border-white/5">
                 <div><h3 class="text-xl font-semibold cursor-pointer text-white" onclick="closeModal('foodcost-modal')">ChefOS</h3><p id="foodcost-modal-kitchen" class="text-xs text-orange-500 mt-1"></p></div>
                 <button onclick="closeModal('foodcost-modal')" class="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
@@ -641,7 +641,7 @@
     </div>
 
     <div id="translate-modal" class="hidden fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm opacity-0 transition-opacity duration-300 flex items-center justify-center p-6" onclick="if(event.target === this) cancelTranslation()">
-        <div class="bg-[#1C1C1E] rounded-3xl border border-white/10 p-6 w-full max-w-sm shadow-2xl">
+        <div class="bg-[#1C1C1E] rounded-3xl border border-white/10 p-6 w-full max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto">
             <h3 class="text-white font-bold mb-1" data-i18n="tr_title">Перевод книги</h3>
             <p id="tr-title" class="text-xs text-gray-400 truncate mb-4"></p>
             <div class="h-2.5 rounded-full bg-white/10 overflow-hidden mb-2"><div id="tr-bar" class="h-full rounded-full bg-emerald-500 transition-all duration-300" style="width:0%"></div></div>
@@ -666,7 +666,7 @@
     </div>
 
     <div id="rename-modal" class="hidden fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm opacity-0 transition-opacity duration-300 flex items-center justify-center p-6" onclick="if(event.target === this) closeModal('rename-modal')">
-        <div class="bg-[#1C1C1E] rounded-3xl border border-white/10 p-6 w-full max-w-sm shadow-2xl">
+        <div class="bg-[#1C1C1E] rounded-3xl border border-white/10 p-6 w-full max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto">
             <h3 class="text-white font-bold mb-4" data-i18n="book_rename">Переименовать</h3>
             <input id="rename-input" type="text" maxlength="120" class="w-full h-12 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-4 outline-none focus:border-emerald-500 mb-4" onkeydown="if(event.key==='Enter') saveBookRename()">
             <div class="flex gap-2">
@@ -815,7 +815,7 @@
 
 
     <div id="ai-import-modal" onclick="if(event.target === this) closeModal('ai-import-modal')" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
-        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-md p-6 border border-white/10 transform scale-95 transition-transform duration-300">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-md p-6 border border-white/10 transform scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-semibold text-white" data-i18n="ai_title">Импорт рецепта</h3>
                 <button onclick="closeModal('ai-import-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"><i class="fa-solid fa-xmark"></i></button>
@@ -827,7 +827,7 @@
     </div>
 
     <div id="reservation-modal" onclick="if(event.target === this) closeModal('reservation-modal')" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
-        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-5">
                 <h3 class="text-xl font-semibold text-white" id="resv-modal-title">Новая бронь</h3>
                 <button onclick="closeModal('reservation-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"><i class="fa-solid fa-xmark"></i></button>
@@ -873,7 +873,7 @@
     </div>
 
     <div id="money-tx-modal" onclick="if(event.target === this) closeModal('money-tx-modal')" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
-        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto">
             <h3 class="text-xl font-semibold mb-5 text-white" id="money-tx-title">+ Расход</h3>
             <div class="space-y-3">
                 <div>
@@ -1081,7 +1081,7 @@
     </div>
 
     <div id="schedule-select-modal" onclick="if(event.target === this) closeModal('schedule-select-modal')" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
-        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold text-white" data-i18n="sched_sel_title">Кого назначить?</h3>
                 <button onclick="closeModal('schedule-select-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>

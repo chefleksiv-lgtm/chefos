@@ -66,3 +66,8 @@
 
         /* Кнопки действий в карточке ТТК: не рвём текст, переносим строкой */
         #ttk-action-buttons button { white-space: nowrap; flex-shrink: 0; }
+
+/* --- Модалки: скролл только внутри (v2.6.1) --- */
+body.modal-open { overflow: hidden; }
+[id$="-modal"].overflow-y-auto,
+[id$="-modal"] .overflow-y-auto { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
