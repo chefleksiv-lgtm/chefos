@@ -27,8 +27,15 @@
                     <p class="text-[11px] text-gray-600 mt-1">${t('sq_connect_desc')}</p>`;
             }
         }
-        function sqConnect() {
-            window.open('/api/square/oauth/start', '_blank', 'width=560,height=700');
+        async function sqConnect() {
+            let ticket = '';
+            try {
+                const r = await fetch('/api/square/oauth/ticket', { method: 'POST', headers: { 'Authorization': 'Bearer ' + (typeof syncAuthToken === 'function' ? syncAuthToken() : '') } });
+                const j = await r.json();
+                if (j.ok && j.ticket) ticket = j.ticket;
+            } catch (e) {}
+            if (!ticket) { showNotification(t('sq_failed')); return; }
+            window.open('/api/square/oauth/start?ticket=' + encodeURIComponent(ticket), '_blank', 'width=560,height=700');
             if (_sqPoll) clearInterval(_sqPoll);
             let n = 0;
             _sqPoll = setInterval(async () => {

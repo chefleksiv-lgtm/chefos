@@ -9,7 +9,8 @@
 //   POST /api/logout                        (Bearer) -> 200 {ok:true}
 //   GET  /api/pull                          (Bearer) -> {state, keyTs} — данные ТОЛЬКО этого пользователя
 //   POST /api/push {deviceId, state, keyTs} (Bearer) -> {state, keyTs} — merge per-collection LWW внутри аккаунта
-//   GET  /api/square/oauth/start                 (Bearer) -> 302 на Square OAuth
+//   POST /api/square/oauth/ticket                (Bearer) -> {ok, ticket} — одноразовый тикет
+//   GET  /api/square/oauth/start?ticket=            -> 302 на Square OAuth
 //   GET  /api/square/oauth/callback?code=&state=   -> обмен кода на токен (нужны SQUARE_APP_ID, SQUARE_APP_SECRET)
 //   GET  /api/square/status                       (Bearer) -> {ok, connected}
 //   POST /api/square/disconnect                   (Bearer) -> {ok}
@@ -614,14 +615,33 @@ const server = http.createServer(async (req, res) => {
                 '<div><div style="font-size:48px;margin-bottom:16px">' + (ok ? '&#9989;' : '&#10060;') + '</div><h2>' + title +
                 '</h2><p style="color:#888">' + msg + '</p><script>setTimeout(function(){try{window.close()}catch(e){}},1500)</script></div></body></html>';
         }
-        // Старт OAuth: редирект на Square
-        if (req.method === 'GET' && p === '/api/square/oauth/start') {
+        // Одноразовый тикет для старта OAuth из попапа (Bearer-заголовок туда не передать)
+        if (req.method === 'POST' && p === '/api/square/oauth/ticket') {
             const user = requireAuth(req, res);
             if (!user) return;
+            if (!process.env.SQUARE_APP_ID) { send(res, 503, { ok: false, error: 'no_square_app' }); return; }
+            const ticket = sqNewState();
+            _sqStates.set('ticket:' + ticket, { userId: user.userId, exp: Date.now() + 2 * 60 * 1000 });
+            send(res, 200, { ok: true, ticket });
+            return;
+        }
+        // Старт OAuth: редирект на Square
+        if (req.method === 'GET' && p === '/api/square/oauth/start') {
+            let userId = null;
+            const ticket = url.searchParams.get('ticket') || '';
+            if (ticket) {
+                const rec = _sqStates.get('ticket:' + ticket);
+                _sqStates.delete('ticket:' + ticket);
+                if (rec && rec.exp > Date.now()) userId = rec.userId;
+            } else {
+                const u = authUser(req);
+                if (u) userId = u.userId;
+            }
+            if (!userId) { send(res, 401, { ok: false, error: 'unauthorized' }); return; }
             const appId = process.env.SQUARE_APP_ID || '';
             if (!appId) { send(res, 503, { ok: false, error: 'no_square_app' }); return; }
             const state = sqNewState();
-            _sqStates.set(state, { userId: user.userId, exp: Date.now() + 10 * 60 * 1000 });
+            _sqStates.set(state, { userId: userId, exp: Date.now() + 10 * 60 * 1000 });
             const redirectUri = sqRedirectUri(req);
             const scopes = ['ORDERS_READ', 'PAYMENTS_READ', 'MERCHANT_PROFILE_READ'].join(' ');
             const url = 'https://connect.squareup.com/oauth2/authorize?client_id=' + encodeURIComponent(appId) +
