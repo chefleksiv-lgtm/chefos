@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Предзаказ — ChefOS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+  body { background: #0F0F11; }
+  .stepper-btn { width: 2.2rem; height: 2.2rem; border-radius: 0.75rem; background: #2C2C2E; color: #fff; font-size: 1.1rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+  .stepper-btn:active { transform: scale(.92); }
+  input, textarea { color-scheme: dark; }
+</style>
+</head>
+<body class="min-h-screen text-white">
+<div class="max-w-2xl mx-auto p-4 sm:p-6 pb-32">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold" id="loc-name">…</h1>
+      <p class="text-sm text-gray-400" id="page-sub">Предзаказ · оплата при получении</p>
+    </div>
+    <button onclick="toggleLang()" id="lang-btn" class="h-9 px-3 rounded-xl bg-white/10 text-sm font-medium">EN</button>
+  </div>
+  <div id="menu-list" class="flex flex-col gap-3"></div>
+  <div id="empty-menu" class="hidden text-center text-gray-500 py-16"></div>
+</div>
+
+<div id="cart-bar" class="hidden fixed bottom-0 inset-x-0 z-40 p-4 bg-[#1C1C1E]/95 backdrop-blur border-t border-white/10">
+  <div class="max-w-2xl mx-auto flex items-center gap-3">
+    <div class="flex-1">
+      <p class="text-xs text-gray-400" id="cart-count-lbl"></p>
+      <p class="text-xl font-bold" id="cart-total">0</p>
+    </div>
+    <button onclick="openCheckout()" id="checkout-btn" class="h-12 px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-semibold">Оформить</button>
+  </div>
+</div>
+
+<div id="checkout-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur flex items-end sm:items-center justify-center p-4" onclick="if(event.target===this)closeCheckout()">
+  <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-md p-6 border border-white/10 max-h-[90vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-xl font-bold" id="co-title">Ваш заказ</h3>
+      <button onclick="closeCheckout()" class="w-8 h-8 rounded-full bg-white/10 text-gray-300"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="co-lines" class="flex flex-col gap-2 mb-4"></div>
+    <div class="space-y-3">
+      <input id="co-name" maxlength="60" class="w-full h-12 bg-[#2C2C2E] rounded-xl px-4 outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Имя *">
+      <input id="co-phone" maxlength="30" type="tel" class="w-full h-12 bg-[#2C2C2E] rounded-xl px-4 outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Телефон">
+      <input id="co-time" type="time" class="w-full h-12 bg-[#2C2C2E] rounded-xl px-4 outline-none focus:ring-2 focus:ring-emerald-500">
+      <textarea id="co-note" maxlength="200" rows="2" class="w-full bg-[#2C2C2E] rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Комментарий"></textarea>
+    </div>
+    <button onclick="submitOrder()" id="co-submit" class="w-full h-13 py-3.5 mt-5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-lg">Отправить заказ</button>
+  </div>
+</div>
+
+<div id="done-screen" class="hidden fixed inset-0 z-50 bg-[#0F0F11] flex items-center justify-center p-6">
+  <div class="text-center max-w-sm">
+    <div class="w-20 h-20 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center mb-5"><i class="fa-solid fa-check text-3xl text-emerald-400"></i></div>
+    <h2 class="text-2xl font-bold mb-2" id="done-title">Заказ принят!</h2>
+    <p class="text-gray-400 text-sm mb-1" id="done-sub">Покажите это окно при получении</p>
+    <p class="text-4xl font-black tracking-widest my-4" id="done-code"></p>
+    <p class="text-gray-500 text-sm" id="done-total-lbl"></p>
+  </div>
+</div>
+
+<script>
+var U = new URLSearchParams(location.search).get('u') || '';
+var LOC = new URLSearchParams(location.search).get('loc') || '';
+var LANG = 'ru';
+var MENU = [];
+var CART = {}; // id -> qty
+var CUR = '$';
+
+var T = {
+  ru: { sub: 'Предзаказ · оплата при получении', empty: 'Меню пока пусто', items: 'поз.', checkout: 'Оформить', yourOrder: 'Ваш заказ', name: 'Имя *', phone: 'Телефон', note: 'Комментарий', send: 'Отправить заказ', done: 'Заказ принят!', doneSub: 'Покажите это окно при получении', needName: 'Укажите имя', fail: 'Не получилось отправить. Попробуйте ещё.', total: 'Итого', low: 'мало' },
+  en: { sub: 'Pre-order · pay on pickup', empty: 'Menu is empty for now', items: 'items', checkout: 'Checkout', yourOrder: 'Your order', name: 'Name *', phone: 'Phone', note: 'Note', send: 'Place order', done: 'Order received!', doneSub: 'Show this screen at pickup', needName: 'Please enter your name', fail: 'Could not send. Try again.', total: 'Total', low: 'low' }
+};
+function t(k) { return (T[LANG] && T[LANG][k]) || k; }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function toggleLang() {
+  LANG = LANG === 'ru' ? 'en' : 'ru';
+  document.getElementById('lang-btn').textContent = LANG === 'ru' ? 'EN' : 'RU';
+  document.documentElement.lang = LANG;
+  applyTexts(); renderMenu(); renderCart();
+}
+function applyTexts() {
+  document.getElementById('page-sub').textContent = t('sub');
+  document.getElementById('checkout-btn').textContent = t('checkout');
+  document.getElementById('co-title').textContent = t('yourOrder');
+  document.getElementById('co-name').placeholder = t('name');
+  document.getElementById('co-phone').placeholder = t('phone');
+  document.getElementById('co-note').placeholder = t('note');
+  document.getElementById('co-submit').textContent = t('send');
+  document.getElementById('done-title').textContent = t('done');
+  document.getElementById('done-sub').textContent = t('doneSub');
+  document.getElementById('empty-menu').textContent = t('empty');
+}
+
+function money(n) { return CUR + (Math.round(n * 100) / 100); }
+
+async function loadMenu() {
+  try {
+    var r = await fetch('/api/public/menu?u=' + encodeURIComponent(U) + '&loc=' + encodeURIComponent(LOC));
+    var j = await r.json();
+    if (!j.ok) throw 0;
+    MENU = j.items || [];
+    document.getElementById('loc-name').textContent = j.locationName || 'ChefOS';
+    if (!MENU.length) document.getElementById('empty-menu').classList.remove('hidden');
+  } catch (e) {
+    document.getElementById('empty-menu').classList.remove('hidden');
+    document.getElementById('empty-menu').textContent = t('empty');
+  }
+  renderMenu();
+}
+
+function renderMenu() {
+  var box = document.getElementById('menu-list');
+  box.innerHTML = MENU.map(function (d) {
+    var q = CART[d.id] || 0;
+    return '<div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-4 flex items-center gap-3">'
+      + '<div class="flex-1 min-w-0"><p class="font-semibold truncate">' + esc(d.name) + '</p>'
+      + '<p class="text-sm text-gray-400">' + money(d.price) + (d.low ? ' · <span class="text-amber-400 text-xs">' + t('low') + '</span>' : '') + '</p></div>'
+      + (q === 0
+        ? '<button onclick="chQty(\'' + d.id + '\',1)" class="h-11 px-5 rounded-xl bg-emerald-500/15 text-emerald-400 font-bold">+</button>'
+        : '<div class="flex items-center gap-2"><button class="stepper-btn" onclick="chQty(\'' + d.id + '\',-1)">−</button>'
+        + '<span class="w-6 text-center font-bold">' + q + '</span>'
+        + '<button class="stepper-btn" onclick="chQty(\'' + d.id + '\',1)">+</button></div>')
+      + '</div>';
+  }).join('');
+}
+
+function chQty(id, d) {
+  CART[id] = Math.max(0, Math.min(20, (CART[id] || 0) + d));
+  if (!CART[id]) delete CART[id];
+  renderMenu(); renderCart();
+}
+
+function cartLines() {
+  return Object.keys(CART).map(function (id) {
+    var d = MENU.find(function (x) { return String(x.id) === String(id); });
+    return d ? { d: d, qty: CART[id] } : null;
+  }).filter(Boolean);
+}
+
+function renderCart() {
+  var lines = cartLines();
+  var bar = document.getElementById('cart-bar');
+  if (!lines.length) { bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+  var total = lines.reduce(function (s, l) { return s + l.d.price * l.qty; }, 0);
+  var n = lines.reduce(function (s, l) { return s + l.qty; }, 0);
+  document.getElementById('cart-count-lbl').textContent = n + ' ' + t('items');
+  document.getElementById('cart-total').textContent = money(Math.round(total * 100) / 100);
+}
+
+function openCheckout() {
+  var lines = cartLines();
+  document.getElementById('co-lines').innerHTML = lines.map(function (l) {
+    return '<div class="flex justify-between text-sm"><span class="text-gray-300">' + esc(l.d.name) + ' × ' + l.qty + '</span><span class="font-semibold">' + money(Math.round(l.d.price * l.qty * 100) / 100) + '</span></div>';
+  }).join('');
+  document.getElementById('checkout-modal').classList.remove('hidden');
+}
+function closeCheckout() { document.getElementById('checkout-modal').classList.add('hidden'); }
+
+async function submitOrder() {
+  var name = document.getElementById('co-name').value.trim();
+  if (!name) { alert(t('needName')); return; }
+  var btn = document.getElementById('co-submit');
+  btn.disabled = true;
+  try {
+    var r = await fetch('/api/public/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        u: U, loc: LOC,
+        items: cartLines().map(function (l) { return { id: l.d.id, qty: l.qty }; }),
+        name: name,
+        phone: document.getElementById('co-phone').value.trim(),
+        pickupTime: document.getElementById('co-time').value,
+        note: document.getElementById('co-note').value.trim()
+      })
+    });
+    var j = await r.json();
+    if (!j.ok) throw 0;
+    document.getElementById('done-code').textContent = String(j.id).slice(-6).toUpperCase();
+    document.getElementById('done-total-lbl').textContent = t('total') + ': ' + money(j.total);
+    document.getElementById('done-screen').classList.remove('hidden');
+    CART = {}; renderMenu(); renderCart();
+  } catch (e) {
+    alert(t('fail'));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+applyTexts();
+loadMenu();
+</script>
+</body>
+</html>

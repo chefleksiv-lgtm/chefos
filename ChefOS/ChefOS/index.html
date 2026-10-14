@@ -135,6 +135,10 @@
             <div id="tile-sales" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openSalesModal()">
                 <div class="text-emerald-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-cash-register"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_sales">Внести<br>продажи</h2>
             </div>
+            <div id="tile-preorders" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2 relative" onclick="openPreordersModal()">
+                <span id="tile-preorders-badge" class="hidden absolute top-2 right-2 min-w-[1.25rem] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center"></span>
+                <div class="text-orange-400 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-bell-concierge"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_preorders">Пред-<br>заказы</h2>
+            </div>
             <div id="tile-money" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openMoneyModal()">
                 <div class="text-amber-400 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-sack-dollar"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_money">Деньги</h2>
             </div>
@@ -734,6 +738,25 @@
             
         </div>
     </div>
+
+    <div id="preorders-modal" onclick="if(event.target === this) closeModal('preorders-modal')" class="hidden fixed inset-0 z-50 bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
+        <div class="max-w-4xl mx-auto p-6 sm:p-10 pb-20">
+            <button onclick="closeModal('preorders-modal')" class="text-gray-400 hover:text-white mb-6 flex items-center gap-2 transition-colors"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div><h2 class="text-3xl font-bold text-white" data-i18n="tile_preorders">Предзаказы</h2><p id="preorders-kitchen-subtitle" class="text-orange-400 mt-1 font-medium"></p></div>
+                <button onclick="poRefreshList()" class="h-11 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-medium transition-colors"><i class="fa-solid fa-rotate mr-2"></i><span data-i18n="refresh">Обновить</span></button>
+            </div>
+            <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 mb-6">
+                <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-2" data-i18n="po_link_title">Ссылка для клиентов</p>
+                <div class="flex items-center gap-2">
+                    <p id="po-link" class="flex-1 min-w-0 text-sm text-indigo-300 truncate bg-black/30 rounded-xl px-3 py-2.5"></p>
+                    <button onclick="poCopyLink()" class="h-11 px-4 rounded-xl bg-indigo-500/20 hover:bg-indigo-500 text-indigo-300 hover:text-white text-sm font-semibold transition-colors whitespace-nowrap"><i class="fa-solid fa-copy mr-1"></i><span data-i18n="copy">Копировать</span></button>
+                </div>
+                <p class="text-[11px] text-gray-600 mt-2" data-i18n="po_link_desc">Клиент открывает ссылку, собирает корзину и отправляет заказ — он появится здесь.</p>
+            </div>
+            <div id="po-list" class="flex flex-col gap-3"></div>
+        </div>
+    </div>
     <div id="finance-modal" onclick="if(event.target === this) closeModal('finance-modal')" class="hidden fixed inset-0 z-50 bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
         <div class="max-w-4xl mx-auto p-6 sm:p-10 pb-20">
             <button onclick="closeModal('finance-modal')" class="text-gray-400 hover:text-white mb-6 flex items-center gap-2 transition-colors"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
@@ -794,6 +817,17 @@
                     </div>
                     <p id="money-tx-empty" class="text-sm text-gray-500" data-i18n="money_empty">Записей за этот месяц нет</p>
                     <div id="money-tx-list" class="space-y-2 mt-2"></div>
+                <div class="mt-10">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-2">
+                        <div><h3 class="text-xl font-semibold text-white" data-i18n="sq_title">Импорт продаж из Square</h3>
+                        <p class="text-xs text-gray-500 mt-1" data-i18n="sq_desc">Продажи за день из кассы Square — в учёт ChefOS.</p></div>
+                        <div class="flex items-center gap-2">
+                            <input type="date" id="square-date" class="h-11 bg-[#2C2C2E] border border-white/10 rounded-xl px-3 text-white text-sm outline-none focus:border-indigo-500">
+                            <button onclick="sqLoadDay()" class="h-11 px-4 bg-indigo-500/20 hover:bg-indigo-500 hover:text-white text-indigo-300 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap"><i class="fa-solid fa-download mr-1"></i><span data-i18n="sq_load">Загрузить</span></button>
+                        </div>
+                    </div>
+                    <div id="square-preview" class="flex flex-col gap-2"></div>
+                </div>
                 </div>
                 <div class="bg-gradient-to-r from-[#1C1C1E] to-[#252529] border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div class="text-center md:text-left w-full md:w-auto">
@@ -1316,6 +1350,8 @@
     <script src="js/sales.js"></script>
     <script src="js/tables.js"></script>
     <script src="js/reservations.js"></script>
+    <script src="js/square.js"></script>
+    <script src="js/preorders.js"></script>
     <script src="js/menu.js?v=2d051e2"></script>
     <script src="js/ttk.js?v=2d051e2"></script>
     <script src="js/books.js"></script>
@@ -1334,5 +1370,28 @@
     <script src="js/foodsafety.js"></script>
     <script src="js/sync.js"></script>
     <script src="js/main.js"></script>
+
+    <!-- Офлайн-баннер (v2.7) -->
+    <div id="offline-banner" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-[300] bg-amber-500/95 text-black text-sm font-medium px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 max-w-[92%]">
+        <i class="fa-solid fa-wifi-slash"></i><span data-i18n="offline_msg">Нет интернета — работаем офлайн. Изменения отправятся при подключении.</span>
+    </div>
+    <script>
+    // Service worker + офлайн-детект (v2.7)
+    (function () {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(function () {});
+        }
+        function setOfflineUI(off) {
+            var b = document.getElementById('offline-banner');
+            if (b) b.classList.toggle('hidden', !off);
+        }
+        window.addEventListener('offline', function () { setOfflineUI(true); });
+        window.addEventListener('online', function () {
+            setOfflineUI(false);
+            if (typeof syncNow === 'function') { try { syncNow(); } catch (e) {} }
+        });
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) setOfflineUI(true);
+    })();
+    </script>
 </body>
 </html>

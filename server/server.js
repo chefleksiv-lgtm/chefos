@@ -9,6 +9,12 @@
 //   POST /api/logout                        (Bearer) -> 200 {ok:true}
 //   GET  /api/pull                          (Bearer) -> {state, keyTs} — данные ТОЛЬКО этого пользователя
 //   POST /api/push {deviceId, state, keyTs} (Bearer) -> {state, keyTs} — merge per-collection LWW внутри аккаунта
+//   POST /api/square-import {date}              (Bearer) -> {ok, items:[{name,qty}], orders} — продажи дня из Square (нужны SQUARE_ACCESS_TOKEN, SQUARE_LOCATION_ID)
+//   GET  /api/me                                (Bearer) -> {ok, userId, login}
+//   GET  /api/preorders                         (Bearer) -> {ok, orders:[...]}
+//   POST /api/preorders/status {id, status}     (Bearer) -> {ok}
+//   GET  /api/public/menu?u=&loc=                        -> {ok, locationName, items:[{id,name,price}]} (публично)
+//   POST /api/public/order {u,loc,items,name,...}        -> {ok, id} (публично, rate-limit)
 //   GET  /...                               -> статика фронта (FRONT_DIR)
 //
 // Авторизация: заголовок Authorization: Bearer <token>. Токены — crypto.randomBytes,
@@ -63,6 +69,38 @@ class FileBackend {
     }
     async loadUsers() { return this._readJson(this.usersFile, {}); }
     async saveUsers(users) { this._writeJsonAtomic(this.usersFile, users || {}); }
+    // --- предзаказы (v2.7) ---
+    async addPreorder(po) {
+        await this._ready;
+        await this._pipeline([{
+            sql: 'INSERT INTO preorders (id, user_id, location_id, payload, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+            args: [hranaValue(po.id), hranaValue(po.userId), hranaValue(po.locationId || ''), hranaValue(JSON.stringify(po.payload)), hranaValue('new'), hranaValue(Date.now())]
+        }]);
+    }
+    async listPreorders(userId) {
+        await this._ready;
+        const [r] = await this._pipeline([{
+            sql: 'SELECT id, location_id, payload, status, created_at FROM preorders WHERE user_id = ? ORDER BY created_at DESC LIMIT 200',
+            args: [hranaValue(userId)]
+        }]);
+        const result = r && r.response && r.response.result;
+        const rows = (result && result.rows) || [];
+        return rows.map(row => {
+            let payload = {};
+            try { payload = JSON.parse(hranaCell(row[2]) || '{}'); } catch (e) {}
+            return { id: hranaCell(row[0]), location_id: hranaCell(row[1]), payload, status: hranaCell(row[3]), created_at: Number(hranaCell(row[4])) };
+        });
+    }
+    async setPreorderStatus(userId, id, status) {
+        await this._ready;
+        const ok = ['new', 'accepted', 'done', 'cancelled'].includes(status);
+        if (!ok) return false;
+        await this._pipeline([{
+            sql: 'UPDATE preorders SET status = ? WHERE id = ? AND user_id = ?',
+            args: [hranaValue(status), hranaValue(id), hranaValue(userId)]
+        }]);
+        return true;
+    }
     async loadSessions() { return this._readJson(this.sessionsFile, {}); }
     async saveSession(token, sess) {
         const all = this._readJson(this.sessionsFile, {});
@@ -85,6 +123,30 @@ class FileBackend {
         if (!safe) throw new Error('bad userId');
         this._writeJsonAtomic(path.join(this.usersDir, safe + '.json'),
             { state: (store && store.state) || {}, keyTs: (store && store.keyTs) || {} });
+    }
+    // --- предзаказы (v2.7, файловый бэкенд) ---
+    _preordersFile(userId) {
+        const safe = String(userId).replace(/[^a-zA-Z0-9_-]/g, '');
+        return path.join(this.usersDir, 'preorders_' + safe + '.json');
+    }
+    async addPreorder(po) {
+        const f = this._preordersFile(po.userId);
+        const arr = this._readJson(f, []);
+        arr.unshift({ id: po.id, location_id: po.locationId || '', payload: po.payload, status: 'new', created_at: Date.now() });
+        this._writeJsonAtomic(f, arr.slice(0, 500));
+    }
+    async listPreorders(userId) {
+        return this._readJson(this._preordersFile(userId), []);
+    }
+    async setPreorderStatus(userId, id, status) {
+        if (!['new', 'accepted', 'done', 'cancelled'].includes(status)) return false;
+        const f = this._preordersFile(userId);
+        const arr = this._readJson(f, []);
+        const o = arr.find(x => x.id === id);
+        if (!o) return false;
+        o.status = status;
+        this._writeJsonAtomic(f, arr);
+        return true;
     }
 }
 
@@ -147,7 +209,9 @@ class TursoBackend {
         await this._pipeline([
             { sql: 'CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, login TEXT UNIQUE NOT NULL, salt TEXT NOT NULL, hash TEXT NOT NULL, created_at INTEGER NOT NULL)' },
             { sql: 'CREATE TABLE IF NOT EXISTS stores (user_id TEXT PRIMARY KEY, payload TEXT NOT NULL)' },
-            { sql: 'CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, login TEXT NOT NULL, created_at INTEGER NOT NULL)' }
+            { sql: 'CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, login TEXT NOT NULL, created_at INTEGER NOT NULL)' },
+            { sql: 'CREATE TABLE IF NOT EXISTS preorders (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, location_id TEXT, payload TEXT NOT NULL, status TEXT NOT NULL DEFAULT \'new\', created_at INTEGER NOT NULL)' },
+            { sql: 'CREATE INDEX IF NOT EXISTS idx_preorders_user ON preorders (user_id, status, created_at)' }
         ]);
     }
     async loadUsers() {
@@ -526,6 +590,143 @@ const server = http.createServer(async (req, res) => {
             await backend.saveUserStore(user.userId, merged);
             console.log('[chefos] push', user.login, 'device', body.deviceId || '?', '-> keys:', Object.keys(merged.state).length);
             send(res, 200, { state: merged.state, keyTs: merged.keyTs });
+            return;
+        }
+
+        // --- square-import (v2.7): продажи дня из Square ---
+        if (req.method === 'POST' && p === '/api/square-import') {
+            const user = requireAuth(req, res);
+            if (!user) return;
+            if (!rateLimit('sq:' + user.userId, 10, 3600 * 1000)) { send(res, 429, { ok: false, error: 'rate_limited' }); return; }
+            const token = process.env.SQUARE_ACCESS_TOKEN || '';
+            const locationId = process.env.SQUARE_LOCATION_ID || '';
+            if (!token || !locationId) { send(res, 503, { ok: false, error: 'no_square' }); return; }
+            const body = await readJsonBody(req, res);
+            if (!body) return;
+            const date = String(body.date || '').slice(0, 10);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { send(res, 400, { ok: false, error: 'validation' }); return; }
+            try {
+                // Широкое окно (UTC), точный отбор — по календарному дню America/Toronto
+                const startAt = new Date(date + 'T00:00:00Z'); startAt.setUTCHours(startAt.getUTCHours() - 6);
+                const endAt = new Date(date + 'T00:00:00Z'); endAt.setUTCHours(endAt.getUTCHours() + 30);
+                const torDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' });
+                const agg = {}; let orders = 0; let cursor = null;
+                for (let page = 0; page < 10; page++) {
+                    const rq = { location_ids: [locationId], limit: 500, query: { filter: { date_time_filter: { created_at: { start_at: startAt.toISOString(), end_at: endAt.toISOString() } } } } };
+                    if (cursor) rq.cursor = cursor;
+                    const r = await fetch('https://connect.squareup.com/v2/orders/search', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Square-Version': '2024-01-18' },
+                        body: JSON.stringify(rq)
+                    });
+                    const j = await r.json().catch(() => ({}));
+                    if (!r.ok) { send(res, 502, { ok: false, error: 'square_upstream', detail: String((j.errors && j.errors[0] && (j.errors[0].detail || j.errors[0].code)) || ('http_' + r.status)).slice(0, 160) }); return; }
+                    (j.orders || []).forEach(o => {
+                        if (o.state === 'CANCELED' || o.state === 'DRAFT') return;
+                        let dayMatch = false;
+                        try { dayMatch = torDay.format(new Date(o.created_at)) === date; } catch (e) {}
+                        if (!dayMatch) return;
+                        orders++;
+                        (o.line_items || []).forEach(li => {
+                            const nm = String(li.name || '').trim();
+                            const q = parseInt(li.quantity) || 0;
+                            if (!nm || q <= 0) return;
+                            agg[nm] = (agg[nm] || 0) + q;
+                        });
+                    });
+                    cursor = j.cursor || null;
+                    if (!cursor) break;
+                }
+                const items = Object.keys(agg).sort().map(name => ({ name, qty: agg[name] }));
+                send(res, 200, { ok: true, items, orders });
+            } catch (e) { send(res, 502, { ok: false, error: 'square_failed' }); }
+            return;
+        }
+
+        // --- предзаказы: публичная витрина + API (v2.7) ---
+        // Меню локации для страницы предзаказа (публично)
+        async function publicLocationMenu(u, loc) {
+            const uid = String(u || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
+            const lid = String(loc || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
+            if (!uid || !lid) return null;
+            const store = await backend.loadUserStore(uid);
+            const state = (store && store.state) || {};
+            const locs = state.locationsDB || [];
+            const locRec = locs.find(l => String(l.id) === lid);
+            if (!locRec) return null;
+            const ld = (state.locationData && state.locationData[lid]) || {};
+            const menu = Array.isArray(ld.menuDB) ? ld.menuDB : [];
+            const items = menu
+                .filter(d => d && d.name && (d.menuPrice || 0) > 0 && d.status !== 'stop')
+                .map(d => ({ id: String(d.id), name: String(d.name).slice(0, 80), price: Math.round(d.menuPrice * 100) / 100, low: d.status === 'low' }));
+            return { locationName: String(locRec.name || '').slice(0, 60), items };
+        }
+        if (req.method === 'GET' && p === '/api/me') {
+            const user = requireAuth(req, res);
+            if (!user) return;
+            send(res, 200, { ok: true, userId: user.userId, login: user.login });
+            return;
+        }
+        if (req.method === 'GET' && p === '/api/public/menu') {
+            if (!rateLimit('pubmenu:' + clientIp(req), 60, 3600 * 1000)) { send(res, 429, { ok: false, error: 'rate_limited' }); return; }
+            const m = await publicLocationMenu(url.searchParams.get('u'), url.searchParams.get('loc'));
+            if (!m) { send(res, 404, { ok: false, error: 'not_found' }); return; }
+            send(res, 200, { ok: true, locationName: m.locationName, items: m.items });
+            return;
+        }
+        if (req.method === 'POST' && p === '/api/public/order') {
+            if (!rateLimit('puborder:' + clientIp(req), 20, 3600 * 1000)) { send(res, 429, { ok: false, error: 'rate_limited' }); return; }
+            const body = await readJsonBody(req, res);
+            if (!body) return;
+            const m = await publicLocationMenu(body.u, body.loc);
+            if (!m) { send(res, 404, { ok: false, error: 'not_found' }); return; }
+            const byId = {};
+            m.items.forEach(it => { byId[it.id] = it; });
+            const lines = Array.isArray(body.items) ? body.items.slice(0, 30) : [];
+            const items = [];
+            let total = 0;
+            for (const ln of lines) {
+                const d = byId[String(ln.id)];
+                const q = Math.max(0, Math.min(20, parseInt(ln.qty) || 0));
+                if (!d || q <= 0) continue;
+                items.push({ id: d.id, name: d.name, qty: q, price: d.price });
+                total = Math.round((total + d.price * q) * 100) / 100;
+            }
+            if (!items.length) { send(res, 400, { ok: false, error: 'empty_order' }); return; }
+            const name = String(body.name || '').trim().slice(0, 60);
+            if (!name) { send(res, 400, { ok: false, error: 'need_name' }); return; }
+            const uid = String(body.u || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
+            const lid = String(body.loc || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
+            const po = {
+                id: 'po_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+                userId: uid, locationId: lid,
+                payload: {
+                    items, total, name,
+                    phone: String(body.phone || '').trim().slice(0, 30),
+                    pickupTime: String(body.pickupTime || '').trim().slice(0, 20),
+                    note: String(body.note || '').trim().slice(0, 200),
+                    locationName: m.locationName
+                }
+            };
+            await backend.addPreorder(po);
+            console.log('[chefos] preorder', po.id, uid, items.length + ' lines');
+            send(res, 200, { ok: true, id: po.id, total });
+            return;
+        }
+        if (req.method === 'GET' && p === '/api/preorders') {
+            const user = requireAuth(req, res);
+            if (!user) return;
+            const orders = await backend.listPreorders(user.userId);
+            send(res, 200, { ok: true, orders });
+            return;
+        }
+        if (req.method === 'POST' && p === '/api/preorders/status') {
+            const user = requireAuth(req, res);
+            if (!user) return;
+            const body = await readJsonBody(req, res);
+            if (!body) return;
+            const ok = await backend.setPreorderStatus(user.userId, String(body.id || ''), String(body.status || ''));
+            send(res, ok ? 200 : 400, { ok });
             return;
         }
 

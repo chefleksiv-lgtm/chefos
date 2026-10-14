@@ -191,7 +191,7 @@
                 });
             });
 
-            const curMonth = getCurrentMonthKey();
+            const curMonth = (opts && opts.monthKey) || getCurrentMonthKey();
             if (!financeDB[curMonth]) financeDB[curMonth] = { income: 0, cogs: 0, payroll: 0, losses: 0 };
             // Округление до центов на уровне итога месяца — иначе float-дрейф (0.1+0.2)
             // накапливается и цифры перестают сходиться с чеками.
@@ -205,7 +205,7 @@
             });
             // KDS (v2.2): кухонный тикет — кухня видит, что готовить (v2.3: с номером столика)
             const kdsItems = ids.map(id => { const d = menuDB.find(x => x.id == id); const q = items[id]; return (d && q > 0) ? { name: d.name, qty: q } : null; }).filter(Boolean);
-            if (kdsItems.length) {
+            if (kdsItems.length && !(opts && opts.skipKds)) {
                 if (!Array.isArray(kdsDB)) kdsDB = [];
                 const todayKey = new Date().toISOString().slice(0, 10);
                 const num = kdsDB.filter(x => (x.ts || '').slice(0, 10) === todayKey).length + 1;
