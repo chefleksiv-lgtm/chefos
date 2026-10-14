@@ -103,6 +103,7 @@
         let activeKitchen = 'Основная кухня';
         let currentCurrency = 'C$'; 
         let currentCountry = 'CA';
+        let taxRate = 13; // ставка налога с продаж, % (HST Онтарио)
         let currentLanguage = 'ru';
         let currentFoodCosts = { 'Основная кухня': 28.5, 'Горячий цех': 32.1, 'Бар': 21.0 };
         let targetFoodCosts = { 'Основная кухня': 30, 'Горячий цех': 30, 'Бар': 25 };

@@ -38,6 +38,13 @@
             
             const profit = data.income + ms.inn - data.cogs - data.payroll - data.losses - ms.out;
             document.getElementById('finance-profit').textContent = `${currentCurrency}${profit.toLocaleString('ru-RU')}`;
+            // Налог с продаж (v2.9): собранный с покупателей, к уплате в налоговую
+            const rate = (typeof taxRate === 'number' ? taxRate : 13) / 100;
+            const taxDue = data.income > 0 ? Math.round((data.income - data.income / (1 + rate)) * 100) / 100 : 0;
+            const taxEl = document.getElementById('finance-tax');
+            if (taxEl) taxEl.textContent = `${currentCurrency}${taxDue.toLocaleString('ru-RU')}`;
+            const taxSub = document.getElementById('finance-tax-sub');
+            if (taxSub) taxSub.textContent = `${t('fin_tax_base')}: ${currentCurrency}${data.income.toLocaleString('ru-RU')} · ${(rate * 100).toFixed(1)}%`;
             document.getElementById('finance-profit').className = `text-3xl font-bold ${profit >= 0 ? 'text-white' : 'text-red-400'}`;
             
             document.getElementById('finance-assets').textContent = `${currentCurrency}${totalAssets.toLocaleString('ru-RU')}`;

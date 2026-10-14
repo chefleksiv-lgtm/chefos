@@ -13,7 +13,7 @@ function storageKeyForUser(userId) { return 'chefos_state_v1_' + String(userId);
 // (editingTTKId, tempEditIngredients и т.п.) — это мусор UI, а не данные.
 const PERSISTED_KEYS = [
     'kitchens', 'activeKitchen',
-    'currentCurrency', 'currentCountry', 'currentLanguage',
+    'currentCurrency', 'currentCountry', 'currentLanguage', 'taxRate',
     'currentFoodCosts', 'targetFoodCosts',
     'chefNotes', 'pinCodes', 'tileOrder',
     'activeTabs', 'activeMenuFilters', 'activeTTKFilter',

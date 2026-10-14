@@ -4,6 +4,10 @@
             const s = document.getElementById('pin-change-section');
             if (s) s.style.display = currentAppRole === 'chef' ? 'block' : 'none';
             refreshCurrencyUI();
+            const tr = document.getElementById('tax-rate-input');
+            if (tr) tr.value = (typeof taxRate === 'number' ? taxRate : 13);
+            const lbl = document.getElementById('tax-rate-label');
+            if (lbl) lbl.textContent = t('settings_tax') + ' (' + (typeof taxRate === 'number' ? taxRate : 13) + '%)';
             if (typeof renderLocationManager === 'function') renderLocationManager();
             openModal('settings-modal');
         }
@@ -29,6 +33,13 @@
             document.querySelectorAll('[data-cur]').forEach(el => { el.textContent = currentCurrency; });
         }
         function setCountry(c) { currentCountry = c; markDirty(); if(navigator.vibrate) navigator.vibrate(10); }
+        function setTaxRate(v) {
+            taxRate = Math.min(30, Math.max(0, parseFloat(v) || 0));
+            markDirty();
+            const lbl = document.getElementById('tax-rate-label');
+            if (lbl) lbl.textContent = t('settings_tax') + ' (' + taxRate + '%)';
+            if (navigator.vibrate) navigator.vibrate(10);
+        }
         function setLanguage(l) { 
             currentLanguage = l; 
             markDirty();

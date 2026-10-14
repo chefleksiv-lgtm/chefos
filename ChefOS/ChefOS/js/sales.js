@@ -2,8 +2,8 @@
         let posTicket = []; // [{key, dishId, qty, mods:[{id,name,price}]}] — строки чека
         let posPayMethod = 'cash'; // 'cash' | 'card'
         let modDishId = null; // блюдо, для которого выбираем модификаторы
-        // Ставка HST Онтарио для информационной строки «в т.ч. налог» (настройка ставки — со следующим шагом, HST-отчёт)
-        const POS_TAX_RATE = 0.13;
+        // Ставка налога из настроек (HST Онтарио по умолчанию) — для строки «в т.ч. налог»
+        function posTaxRate() { return (typeof taxRate === 'number' ? taxRate : 13) / 100; }
 
         function openSalesModal() {
             posTicket = [];
@@ -126,7 +126,7 @@
             discount = Math.min(discount, subtotal);
             discount = Math.round(discount * 100) / 100;
             const total = Math.round((subtotal - discount) * 100) / 100;
-            const taxIncl = Math.round((total - total / (1 + POS_TAX_RATE)) * 100) / 100;
+            const taxIncl = Math.round((total - total / (1 + posTaxRate())) * 100) / 100;
             return { subtotal, discount, total, count, taxIncl };
         }
         function updateSalesTotal() { renderTicket(); }
@@ -158,6 +158,8 @@
             document.getElementById('pos-disc-line').textContent = `−${currentCurrency}${tt.discount}`;
             document.getElementById('pos-total').textContent = `${currentCurrency}${tt.total}`;
             document.getElementById('pos-tax').textContent = `${currentCurrency}${tt.taxIncl}`;
+            const taxLbl = document.querySelector('[data-i18n="pos_tax_incl"]');
+            if (taxLbl) taxLbl.textContent = `${t('pos_tax_incl_short')} ${(typeof taxRate === 'number' ? taxRate : 13)}%`;
             const tendered = parseFloat(document.getElementById('pos-tendered').value) || 0;
             const change = posPayMethod === 'cash' ? Math.max(0, Math.round((tendered - tt.total) * 100) / 100) : 0;
             document.getElementById('pos-change').textContent = `${currentCurrency}${change}`;
@@ -355,6 +357,7 @@
                 if (opts.allergies && opts.allergies.length) ticket.allergies = opts.allergies.slice();
                 kdsDB.unshift(ticket);
             }
+            if (typeof checkLowStockAlerts === 'function') checkLowStockAlerts();
             markDirty();
             return totalSold;
         }

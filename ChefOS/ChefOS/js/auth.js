@@ -223,5 +223,6 @@
             if (!P.personnel) activeTabs.team = 'schedule';
             
             updateNotifBadge();
+            if (typeof checkLowStockAlerts === 'function') { try { checkLowStockAlerts(); } catch (e) {} }
         }
 

@@ -4,6 +4,25 @@
         function lowStockItems() {
             return inventoryDB.filter(i => (i.minQty || 0) > 0 && (i.quantity || 0) <= i.minQty && i.supplier);
         }
+        // Уведомления о критических остатках (v2.9): шефам — один раз, пока не пополнят
+        function checkLowStockAlerts() {
+            if (typeof notifyApprovers !== 'function') return;
+            let changed = false;
+            (inventoryDB || []).forEach(i => {
+                const min = i.minQty || 0, qty = i.quantity || 0;
+                if (min > 0 && qty <= min) {
+                    if (!i.lowNotified) {
+                        i.lowNotified = true; changed = true;
+                        notifyApprovers('lowstock', t('lowstock_alert')
+                            .replace('{name}', i.name)
+                            .replace('{qty}', qty)
+                            .replace('{unit}', t('unit_' + i.unit) || i.unit)
+                            .replace('{min}', min), i.id);
+                    }
+                } else if (i.lowNotified) { i.lowNotified = false; changed = true; }
+            });
+            if (changed) markDirty();
+        }
         function suggestedOrderQty(i) {
             const base = Math.max(0, Math.ceil((i.minQty * 2 - (i.quantity || 0)) * 100) / 100);
             // v2.4: если у поставщика настроен график — запаса должно хватить
@@ -117,21 +136,67 @@
         function toggleOrderStatus(id) {
             if (currentAppRole !== 'chef') { showNotification(t('chef_only')); return; }
             const o = ordersDB.find(x => x.id === id); if (!o) return;
-            if (o.status === 'new') {
-                // Приёмка: товар приходит на склад (один раз)
-                if (!o.received) {
-                    o.items.forEach(it => {
-                        const inv = (inventoryDB || []).find(x => x.name.trim().toLowerCase() === String(it.name).trim().toLowerCase());
-                        if (inv && inv.unit === it.unit) inv.quantity = Math.round(((inv.quantity || 0) + (it.qty || 0)) * 100) / 100;
-                    });
-                    o.received = true;
+            if (o.status === 'new') { openReceiveModal(id); return; }
+            o.status = 'new'; o.received = false;
+            markDirty(); renderOrdersList();
+        }
+        // Приёмка заказа (v2.9): фактическое кол-во + цена за единицу
+        let receiveOrderId = null;
+        function openReceiveModal(id) {
+            const o = ordersDB.find(x => x.id === id); if (!o) return;
+            receiveOrderId = id;
+            document.getElementById('receive-supplier').textContent = o.supplier + ' · ' + o.date;
+            document.getElementById('receive-lines').innerHTML = o.items.map((it, idx) => {
+                const inv = (inventoryDB || []).find(x => String(x.name).trim().toLowerCase() === String(it.name).trim().toLowerCase());
+                const lastPrice = inv ? (inv.price || 0) : 0;
+                return `<div class="bg-white/5 border border-white/10 rounded-xl p-3">
+                    <div class="text-white text-sm font-medium mb-2">${it.name} <span class="text-gray-500 text-xs">· ${t('orders_ordered')}: ${it.qty} ${t('unit_' + it.unit) || it.unit}</span></div>
+                    <div class="flex gap-2">
+                        <div class="flex-1"><div class="text-[11px] text-gray-500 mb-1">${t('receive_qty')}</div>
+                            <input type="number" data-recv="qty" data-idx="${idx}" value="${it.qty}" min="0" step="0.01" oninput="renderReceiveTotal()" class="w-full h-10 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-3 text-sm outline-none focus:border-emerald-500"></div>
+                        <div class="flex-1"><div class="text-[11px] text-gray-500 mb-1">${t('receive_price')}</div>
+                            <input type="number" data-recv="price" data-idx="${idx}" value="${lastPrice}" min="0" step="0.01" oninput="renderReceiveTotal()" class="w-full h-10 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-3 text-sm outline-none focus:border-emerald-500"></div>
+                    </div>
+                </div>`;
+            }).join('');
+            renderReceiveTotal();
+            openModal('receive-modal');
+        }
+        function renderReceiveTotal() {
+            let total = 0;
+            document.querySelectorAll('#receive-lines [data-recv="qty"]').forEach(qEl => {
+                const pEl = document.querySelector('#receive-lines [data-recv="price"][data-idx="' + qEl.dataset.idx + '"]');
+                total += (parseFloat(qEl.value) || 0) * (parseFloat(pEl.value) || 0);
+            });
+            document.getElementById('receive-total').textContent = currentCurrency + (Math.round(total * 100) / 100);
+        }
+        function confirmReceive() {
+            const o = ordersDB.find(x => x.id === receiveOrderId); if (!o) return;
+            let total = 0;
+            document.querySelectorAll('#receive-lines [data-recv="qty"]').forEach(qEl => {
+                const idx = qEl.dataset.idx;
+                const pEl = document.querySelector('#receive-lines [data-recv="price"][data-idx="' + idx + '"]');
+                const qty = Math.max(0, parseFloat(qEl.value) || 0);
+                const price = Math.max(0, parseFloat(pEl.value) || 0);
+                const it = o.items[idx];
+                it.receivedQty = Math.round(qty * 100) / 100;
+                it.receivedPrice = Math.round(price * 100) / 100;
+                total += qty * price;
+                if (qty > 0) {
+                    const inv = (inventoryDB || []).find(x => String(x.name).trim().toLowerCase() === String(it.name).trim().toLowerCase());
+                    if (inv && inv.unit === it.unit) {
+                        inv.quantity = Math.round(((inv.quantity || 0) + qty) * 100) / 100;
+                        if (price > 0) { inv.previousPrice = inv.price || 0; inv.price = price; }
+                        if (o.supplier) inv.supplier = o.supplier;
+                    }
                 }
-                o.status = 'done';
-            } else {
-                o.status = 'new';
-            }
-            markDirty();
-            renderOrdersList();
+            });
+            total = Math.round(total * 100) / 100;
+            o.received = true; o.status = 'done'; o.receivedAt = new Date().toISOString().slice(0, 10); o.receivedTotal = total;
+            markDirty(); renderOrdersList();
+            if (typeof checkLowStockAlerts === 'function') checkLowStockAlerts();
+            closeModal('receive-modal');
+            showNotification(t('receive_done') + ': ' + currentCurrency + total);
         }
         function deleteOrder(id) {
             if (currentAppRole !== 'chef') { showNotification(t('chef_only')); return; }

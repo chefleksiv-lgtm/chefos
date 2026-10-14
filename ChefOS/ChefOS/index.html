@@ -252,7 +252,10 @@
                         <div class="lg:sticky lg:top-0 bg-black/40 border border-white/10 rounded-2xl p-4">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-white font-semibold text-sm" data-i18n="pos_ticket">Чек</span>
-                                <button onclick="posClear()" class="text-xs text-gray-500 hover:text-red-400" data-i18n="pos_clear">Очистить</button>
+                                <div class="flex gap-3">
+                                    <button onclick="openReturnModal()" class="text-xs text-gray-500 hover:text-amber-400" data-i18n="pos_return">Возврат</button>
+                                    <button onclick="posClear()" class="text-xs text-gray-500 hover:text-red-400" data-i18n="pos_clear">Очистить</button>
+                                </div>
                             </div>
                             <div id="pos-lines" class="flex flex-col gap-2 max-h-[30vh] lg:max-h-[36vh] overflow-y-auto show-scroll mb-3"></div>
                             <div class="flex gap-2 mb-3">
@@ -279,6 +282,19 @@
                             <div class="grid grid-cols-2 gap-2 mb-3">
                                 <button id="pos-pay-cash" onclick="posSetPay('cash')" class="h-11 rounded-xl bg-emerald-500 text-white text-sm font-semibold"><i class="fa-solid fa-money-bill-wave mr-1"></i><span data-i18n="pos_cash">Наличные</span></button>
                                 <button id="pos-pay-card" onclick="posSetPay('card')" class="h-11 rounded-xl bg-[#2C2C2E] text-gray-300 text-sm font-semibold border border-white/10"><i class="fa-solid fa-credit-card mr-1"></i><span data-i18n="pos_card">Карта</span></button>
+                            </div>
+                            <div class="mb-3">
+                                <div class="text-[11px] text-gray-500 mb-1" data-i18n="pos_tip">Чаевые</div>
+                                <div class="flex gap-1 mb-1.5">
+                                    <div class="relative flex-1">
+                                        <input type="number" id="pos-tip" min="0" step="0.01" value="0" oninput="renderTicket()" class="w-full h-10 bg-[#2C2C2E] border border-white/10 text-white rounded-xl pl-3 pr-7 text-sm outline-none focus:border-emerald-500">
+                                        <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                                    </div>
+                                    <button onclick="posTipPct(10)" class="h-10 px-2.5 rounded-xl bg-[#2C2C2E] text-gray-300 text-xs border border-white/10">10%</button>
+                                    <button onclick="posTipPct(15)" class="h-10 px-2.5 rounded-xl bg-[#2C2C2E] text-gray-300 text-xs border border-white/10">15%</button>
+                                    <button onclick="posTipPct(20)" class="h-10 px-2.5 rounded-xl bg-[#2C2C2E] text-gray-300 text-xs border border-white/10">20%</button>
+                                </div>
+                                <select id="pos-tip-emp" class="w-full h-10 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-3 text-sm outline-none focus:border-emerald-500"></select>
                             </div>
                             <div id="pos-cash-block">
                                 <div class="text-[11px] text-gray-500 mb-1" data-i18n="pos_tendered">Получено</div>
@@ -329,6 +345,42 @@
                     <span><span class="inline-block w-3 h-3 rounded-full bg-emerald-500/70 border border-emerald-400 mr-1 align-middle"></span><span data-i18n="table_free">свободен</span></span>
                     <span><span class="inline-block w-3 h-3 rounded-full bg-amber-400/70 border border-amber-400 mr-1 align-middle"></span><span data-i18n="table_occupied">занят</span></span>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Приёмка заказа от поставщика -->
+    <div id="receive-modal" onclick="if(event.target === this) closeModal('receive-modal')" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-md p-6 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[88vh]">
+            <div class="flex justify-between items-center mb-1">
+                <h3 class="text-lg font-semibold text-white" data-i18n="receive_title">Приёмка товара</h3>
+                <button onclick="closeModal('receive-modal')" class="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p id="receive-supplier" class="text-xs text-gray-500 mb-4"></p>
+            <div id="receive-lines" class="flex flex-col gap-2 mb-4 overflow-y-auto show-scroll"></div>
+            <div class="flex justify-between text-sm mb-4"><span class="text-gray-400" data-i18n="receive_total">Сумма приёмки</span><span id="receive-total" class="text-white font-bold">0</span></div>
+            <button onclick="confirmReceive()" class="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm"><i class="fa-solid fa-check mr-2"></i><span data-i18n="receive_accept">Принять на склад</span></button>
+        </div>
+    </div>
+
+    <!-- Возвраты -->
+    <div id="return-modal" onclick="if(event.target === this) closeModal('return-modal')" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-md p-6 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[88vh]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-white" data-i18n="return_title">Возврат</h3>
+                <button onclick="closeModal('return-modal')" class="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="return-step-list">
+                <p class="text-xs text-gray-500 mb-2" data-i18n="return_pick">Выберите чек за сегодня</p>
+                <div id="return-receipts" class="flex flex-col gap-2 overflow-y-auto show-scroll"></div>
+            </div>
+            <div id="return-step-detail" class="hidden">
+                <button onclick="returnBack()" class="text-xs text-gray-400 hover:text-white mb-3"><i class="fa-solid fa-arrow-left mr-1"></i><span data-i18n="back">Назад</span></button>
+                <div id="return-items" class="flex flex-col gap-2 mb-4 max-h-[30vh] overflow-y-auto show-scroll"></div>
+                <label class="block text-xs text-gray-500 mb-1" data-i18n="return_reason">Причина</label>
+                <select id="return-reason" class="w-full h-11 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-3 text-sm outline-none focus:border-amber-500 mb-3"></select>
+                <input type="text" id="return-note" maxlength="60" data-i18n="return_note_ph" placeholder="Комментарий (необязательно)" class="w-full h-11 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-4 mb-4 outline-none focus:border-amber-500 text-sm">
+                <button onclick="confirmReturn()" class="w-full h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm"><i class="fa-solid fa-rotate-left mr-2"></i><span data-i18n="return_confirm">Оформить возврат</span></button>
             </div>
         </div>
     </div>
@@ -471,6 +523,14 @@
                         <input type="text" id="custom-currency-input" maxlength="4" data-i18n="cur_custom_ph" placeholder="Свой символ…" class="flex-1 min-w-0 h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500 text-center font-semibold">
                         <button onclick="setCustomCurrency()" class="h-11 px-5 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-white transition-all font-medium flex-shrink-0" data-i18n="cur_custom_set">Задать</button>
                     </div>
+                </div>
+                <div class="pt-6 border-t border-white/5">
+                    <label id="tax-rate-label" class="block text-sm text-gray-400 mb-2" data-i18n="settings_tax">Налог с продаж</label>
+                    <div class="flex gap-2 items-center">
+                        <input type="number" id="tax-rate-input" min="0" max="30" step="0.1" oninput="setTaxRate(this.value)" class="flex-1 min-w-0 h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500 text-center font-semibold">
+                        <span class="text-gray-400 font-semibold">%</span>
+                    </div>
+                    <p class="text-[11px] text-gray-600 mt-1" data-i18n="settings_tax_desc">HST Онтарио — 13%. Учитывается в чеке и отчёте для налоговой.</p>
                 </div>
                 <div id="pin-change-section" class="pt-6 border-t border-white/5">
                     <label class="block text-sm text-gray-400 mb-3" data-i18n="settings_pin">Смена PIN-кода</label>
@@ -776,7 +836,93 @@
             <div id="inv-tab-suppliers" class="hidden">
                 <div class="flex justify-between items-center mb-6"><h3 class="text-xl font-semibold text-white" data-i18n="sup_title">База поставщиков</h3><button onclick="openSupplierEditModal(null)" class="px-4 h-11 bg-[#2C2C2E] hover:bg-[#3A3A3C] text-white rounded-xl text-sm font-medium transition-colors inline-flex items-center justify-center"><i class="fa-solid fa-plus mr-1"></i> <span data-i18n="add">Добавить</span></button></div>
                 <div id="suppliers-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                <div class="mt-10">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-white" data-i18n="autoorder_settings">Настройки автозаказа</h3>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-4" data-i18n="autoorder_settings_desc">Дни, когда поставщик принимает заказы, и срок поставки в днях.</p>
+                    <div id="autoorder-settings" class="space-y-3 mb-10"></div>
+                    <div class="flex justify-between items-center mb-2 mt-2">
+                        <h3 class="text-xl font-semibold text-white" data-i18n="forecast_title">Прогноз запасов</h3>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-4" data-i18n="forecast_desc">Расход по истории продаж — что закончится раньше следующего заказа.</p>
+                    <div id="forecast-list" class="flex flex-col gap-2 mb-10"></div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-white" data-i18n="orders_title">Заказы поставщикам</h3>
+                        <button id="gen-orders-btn" onclick="generateOrders()" class="px-4 h-11 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-medium transition-colors inline-flex items-center justify-center shadow-lg shadow-orange-500/20"><i class="fa-solid fa-cart-plus mr-1"></i> <span data-i18n="orders_generate">Сформировать заказ</span></button>
+                    </div>
+                    <div id="orders-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                 </div>
+            </div>
+            
+        </div>
+    </div>
+    <div id="finance-modal" onclick="if(event.target === this) closeModal('finance-modal')" class="hidden fixed inset-0 z-50 bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
+        <div class="max-w-4xl mx-auto p-6 sm:p-10 pb-20">
+            <button onclick="closeModal('finance-modal')" class="text-gray-400 hover:text-white mb-6 flex items-center gap-2 transition-colors"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
+            <div class="mb-8"><h2 class="text-3xl font-bold text-white" data-i18n="tile_money">Деньги</h2><p id="finance-kitchen-subtitle" class="text-amber-500 mt-1 font-medium"></p></div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    <h3 class="text-xl font-semibold text-white" data-i18n="fin_title">Бухгалтерия и Сводка</h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="exportFinanceCSV()" class="h-11 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-xl text-sm font-medium transition-colors flex items-center"><i class="fa-solid fa-file-csv mr-2 text-green-400"></i><span data-i18n="fin_export_csv">Экспорт CSV</span></button>
+                        <input type="month" id="finance-month-selector" class="h-11 bg-[#2C2C2E] border border-white/10 rounded-xl px-4 text-white text-sm outline-none focus:border-indigo-500 cursor-pointer" onchange="renderFinanceTab()">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_income">Доходы от продаж</p>
+                        <p id="finance-income" class="text-2xl font-bold text-green-400">0</p>
+                    </div>
+                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_cogs">Фуд-кост (Сырье)</p>
+                        <p id="finance-cogs" class="text-2xl font-bold text-orange-400">0</p>
+                    </div>
+                    <div onclick="openPayrollModal()" class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm cursor-pointer hover:border-blue-500/40 transition-colors">
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_payroll">Зарплатный фонд</p>
+                        <p id="finance-payroll" class="text-2xl font-bold text-blue-400">0</p>
+                        <p class="text-[11px] text-blue-400/70 mt-1" data-i18n="fin_payroll_open">Журнал выплат →</p>
+                    </div>
+                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_losses">Списания (Убытки)</p>
+                        <p id="finance-losses" class="text-2xl font-bold text-red-400">0</p>
+                    </div>
+                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_other_in">Прочие доходы</p>
+                        <p id="finance-other-in" class="text-2xl font-bold text-teal-400">0</p>
+                    </div>
+                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_other_out">Прочие расходы</p>
+                        <p id="finance-other-out" class="text-2xl font-bold text-rose-400">0</p>
+                    </div>
+                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_labor_pct">Зарплаты, %</p>
+                        <p id="finance-labor-pct" class="text-2xl font-bold text-sky-400">—</p>
+                    </div>
+                    <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_prime_cost">Прайм-кост, %</p>
+                        <p id="finance-prime-cost" class="text-2xl font-bold text-amber-400">—</p>
+                    </div>
+                </div>
+                <div class="bg-[#1C1C1E] border border-indigo-500/30 rounded-2xl p-6 shadow-[inset_0_0_20px_rgba(99,102,241,0.05)] mb-8">
+                    <p class="text-xs text-indigo-400 font-medium uppercase tracking-wider mb-1" data-i18n="fin_profit">Валовая прибыль (Чистыми)</p>
+                    <p id="finance-profit" class="text-3xl font-bold text-white">0</p>
+                </div>
+                <div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-5 shadow-sm">
+                    <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1" data-i18n="fin_tax">Налог с продаж к уплате</p>
+                    <p id="finance-tax" class="text-2xl font-bold text-amber-400">0</p>
+                    <p id="finance-tax-sub" class="text-[11px] text-gray-600 mt-1"></p>
+                </div>
+                <div class="mb-8">
+                    <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+                        <h3 class="text-xl font-semibold text-white" data-i18n="money_manual">Ручные записи</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="openMoneyTxModal('in')" class="h-11 px-4 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-xl text-sm font-medium transition-colors whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i><span data-i18n="money_add_in">+ Доход</span></button>
+                            <button onclick="openMoneyTxModal('out')" class="h-11 px-4 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl text-sm font-medium transition-colors whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i><span data-i18n="money_add_out">+ Расход</span></button>
+                        </div>
+                    </div>
+                    <p id="money-tx-empty" class="text-sm text-gray-500" data-i18n="money_empty">Записей за этот месяц нет</p>
+                    <div id="money-tx-list" class="space-y-2 mt-2"></div>
+                                </div>
                 <div class="bg-gradient-to-r from-[#1C1C1E] to-[#252529] border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div class="text-center md:text-left w-full md:w-auto">
                         <p class="text-sm text-gray-400 mb-1" data-i18n="fin_assets">Текущие активы на складе</p>
