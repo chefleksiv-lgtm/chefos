@@ -232,6 +232,10 @@
         // Заказы поставщикам (v1.7): [{id, date, supplier, items:[{name, qty, unit}], status}]
         let ordersDB = [];
 
+        // Деньги v2.5: ручные доходы/расходы (аренда, коммуналка, транспорт...).
+        // [{id, date:'YYYY-MM-DD', type:'in'|'out', amount:Number, cat:'mcat_rent'|..., note}]
+        let moneyTxDB = [];
+
         // План зала (v2.3): столики [{id, name, seats, x, y (в % от плана), shape:'round'|'square'}]
         let tablesDB = [];
         // Открытые счета столиков (v2.3): [{id, tableId, items:{dishId:qty}, ts, kdsSent}]
