@@ -541,27 +541,37 @@ const server = http.createServer(async (req, res) => {
             if (!body) return;
             const text = String(body.text || '').slice(0, 6000).trim();
             if (!text) { send(res, 400, { ok: false, error: 'validation' }); return; }
-            try {
-                const base = (process.env.AI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
-                const model = process.env.AI_MODEL || 'gpt-4o-mini';
+            const base = (process.env.AI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
                 const sys = 'Ты помощник шеф-повара. Разбери текст рецепта и верни СТРОГО JSON без markdown и пояснений: {"name":"название блюда","portions":число порций,"yield_g":выход в граммах,"ingredients":[{"name":"название","weight_g":вес числом}],"steps":["шаг 1",...],"calories":ккал на весь выход,"protein":белки г на весь выход,"fat":жиры г,"carbs":углеводы г}. Все веса сам переведи в граммы (шт, мл, л, ст.л., ч.л. — оцени сам). Только JSON.';
-                const r = await fetch(base + '/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-                    body: JSON.stringify({ model, temperature: 0.2, max_tokens: 2000, messages: [{ role: 'system', content: sys }, { role: 'user', content: text }] })
-                });
-                const j = await r.json().catch(() => ({}));
-                if (!r.ok) {
-                    const det = (j.error && (j.error.message || j.error.code)) || ('http_' + r.status);
-                    send(res, 502, { ok: false, error: 'ai_upstream', detail: String(det).slice(0, 160) });
-                    return;
-                }
-                const content = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
-                const m = content.match(/\{[\s\S]*\}/);
-                if (!m) { send(res, 502, { ok: false, error: 'bad_ai_response', detail: 'empty_content' }); return; }
-                try { send(res, 200, { ok: true, recipe: JSON.parse(m[0]) }); }
-                catch (e) { send(res, 502, { ok: false, error: 'bad_ai_response', detail: 'json_parse' }); }
-            } catch (e) { send(res, 502, { ok: false, error: 'ai_failed', detail: 'fetch_error' }); }
+                // Перебор моделей: указанная в AI_MODEL, затем актуальные flash (v2.6.1)
+                const models = [process.env.AI_MODEL || 'gpt-4o-mini', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'].filter((v, i, a) => v && a.indexOf(v) === i);
+                let lastErr = 'fetch_error';
+                try {
+                    for (const model of models) {
+                        let r, j;
+                        try {
+                            r = await fetch(base + '/chat/completions', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+                                body: JSON.stringify({ model, temperature: 0.2, max_tokens: 2000, messages: [{ role: 'system', content: sys }, { role: 'user', content: text }] })
+                            });
+                            j = await r.json().catch(() => ({}));
+                        } catch (e) { lastErr = 'fetch_error'; break; }
+                        if (r.ok) {
+                            const content = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+                            const m = content.match(/\{[\s\S]*\}/);
+                            if (m) {
+                                try { send(res, 200, { ok: true, recipe: JSON.parse(m[0]) }); return; }
+                                catch (e) { lastErr = 'json_parse'; break; }
+                            }
+                            lastErr = 'empty_content'; break;
+                        }
+                        lastErr = (j.error && (j.error.message || j.error.code)) || ('http_' + r.status);
+                        // 404 = нет такой модели — пробуем следующую; остальные ошибки — сразу наружу
+                        if (!/404|not found/i.test(String(lastErr))) break;
+                    }
+                    send(res, 502, { ok: false, error: 'ai_upstream', detail: String(lastErr).slice(0, 160) });
+                } catch (e) { send(res, 502, { ok: false, error: 'ai_failed', detail: String(lastErr).slice(0, 160) }); }
             return;
         }
 
