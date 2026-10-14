@@ -173,7 +173,9 @@
             const ok = tt.count > 0 && (posPayMethod === 'card' || tendered >= tt.total);
             btn.classList.toggle('opacity-40', !ok);
             btn.classList.toggle('pointer-events-none', !ok);
-            btn.querySelector('span').textContent = `${t('pos_pay')} ${currentCurrency}${tt.total}`;
+            // Во время оплаты кнопка показывает спиннер без <span> — не падаем.
+            const btnLabel = btn.querySelector('span');
+            if (btnLabel) btnLabel.textContent = `${t('pos_pay')} ${currentCurrency}${tt.total}`;
         }
         function posQty(key, delta) {
             const l = posTicket.find(x => x.key === key);
@@ -352,6 +354,7 @@
             btn.classList.add('pointer-events-none');
 
             setTimeout(() => {
+                try {
                 const nameEl = document.getElementById('takeaway-name');
                 const customerName = nameEl ? nameEl.value.trim() : '';
                 const pct = parseFloat(document.getElementById('pos-disc-pct').value) || 0;
@@ -390,6 +393,13 @@
                     showNotification(okMsg);
                     setTimeout(() => { btn.innerHTML = originalHTML; renderTicket(); }, 500);
                 }, 700);
+                } catch (err) {
+                    console.error('[ChefOS] processSales failed:', err);
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('pointer-events-none');
+                    renderTicket();
+                    showNotification(t('pos_error'));
+                }
             }, 400);
         }
 

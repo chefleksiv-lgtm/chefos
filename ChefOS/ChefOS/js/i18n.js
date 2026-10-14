@@ -238,6 +238,7 @@
             'pos_pay': { ru: 'Оплатить', en: 'Charge' },
             'pos_short': { ru: 'Получено меньше итога', en: 'Tendered is less than total' },
             'pos_success': { ru: 'Оплачено', en: 'Paid' },
+            'pos_error': { ru: 'Ошибка оплаты', en: 'Payment failed' },
             'pos_tip': { ru: 'Чаевые', en: 'Tips' },
             'pos_tip_noemp': { ru: 'Чаевые — без сотрудника', en: 'Tips — no employee' },
             'pos_return': { ru: 'Возврат', en: 'Refund' },
