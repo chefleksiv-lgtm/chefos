@@ -545,28 +545,35 @@ const server = http.createServer(async (req, res) => {
                 const sys = 'Ты помощник шеф-повара. Разбери текст рецепта и верни СТРОГО JSON без markdown и пояснений: {"name":"название блюда","portions":число порций,"yield_g":выход в граммах,"ingredients":[{"name":"название","weight_g":вес числом}],"steps":["шаг 1",...],"calories":ккал на весь выход,"protein":белки г на весь выход,"fat":жиры г,"carbs":углеводы г}. Все веса сам переведи в граммы (шт, мл, л, ст.л., ч.л. — оцени сам). Только JSON.';
                 // Перебор моделей: указанная в AI_MODEL, затем актуальные flash (v2.6.1)
                 const models = [process.env.AI_MODEL || 'gpt-4o-mini', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'].filter((v, i, a) => v && a.indexOf(v) === i);
+                const sleep = ms => new Promise(r => setTimeout(r, ms));
                 let lastErr = 'fetch_error';
                 try {
                     for (const model of models) {
-                        let r, j;
-                        try {
-                            r = await fetch(base + '/chat/completions', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-                                body: JSON.stringify({ model, temperature: 0.2, max_tokens: 2000, messages: [{ role: 'system', content: sys }, { role: 'user', content: text }] })
-                            });
-                            j = await r.json().catch(() => ({}));
-                        } catch (e) { lastErr = 'fetch_error'; break; }
-                        if (r.ok) {
-                            const content = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
-                            const m = content.match(/\{[\s\S]*\}/);
-                            if (m) {
-                                try { send(res, 200, { ok: true, recipe: JSON.parse(m[0]) }); return; }
-                                catch (e) { lastErr = 'json_parse'; break; }
+                        let done = false;
+                        // 3 попытки: 503/429 на бесплатном тарифе часто проходят со 2-3 раза
+                        for (let attempt = 0; attempt < 3 && !done; attempt++) {
+                            let r, j;
+                            try {
+                                r = await fetch(base + '/chat/completions', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+                                    body: JSON.stringify({ model, temperature: 0.2, max_tokens: 2000, messages: [{ role: 'system', content: sys }, { role: 'user', content: text }] })
+                                });
+                                j = await r.json().catch(() => ({}));
+                            } catch (e) { lastErr = 'fetch_error'; done = true; break; }
+                            if (r.ok) {
+                                const content = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+                                const m = content.match(/\{[\s\S]*\}/);
+                                if (m) {
+                                    try { send(res, 200, { ok: true, recipe: JSON.parse(m[0]) }); return; }
+                                    catch (e) { lastErr = 'json_parse'; done = true; break; }
+                                }
+                                lastErr = 'empty_content'; done = true; break;
                             }
-                            lastErr = 'empty_content'; break;
+                            lastErr = (j.error && (j.error.message || j.error.code)) || ('http_' + r.status);
+                            if (r.status === 503 || r.status === 429) { await sleep(2500 * (attempt + 1)); continue; }
+                            done = true;
                         }
-                        lastErr = (j.error && (j.error.message || j.error.code)) || ('http_' + r.status);
                         // 404 = нет такой модели — пробуем следующую; остальные ошибки — сразу наружу
                         if (!/404|not found/i.test(String(lastErr))) break;
                     }
