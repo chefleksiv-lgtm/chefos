@@ -644,10 +644,10 @@ const server = http.createServer(async (req, res) => {
             _sqStates.set(state, { userId: userId, exp: Date.now() + 10 * 60 * 1000 });
             const redirectUri = sqRedirectUri(req);
             const scopes = ['ORDERS_READ', 'PAYMENTS_READ', 'MERCHANT_PROFILE_READ'].join(' ');
-            const url = 'https://connect.squareup.com/oauth2/authorize?client_id=' + encodeURIComponent(appId) +
+            const authUrl = 'https://connect.squareup.com/oauth2/authorize?client_id=' + encodeURIComponent(appId) +
                 '&scope=' + encodeURIComponent(scopes) + '&session=false&state=' + encodeURIComponent(state) +
                 '&redirect_uri=' + encodeURIComponent(redirectUri);
-            res.writeHead(302, { Location: url });
+            res.writeHead(302, { Location: authUrl });
             res.end();
             return;
         }
