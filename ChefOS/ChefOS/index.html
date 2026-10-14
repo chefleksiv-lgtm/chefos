@@ -1133,7 +1133,10 @@
     <div id="label-modal" class="fixed inset-0 z-[70] hidden">
         <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeModal('label-modal')"></div>
         <div class="absolute inset-x-0 bottom-0 sm:inset-0 sm:m-auto sm:max-w-sm sm:h-fit bg-[#1C1C1E] sm:rounded-3xl rounded-t-3xl border border-white/10 p-6">
-            <h3 class="text-lg font-bold text-white mb-4" data-i18n="label_title">Этикетка</h3>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-white" data-i18n="label_title">Этикетка</h3>
+                <button onclick="closeModal('label-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
             <div class="space-y-4">
                 <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="label_made">Дата изготовления</label><input type="date" id="label-made" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500"></div>
                 <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="label_exp">Срок годности</label><input type="date" id="label-exp" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-orange-500"></div>
