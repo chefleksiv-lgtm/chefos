@@ -1,11 +1,12 @@
         // --- КАССА (v2.9): экран кассира ---
-        let salesCart = {}; // id блюда -> кол-во порций (текущий чек)
+        let posTicket = []; // [{key, dishId, qty, mods:[{id,name,price}]}] — строки чека
         let posPayMethod = 'cash'; // 'cash' | 'card'
+        let modDishId = null; // блюдо, для которого выбираем модификаторы
         // Ставка HST Онтарио для информационной строки «в т.ч. налог» (настройка ставки — со следующим шагом, HST-отчёт)
         const POS_TAX_RATE = 0.13;
 
         function openSalesModal() {
-            salesCart = {};
+            posTicket = [];
             document.getElementById('sales-search').value = '';
             filterSalesList();
             updateSalesTotal();
@@ -43,26 +44,60 @@
         }
 
         function tapSaleDish(id) {
-            salesCart[id] = (salesCart[id] || 0) + 1;
+            const d = menuDB.find(x => x.id == id);
+            if (d && d.modifiers && d.modifiers.length) { openModModal(id); return; }
+            posAddLine(id, []);
+        }
+        function posAddLine(dishId, mods) {
+            const key = dishId + '|' + mods.map(m => m.id).sort((a, b) => a - b).join(',');
+            const line = posTicket.find(l => l.key === key);
+            if (line) line.qty++;
+            else posTicket.push({ key, dishId, qty: 1, mods: mods.slice() });
             refreshSaleBadges();
-            updateSalesTotal();
+            renderTicket();
             if (navigator.vibrate) navigator.vibrate(10);
+        }
+        // Модалка выбора модификаторов (v2.9)
+        function openModModal(id) {
+            modDishId = id;
+            const d = menuDB.find(x => x.id == id);
+            document.getElementById('mod-modal-title').textContent = d ? d.name : '';
+            document.getElementById('mod-modal-list').innerHTML = (d.modifiers || []).map(m => `
+                <label class="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 cursor-pointer active:scale-[0.98]">
+                    <input type="checkbox" data-mod-id="${m.id}" class="w-5 h-5 accent-emerald-500 shrink-0">
+                    <span class="flex-1 text-white text-sm">${m.name}</span>
+                    <span class="text-emerald-400 text-sm font-bold">+${currentCurrency}${m.price || 0}</span>
+                </label>`).join('');
+            openModal('mod-modal');
+        }
+        function confirmModAdd() {
+            const d = menuDB.find(x => x.id == modDishId);
+            const sel = [];
+            document.querySelectorAll('#mod-modal-list input[type=checkbox]:checked').forEach(cb => {
+                const m = (d.modifiers || []).find(x => String(x.id) === cb.dataset.modId);
+                if (m) sel.push({ id: m.id, name: m.name, price: m.price || 0 });
+            });
+            closeModal('mod-modal');
+            posAddLine(modDishId, sel);
         }
 
         function untapSaleDish(e, id) {
             e.stopPropagation();
-            if (salesCart[id]) {
-                salesCart[id]--;
-                if (salesCart[id] <= 0) delete salesCart[id];
-                refreshSaleBadges();
-                updateSalesTotal();
+            for (let i = posTicket.length - 1; i >= 0; i--) {
+                if (String(posTicket[i].dishId) === String(id)) {
+                    posTicket[i].qty--;
+                    if (posTicket[i].qty <= 0) posTicket.splice(i, 1);
+                    break;
+                }
             }
+            refreshSaleBadges();
+            renderTicket();
         }
 
         function refreshSaleBadges() {
             const activeDishes = menuDB.filter(d => d.type === 'dish' && d.isTTKActive);
             activeDishes.forEach(d => {
-                const qty = salesCart[d.id] || 0;
+                const qty = posTicket.filter(l => String(l.dishId) === String(d.id)).reduce((s, l) => s + l.qty, 0);
                 const badge = document.getElementById(`sale-badge-${d.id}`);
                 const minus = document.getElementById(`sale-minus-${d.id}`);
                 if (badge) {
@@ -74,12 +109,14 @@
             });
         }
 
+        function posLinePrice(line) {
+            const d = menuDB.find(x => x.id == line.dishId);
+            const mods = (line.mods || []).reduce((s, m) => s + (m.price || 0), 0);
+            return Math.round(((d ? (d.menuPrice || 0) : 0) + mods) * 100) / 100;
+        }
         function posTotals() {
             let subtotal = 0, count = 0;
-            for (const id in salesCart) {
-                const d = menuDB.find(x => x.id == id);
-                if (d) { subtotal += (d.menuPrice || 0) * salesCart[id]; count += salesCart[id]; }
-            }
+            posTicket.forEach(l => { subtotal += posLinePrice(l) * l.qty; count += l.qty; });
             subtotal = Math.round(subtotal * 100) / 100;
             const pctEl = document.getElementById('pos-disc-pct');
             const amtEl = document.getElementById('pos-disc-amt');
@@ -97,21 +134,22 @@
             const box = document.getElementById('pos-lines');
             if (!box) return;
             const tt = posTotals();
-            const ids = Object.keys(salesCart);
-            box.innerHTML = ids.length === 0
+            box.innerHTML = posTicket.length === 0
                 ? `<p class="text-gray-600 text-xs text-center py-4">${t('pos_empty_ticket')}</p>`
-                : ids.map(id => {
-                    const d = menuDB.find(x => x.id == id);
+                : posTicket.map(l => {
+                    const d = menuDB.find(x => x.id == l.dishId);
                     if (!d) return '';
-                    const q = salesCart[id];
-                    const line = Math.round((d.menuPrice || 0) * q * 100) / 100;
+                    const unit = posLinePrice(l);
+                    const line = Math.round(unit * l.qty * 100) / 100;
+                    const modNames = (l.mods || []).map(m => m.name).join(', ');
                     return `<div class="flex items-center gap-2 bg-white/5 rounded-xl px-2 py-1.5">
                         <div class="flex-1 min-w-0"><div class="text-white text-xs font-medium truncate">${d.name}</div>
-                        <div class="text-gray-500 text-[11px]">${currentCurrency}${d.menuPrice || 0}</div></div>
+                        ${modNames ? `<div class="text-amber-400/80 text-[10px] truncate">+ ${modNames}</div>` : ''}
+                        <div class="text-gray-500 text-[11px]">${currentCurrency}${unit}</div></div>
                         <div class="flex items-center gap-1">
-                            <button onclick="posQty(${d.id},-1)" class="w-7 h-7 rounded-lg bg-black/50 text-white border border-white/15 active:scale-90">−</button>
-                            <span class="w-6 text-center text-white text-sm font-bold">${q}</span>
-                            <button onclick="posQty(${d.id},1)" class="w-7 h-7 rounded-lg bg-black/50 text-white border border-white/15 active:scale-90">+</button>
+                            <button onclick="posQty('${l.key}',-1)" class="w-7 h-7 rounded-lg bg-black/50 text-white border border-white/15 active:scale-90">−</button>
+                            <span class="w-6 text-center text-white text-sm font-bold">${l.qty}</span>
+                            <button onclick="posQty('${l.key}',1)" class="w-7 h-7 rounded-lg bg-black/50 text-white border border-white/15 active:scale-90">+</button>
                         </div>
                         <div class="text-emerald-400 text-xs font-bold w-14 text-right">${currentCurrency}${line}</div>
                     </div>`;
@@ -129,15 +167,17 @@
             btn.classList.toggle('pointer-events-none', !ok);
             btn.querySelector('span').textContent = `${t('pos_pay')} ${currentCurrency}${tt.total}`;
         }
-        function posQty(id, delta) {
-            salesCart[id] = (salesCart[id] || 0) + delta;
-            if (salesCart[id] <= 0) delete salesCart[id];
+        function posQty(key, delta) {
+            const l = posTicket.find(x => x.key === key);
+            if (!l) return;
+            l.qty += delta;
+            if (l.qty <= 0) posTicket.splice(posTicket.indexOf(l), 1);
             refreshSaleBadges();
             renderTicket();
             if (navigator.vibrate) navigator.vibrate(10);
         }
         function posClear() {
-            salesCart = {};
+            posTicket = [];
             document.getElementById('pos-disc-pct').value = 0;
             document.getElementById('pos-disc-amt').value = 0;
             document.getElementById('pos-tendered').value = '';
@@ -211,8 +251,7 @@
         }
 
         function processSales(event) {
-            const ids = Object.keys(salesCart);
-            if (ids.length === 0) { showNotification(t('sales_empty')); return; }
+            if (posTicket.length === 0) { showNotification(t('sales_empty')); return; }
             const tt = posTotals();
             const tendered = posPayMethod === 'cash' ? (parseFloat(document.getElementById('pos-tendered').value) || 0) : tt.total;
             if (posPayMethod === 'cash' && tendered < tt.total) { showNotification(t('pos_short')); return; }
@@ -227,9 +266,9 @@
                 const customerName = nameEl ? nameEl.value.trim() : '';
                 const pct = parseFloat(document.getElementById('pos-disc-pct').value) || 0;
                 const amt = parseFloat(document.getElementById('pos-disc-amt').value) || 0;
-                const receiptItems = ids.map(id => {
-                    const d = menuDB.find(x => x.id == id);
-                    return { id: Number(id), name: d ? d.name : '', qty: salesCart[id], price: d ? (d.menuPrice || 0) : 0 };
+                const receiptItems = posTicket.map(l => {
+                    const d = menuDB.find(x => x.id == l.dishId);
+                    return { id: Number(l.dishId), name: d ? d.name : '', qty: l.qty, price: posLinePrice(l), mods: (l.mods || []).map(m => ({ name: m.name, price: m.price })) };
                 });
                 const receipt = {
                     id: Date.now(), ts: new Date().toISOString(), items: receiptItems,
@@ -237,7 +276,7 @@
                     payMethod: posPayMethod, tendered: Math.round(tendered * 100) / 100, change,
                     customerName, returned: 0
                 };
-                const totalSold = commitSale(salesCart, { takeaway: true, customerName, receipt });
+                const totalSold = commitSale(posTicket, { takeaway: true, customerName, receipt });
                 posClear();
                 if (nameEl) nameEl.value = '';
 
@@ -250,20 +289,24 @@
             }, 400);
         }
 
-        // Ядро проведения продажи (v2.3): финансы, склад, salesDB, KDS.
-        // items: {dishId: qty}. opts: {tableId, tableName} — для продаж со столика.
-        // Используют и быстрая касса, и счета столиков.
-        function commitSale(items, opts) {
+        // Ядро проведения продажи (v2.3, v2.9): финансы, склад, salesDB, KDS, чеки.
+        // lines: [{id|dishId, qty, mods?}]. opts: {tableId, tableName} — для продаж со столика.
+        // Используют касса и счета столиков.
+        function commitSale(lines, opts) {
             opts = opts || {};
-            const ids = Object.keys(items || {});
+            // Обратная совместимость: {dishId: qty}
+            if (lines && !Array.isArray(lines)) lines = Object.keys(lines).map(id => ({ id: Number(id), qty: lines[id], mods: [] }));
+            lines = (lines || []).map(l => ({ id: l.id !== undefined ? l.id : l.dishId, qty: l.qty, mods: l.mods || [] }));
             let totalSold = 0; let sessionIncome = 0; let sessionCOGS = 0;
 
-            ids.forEach(id => {
-                const d = menuDB.find(x => x.id == id);
-                const qty = items[id];
+            lines.forEach(line => {
+                const d = menuDB.find(x => x.id == line.id);
+                const qty = line.qty;
                 if (!d || !qty) return;
+                const modsPrice = (line.mods || []).reduce((s, m) => s + (m.price || 0), 0);
+                const unitPrice = (d.menuPrice || 0) + modsPrice;
                 totalSold += qty;
-                sessionIncome += (d.menuPrice || 0) * qty;
+                sessionIncome += unitPrice * qty;
                 sessionCOGS += (d.costPrice || 0) * qty;
                 if (d.ingredients) d.ingredients.forEach(ing => deductFromInventory(ing.name, ing.weight, qty));
                 if (d.subRecipes) d.subRecipes.forEach(sub => {
@@ -287,9 +330,8 @@
             financeDB[curMonth].cogs = Math.round((financeDB[curMonth].cogs + sessionCOGS) * 100) / 100;
             // Продажи по блюдам для ABC-аналитики (v1.7)
             if (!salesDB[curMonth]) salesDB[curMonth] = {};
-            ids.forEach(id => {
-                const qty = items[id];
-                if (qty > 0) salesDB[curMonth][id] = (salesDB[curMonth][id] || 0) + qty;
+            lines.forEach(line => {
+                if (line.qty > 0) salesDB[curMonth][line.id] = (salesDB[curMonth][line.id] || 0) + line.qty;
             });
             // Чеки кассы (v2.9): для возвратов, отчётов и HST
             if (opts && opts.receipt) {
@@ -297,7 +339,12 @@
                 receiptsDB[curMonth].unshift(opts.receipt);
             }
             // KDS (v2.2): кухонный тикет — кухня видит, что готовить (v2.3: с номером столика)
-            const kdsItems = ids.map(id => { const d = menuDB.find(x => x.id == id); const q = items[id]; return (d && q > 0) ? { name: d.name, qty: q } : null; }).filter(Boolean);
+            const kdsItems = lines.map(line => {
+                const d = menuDB.find(x => x.id == line.id);
+                if (!d || !(line.qty > 0)) return null;
+                const modNames = (line.mods || []).map(m => m.name).join(', ');
+                return { name: d.name + (modNames ? ' (+' + modNames + ')' : ''), qty: line.qty };
+            }).filter(Boolean);
             if (kdsItems.length && !(opts && opts.skipKds)) {
                 if (!Array.isArray(kdsDB)) kdsDB = [];
                 const todayKey = new Date().toISOString().slice(0, 10);

@@ -102,15 +102,17 @@
                 currentTTKImageBase64 = d.img; if(currentTTKImageBase64) { p.src = currentTTKImageBase64; p.classList.remove('hidden'); ic.classList.add('hidden'); tx.classList.add('hidden'); } else { p.src=''; p.classList.add('hidden'); ic.classList.remove('hidden'); tx.classList.remove('hidden'); }
                 tempEditIngredients = JSON.parse(JSON.stringify(d.ingredients || []));
                 tempEditSteps = JSON.parse(JSON.stringify(d.steps || []));
+                tempEditModifiers = JSON.parse(JSON.stringify(d.modifiers || []));
             } else {
                 document.getElementById('ttk-edit-title').textContent = t('ttk_create_title');
                 document.getElementById('edit-ttk-name').value = ''; document.getElementById('edit-ttk-type').value = 'dish'; document.getElementById('edit-ttk-category').value = ''; document.getElementById('edit-ttk-portions').value = 1; document.getElementById('edit-ttk-yield').value = ''; document.getElementById('edit-ttk-cost').value = ''; document.getElementById('edit-ttk-price').value = ''; document.getElementById('edit-ttk-target-fc').value = 30; document.getElementById('edit-ttk-cal').value = ''; document.getElementById('edit-ttk-prot').value = ''; document.getElementById('edit-ttk-fat').value = ''; document.getElementById('edit-ttk-carb').value = '';
                 currentTTKImageBase64 = ''; p.src=''; p.classList.add('hidden'); ic.classList.remove('hidden'); tx.classList.remove('hidden');
                 tempEditIngredients = [];
                 tempEditSteps = [];
+                tempEditModifiers = [];
                 document.getElementById('edit-ttk-ing-noscale').checked = false;
             }
-            renderEditIngredients(); renderEditSteps();
+            renderEditIngredients(); renderEditSteps(); renderEditModifiers();
             openModal('ttk-edit-modal');
         }
 
@@ -127,6 +129,23 @@
             if (name && weight) { tempEditIngredients.push({name, weight, noScale}); document.getElementById('edit-ttk-ing-name').value = ''; document.getElementById('edit-ttk-ing-weight').value = ''; document.getElementById('edit-ttk-ing-noscale').checked = false; renderEditIngredients(); }
         }
         function removeEditIngredient(idx) { tempEditIngredients.splice(idx, 1); renderEditIngredients(); }
+
+        // Модификаторы блюда (v2.9): добавки, выбираемые на кассе
+        let tempEditModifiers = [];
+        function renderEditModifiers() {
+            const list = document.getElementById('edit-ttk-modifiers-list'); if (!list) return; list.innerHTML = '';
+            tempEditModifiers.forEach((m, idx) => {
+                list.innerHTML += `<div class="flex justify-between items-center gap-2 bg-black/40 border border-white/5 p-2 rounded-lg"><span class="text-white text-sm min-w-0 flex-1 truncate"><span class="font-medium">${m.name}</span> <span class="text-emerald-400 ml-1">+${m.price}</span></span><button onclick="removeEditModifier(${idx})" class="text-red-400 hover:text-red-500 w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/5 shrink-0"><i class="fa-solid fa-xmark"></i></button></div>`;
+            });
+        }
+        function addEditModifier() {
+            const nameEl = document.getElementById('edit-ttk-mod-name');
+            const priceEl = document.getElementById('edit-ttk-mod-price');
+            const name = nameEl.value.trim();
+            const price = Math.round((parseFloat(priceEl.value) || 0) * 100) / 100;
+            if (name) { tempEditModifiers.push({ id: Date.now() + Math.floor(Math.random() * 1000), name, price }); nameEl.value = ''; priceEl.value = ''; renderEditModifiers(); }
+        }
+        function removeEditModifier(idx) { tempEditModifiers.splice(idx, 1); renderEditModifiers(); }
 
         function renderEditSteps() {
             const list = document.getElementById('edit-ttk-steps-list'); list.innerHTML = '';
@@ -153,7 +172,7 @@
                 const auto = costPerPortion({ type, portions, ingredients: [...tempEditIngredients], subRecipes: (existing && existing.subRecipes) || [] }).perPortion;
                 if (auto > 0) costInput = Math.round(auto * 100) / 100;
             }
-            const data = { name: n, type: type, category: document.getElementById('edit-ttk-category').value, portions: portions, yield: parseInt(document.getElementById('edit-ttk-yield').value)||0, costPrice: costInput, menuPrice: parseFloat(document.getElementById('edit-ttk-price').value)||0, targetFoodCost: parseFloat(document.getElementById('edit-ttk-target-fc').value)||30, calories: parseInt(document.getElementById('edit-ttk-cal').value)||0, protein: parseInt(document.getElementById('edit-ttk-prot').value)||0, fat: parseInt(document.getElementById('edit-ttk-fat').value)||0, carbs: parseInt(document.getElementById('edit-ttk-carb').value)||0, img: img, ingredients: [...tempEditIngredients], steps: [...tempEditSteps] };
+            const data = { name: n, type: type, category: document.getElementById('edit-ttk-category').value, portions: portions, yield: parseInt(document.getElementById('edit-ttk-yield').value)||0, costPrice: costInput, menuPrice: parseFloat(document.getElementById('edit-ttk-price').value)||0, targetFoodCost: parseFloat(document.getElementById('edit-ttk-target-fc').value)||30, calories: parseInt(document.getElementById('edit-ttk-cal').value)||0, protein: parseInt(document.getElementById('edit-ttk-prot').value)||0, fat: parseInt(document.getElementById('edit-ttk-fat').value)||0, carbs: parseInt(document.getElementById('edit-ttk-carb').value)||0, img: img, ingredients: [...tempEditIngredients], steps: [...tempEditSteps], modifiers: [...tempEditModifiers] };
             if (editingTTKId) { const d = menuDB.find(i => i.id === editingTTKId); if(d) Object.assign(d, data); openTTKDetails(editingTTKId); } 
             else { menuDB.push({ id: Date.now(), isTTKActive: false, status: 'in_stock', glutenFree: false, lactoseFree: false, subRecipes: [], ...data }); }
             markDirty();

@@ -556,7 +556,7 @@
             if (count === 0) { showNotification(t('sales_empty')); return; }
             const tb = tablesDB.find(v => v.id === tab.tableId);
             const tableName = t('table_prefix') + ' ' + (tb ? tb.name : '');
-            commitSale(Object.assign({}, tab.items), { tableId: tab.tableId, tableName, allergies: Array.isArray(tab.allergies) ? tab.allergies.slice() : [] });
+            commitSale(Object.keys(tab.items || {}).map(id => ({ id: Number(id), qty: tab.items[id], mods: [] })), { tableId: tab.tableId, tableName, allergies: Array.isArray(tab.allergies) ? tab.allergies.slice() : [] });
             const i = tableTabsDB.findIndex(x => x.id === tab.id);
             if (i >= 0) tableTabsDB.splice(i, 1);
             markDirty();
