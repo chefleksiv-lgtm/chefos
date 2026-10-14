@@ -325,7 +325,8 @@
                 });
                 const j = await r.json().catch(() => ({}));
                 if (!r.ok || !j.ok || !j.recipe) {
-                    showNotification(t(j.error === 'no_key' ? 'ai_no_key' : 'ai_failed'));
+                    const msg = j.error === 'no_key' ? t('ai_no_key') : (t('ai_failed') + (j.detail ? ': ' + j.detail : ''));
+                    showNotification(msg);
                     return;
                 }
                 const rc = j.recipe;

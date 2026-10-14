@@ -550,12 +550,18 @@ const server = http.createServer(async (req, res) => {
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
                     body: JSON.stringify({ model, temperature: 0.2, max_tokens: 2000, messages: [{ role: 'system', content: sys }, { role: 'user', content: text }] })
                 });
-                const j = await r.json();
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok) {
+                    const det = (j.error && (j.error.message || j.error.code)) || ('http_' + r.status);
+                    send(res, 502, { ok: false, error: 'ai_upstream', detail: String(det).slice(0, 160) });
+                    return;
+                }
                 const content = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
                 const m = content.match(/\{[\s\S]*\}/);
-                if (!m) { send(res, 502, { ok: false, error: 'bad_ai_response' }); return; }
-                send(res, 200, { ok: true, recipe: JSON.parse(m[0]) });
-            } catch (e) { send(res, 502, { ok: false, error: 'ai_failed' }); }
+                if (!m) { send(res, 502, { ok: false, error: 'bad_ai_response', detail: 'empty_content' }); return; }
+                try { send(res, 200, { ok: true, recipe: JSON.parse(m[0]) }); }
+                catch (e) { send(res, 502, { ok: false, error: 'bad_ai_response', detail: 'json_parse' }); }
+            } catch (e) { send(res, 502, { ok: false, error: 'ai_failed', detail: 'fetch_error' }); }
             return;
         }
 
