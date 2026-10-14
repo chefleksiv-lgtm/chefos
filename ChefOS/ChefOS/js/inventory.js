@@ -16,7 +16,7 @@
         function openInventoryModal() { document.getElementById('inventory-kitchen-subtitle').textContent = t(activeKitchen); document.getElementById('inventory-search').value = ''; document.getElementById('inventory-category-filter').value = 'all'; document.getElementById('inventory-supplier-filter').value = 'all'; switchInvTab('ingredients'); openModal('inventory-modal'); }
         function switchInvTab(tabName) {
             activeTabs.inventory = tabName;
-            ['ingredients', 'invoices', 'suppliers', 'finance', 'waste'].forEach(i => { 
+            ['ingredients', 'invoices', 'suppliers'].forEach(i => { 
                 const btn = document.getElementById(`inv-tab-btn-${i}`);
                 const content = document.getElementById(`inv-tab-${i}`);
                 if(btn) btn.className = `px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${i === tabName ? 'border-purple-500 text-purple-500' : 'border-transparent text-gray-500 hover:text-gray-300'}`;
@@ -27,8 +27,6 @@
             });
             if (tabName === 'ingredients') renderInventoryList(); 
             if (tabName === 'suppliers') { renderSuppliersList(); if (typeof renderAutoOrderSettings === 'function') renderAutoOrderSettings(); renderOrdersList(); }
-            if (tabName === 'finance') renderFinanceTab();
-            if (tabName === 'waste') renderWasteTab();
         }
 
         function renderInventoryList(sq = '', fc = 'all', fs = 'all') {

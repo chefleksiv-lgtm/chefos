@@ -232,9 +232,11 @@
                     <button onclick="deleteMoneyTx(${x.id})" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"><i class="fa-solid fa-trash-can text-xs"></i></button>
                 </div>`).join('');
         }
-        // Плитка «Деньги»: сразу на вкладку финансов
+        // Плитка «Деньги»: отдельная модалка финансов (Отчёты + Списания)
         function openMoneyModal() {
-            document.getElementById('inventory-kitchen-subtitle').textContent = t(activeKitchen);
-            openModal('inventory-modal');
-            switchInvTab('finance');
+            const sub = document.getElementById('finance-kitchen-subtitle');
+            if (sub) sub.textContent = t(activeKitchen);
+            openModal('finance-modal');
+            renderFinanceTab();
+            if (typeof renderWasteTab === 'function') renderWasteTab();
         }
