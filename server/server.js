@@ -10,11 +10,6 @@
 //   GET  /api/pull                          (Bearer) -> {state, keyTs} — данные ТОЛЬКО этого пользователя
 //   POST /api/push {deviceId, state, keyTs} (Bearer) -> {state, keyTs} — merge per-collection LWW внутри аккаунта
 //   POST /api/square-import {date}              (Bearer) -> {ok, items:[{name,qty}], orders} — продажи дня из Square (нужны SQUARE_ACCESS_TOKEN, SQUARE_LOCATION_ID)
-//   GET  /api/me                                (Bearer) -> {ok, userId, login}
-//   GET  /api/preorders                         (Bearer) -> {ok, orders:[...]}
-//   POST /api/preorders/status {id, status}     (Bearer) -> {ok}
-//   GET  /api/public/menu?u=&loc=                        -> {ok, locationName, items:[{id,name,price}]} (публично)
-//   POST /api/public/order {u,loc,items,name,...}        -> {ok, id} (публично, rate-limit)
 //   GET  /...                               -> статика фронта (FRONT_DIR)
 //
 // Авторизация: заголовок Authorization: Bearer <token>. Токены — crypto.randomBytes,
@@ -92,30 +87,6 @@ class FileBackend {
         this._writeJsonAtomic(path.join(this.usersDir, safe + '.json'),
             { state: (store && store.state) || {}, keyTs: (store && store.keyTs) || {} });
     }
-    // --- предзаказы (v2.7, файловый бэкенд) ---
-    _preordersFile(userId) {
-        const safe = String(userId).replace(/[^a-zA-Z0-9_-]/g, '');
-        return path.join(this.usersDir, 'preorders_' + safe + '.json');
-    }
-    async addPreorder(po) {
-        const f = this._preordersFile(po.userId);
-        const arr = this._readJson(f, []);
-        arr.unshift({ id: po.id, location_id: po.locationId || '', payload: po.payload, status: 'new', created_at: Date.now() });
-        this._writeJsonAtomic(f, arr.slice(0, 500));
-    }
-    async listPreorders(userId) {
-        return this._readJson(this._preordersFile(userId), []);
-    }
-    async setPreorderStatus(userId, id, status) {
-        if (!['new', 'accepted', 'done', 'cancelled'].includes(status)) return false;
-        const f = this._preordersFile(userId);
-        const arr = this._readJson(f, []);
-        const o = arr.find(x => x.id === id);
-        if (!o) return false;
-        o.status = status;
-        this._writeJsonAtomic(f, arr);
-        return true;
-    }
 }
 
 // --- Turso через Hrana HTTP API (built-in https, ноль зависимостей) ---
@@ -177,9 +148,7 @@ class TursoBackend {
         await this._pipeline([
             { sql: 'CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, login TEXT UNIQUE NOT NULL, salt TEXT NOT NULL, hash TEXT NOT NULL, created_at INTEGER NOT NULL)' },
             { sql: 'CREATE TABLE IF NOT EXISTS stores (user_id TEXT PRIMARY KEY, payload TEXT NOT NULL)' },
-            { sql: 'CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, login TEXT NOT NULL, created_at INTEGER NOT NULL)' },
-            { sql: 'CREATE TABLE IF NOT EXISTS preorders (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, location_id TEXT, payload TEXT NOT NULL, status TEXT NOT NULL DEFAULT \'new\', created_at INTEGER NOT NULL)' },
-            { sql: 'CREATE INDEX IF NOT EXISTS idx_preorders_user ON preorders (user_id, status, created_at)' }
+            { sql: 'CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL, login TEXT NOT NULL, created_at INTEGER NOT NULL)' }
         ]);
     }
     async loadUsers() {
@@ -227,37 +196,6 @@ class TursoBackend {
                  'ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload',
             args: [hranaValue(userId), hranaValue(payload)]
         }]);
-    }
-    // --- предзаказы (v2.7) ---
-    async addPreorder(po) {
-        await this._ready;
-        await this._pipeline([{
-            sql: 'INSERT INTO preorders (id, user_id, location_id, payload, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-            args: [hranaValue(po.id), hranaValue(po.userId), hranaValue(po.locationId || ''), hranaValue(JSON.stringify(po.payload)), hranaValue('new'), hranaValue(Date.now())]
-        }]);
-    }
-    async listPreorders(userId) {
-        await this._ready;
-        const [r] = await this._pipeline([{
-            sql: 'SELECT id, location_id, payload, status, created_at FROM preorders WHERE user_id = ? ORDER BY created_at DESC LIMIT 200',
-            args: [hranaValue(userId)]
-        }]);
-        const result = r && r.response && r.response.result;
-        const rows = (result && result.rows) || [];
-        return rows.map(row => {
-            let payload = {};
-            try { payload = JSON.parse(hranaCell(row[2]) || '{}'); } catch (e) {}
-            return { id: hranaCell(row[0]), location_id: hranaCell(row[1]), payload, status: hranaCell(row[3]), created_at: Number(hranaCell(row[4])) };
-        });
-    }
-    async setPreorderStatus(userId, id, status) {
-        await this._ready;
-        if (!['new', 'accepted', 'done', 'cancelled'].includes(status)) return false;
-        await this._pipeline([{
-            sql: 'UPDATE preorders SET status = ? WHERE id = ? AND user_id = ?',
-            args: [hranaValue(status), hranaValue(id), hranaValue(userId)]
-        }]);
-        return true;
     }
     async loadSessions() {
         await this._ready;
@@ -639,95 +577,6 @@ const server = http.createServer(async (req, res) => {
                 const items = Object.keys(agg).sort().map(name => ({ name, qty: agg[name] }));
                 send(res, 200, { ok: true, items, orders });
             } catch (e) { send(res, 502, { ok: false, error: 'square_failed' }); }
-            return;
-        }
-
-        // --- предзаказы: публичная витрина + API (v2.7) ---
-        // Меню локации для страницы предзаказа (публично)
-        async function publicLocationMenu(u, loc) {
-            const uid = String(u || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
-            const lid = String(loc || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
-            if (!uid || !lid) return null;
-            const store = await backend.loadUserStore(uid);
-            const state = (store && store.state) || {};
-            // locationData — главный источник (синкается при любом изменении меню);
-            // locationsDB может отсутствовать на сервере, если не менялся (LWW) — имя тогда по умолчанию.
-            const ld = (state.locationData && state.locationData[lid]) || {};
-            if (!ld || !Array.isArray(ld.menuDB)) return null;
-            const locs = state.locationsDB || [];
-            const locRec = locs.find(l => String(l.id) === lid);
-            const menu = ld.menuDB;
-            const items = menu
-                .filter(d => d && d.name && (d.menuPrice || 0) > 0 && d.status !== 'stop')
-                .map(d => ({ id: String(d.id), name: String(d.name).slice(0, 80), price: Math.round(d.menuPrice * 100) / 100, low: d.status === 'low' }));
-            return { locationName: locRec ? String(locRec.name || '').slice(0, 60) : '', items };
-        }
-        if (req.method === 'GET' && p === '/api/me') {
-            const user = requireAuth(req, res);
-            if (!user) return;
-            send(res, 200, { ok: true, userId: user.userId, login: user.login });
-            return;
-        }
-        if (req.method === 'GET' && p === '/api/public/menu') {
-            if (!rateLimit('pubmenu:' + clientIp(req), 60, 3600 * 1000)) { send(res, 429, { ok: false, error: 'rate_limited' }); return; }
-            const m = await publicLocationMenu(url.searchParams.get('u'), url.searchParams.get('loc'));
-            if (!m) { send(res, 404, { ok: false, error: 'not_found' }); return; }
-            send(res, 200, { ok: true, locationName: m.locationName, items: m.items });
-            return;
-        }
-        if (req.method === 'POST' && p === '/api/public/order') {
-            if (!rateLimit('puborder:' + clientIp(req), 20, 3600 * 1000)) { send(res, 429, { ok: false, error: 'rate_limited' }); return; }
-            const body = await readJsonBody(req, res);
-            if (!body) return;
-            const m = await publicLocationMenu(body.u, body.loc);
-            if (!m) { send(res, 404, { ok: false, error: 'not_found' }); return; }
-            const byId = {};
-            m.items.forEach(it => { byId[it.id] = it; });
-            const lines = Array.isArray(body.items) ? body.items.slice(0, 30) : [];
-            const items = [];
-            let total = 0;
-            for (const ln of lines) {
-                const d = byId[String(ln.id)];
-                const q = Math.max(0, Math.min(20, parseInt(ln.qty) || 0));
-                if (!d || q <= 0) continue;
-                items.push({ id: d.id, name: d.name, qty: q, price: d.price });
-                total = Math.round((total + d.price * q) * 100) / 100;
-            }
-            if (!items.length) { send(res, 400, { ok: false, error: 'empty_order' }); return; }
-            const name = String(body.name || '').trim().slice(0, 60);
-            if (!name) { send(res, 400, { ok: false, error: 'need_name' }); return; }
-            const uid = String(body.u || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
-            const lid = String(body.loc || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
-            const po = {
-                id: 'po_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
-                userId: uid, locationId: lid,
-                payload: {
-                    items, total, name,
-                    phone: String(body.phone || '').trim().slice(0, 30),
-                    pickupTime: String(body.pickupTime || '').trim().slice(0, 20),
-                    note: String(body.note || '').trim().slice(0, 200),
-                    locationName: m.locationName
-                }
-            };
-            await backend.addPreorder(po);
-            console.log('[chefos] preorder', po.id, uid, items.length + ' lines');
-            send(res, 200, { ok: true, id: po.id, total });
-            return;
-        }
-        if (req.method === 'GET' && p === '/api/preorders') {
-            const user = requireAuth(req, res);
-            if (!user) return;
-            const orders = await backend.listPreorders(user.userId);
-            send(res, 200, { ok: true, orders });
-            return;
-        }
-        if (req.method === 'POST' && p === '/api/preorders/status') {
-            const user = requireAuth(req, res);
-            if (!user) return;
-            const body = await readJsonBody(req, res);
-            if (!body) return;
-            const ok = await backend.setPreorderStatus(user.userId, String(body.id || ''), String(body.status || ''));
-            send(res, ok ? 200 : 400, { ok });
             return;
         }
 
