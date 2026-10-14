@@ -191,8 +191,12 @@
                 window.addEventListener('pointercancel', end);
             }
             vp.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                floorZoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.15 : 0.87);
+                // Зум — только с Ctrl/Cmd (как в картах): обычное колесо листает модалку,
+                // иначе над планом зала невозможно прокрутить кассу.
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    floorZoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.15 : 0.87);
+                }
             }, { passive: false });
             // клик по столику после панорамы — не открывать счёт
             vp.addEventListener('click', (e) => {
