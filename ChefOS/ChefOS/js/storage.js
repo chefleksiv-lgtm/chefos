@@ -165,8 +165,17 @@ function loadState() {
     return true;
 }
 
-// Запустить автосейв: раз в 5 сек пишем, только если были изменения,
-// плюс гарантированно пишем при закрытии/перезагрузке вкладки.
+// Обновить открытые экраны после подхвата чужого сохранения (storage-событие).
+function refreshOpenViews() {
+    try {
+        const open = (id) => { const el = document.getElementById(id); return el && !el.classList.contains('hidden'); };
+        if (open('inventory-modal') && typeof filterInventory === 'function') filterInventory();
+        if (open('finance-modal') && typeof renderFinanceTab === 'function') renderFinanceTab();
+        if (open('kds-modal') && typeof renderKDS === 'function') renderKDS();
+        if (open('prep-modal') && typeof renderPrep === 'function') renderPrep();
+        if (open('sales-modal') && typeof renderPosCtx === 'function') renderPosCtx();
+    } catch (e) { /* ignore */ }
+}
 function startAutosave() {
     if (_autosaveStarted) return;
     _autosaveStarted = true;
@@ -177,6 +186,16 @@ function startAutosave() {
 
     if (typeof window !== 'undefined' && window.addEventListener) {
         window.addEventListener('beforeunload', () => saveState());
+        // Другая вкладка того же браузера сохранила состояние: если у нас нет
+        // несохранённых правок — подхватываем её данные, чтобы наш следующий
+        // автосейв не затёр их устаревшей копией (last-writer-wins).
+        window.addEventListener('storage', (e) => {
+            try {
+                if (!e || e.key !== STORAGE_KEY) return;
+                if (_storageDirty) return; // есть свои несохранённые правки — не трогаем
+                if (loadState() && typeof refreshOpenViews === 'function') refreshOpenViews();
+            } catch (err) { /* ignore */ }
+        });
     }
 }
 
