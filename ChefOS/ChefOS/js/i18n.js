@@ -234,6 +234,8 @@
             'pos_exact': { ru: 'Точная', en: 'Exact' },
             'pos_change': { ru: 'Сдача', en: 'Change' },
             'pos_pay': { ru: 'Оплатить', en: 'Charge' },
+            'pos_pay_title': { ru: 'Оплата', en: 'Payment' },
+            'pos_cartbar_hint': { ru: 'Нажмите «Оплатить», чтобы открыть чек', en: 'Tap Pay to open the check' },
             'pos_short': { ru: 'Получено меньше итога', en: 'Tendered is less than total' },
             'pos_success': { ru: 'Оплачено', en: 'Paid' },
             'pos_error': { ru: 'Ошибка оплаты', en: 'Payment failed' },

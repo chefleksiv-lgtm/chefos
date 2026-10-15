@@ -263,16 +263,37 @@
                 </div>
             </div>
                     <div id="sales-pane-dishes" class="flex-1 min-w-0 w-full">
-                        <div class="flex flex-col lg:flex-row gap-6">
-                    <div class="flex-1 min-w-0">
                         <div class="relative w-full mb-4">
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none text-sm"></i>
                             <input type="text" id="sales-search" onkeyup="filterSalesList()" data-i18n="sales_search" placeholder="Быстрый поиск блюда..." class="w-full h-10 bg-[#2C2C2E] border border-white/10 text-white rounded-xl pl-9 pr-4 outline-none focus:border-emerald-500 text-sm">
                         </div>
                         <div id="sales-list" class="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-4"></div>
                     </div>
-                    <div class="ticket-col w-full lg:w-[340px] shrink-0">
-                        <div class="lg:sticky lg:top-0 bg-black/40 border border-white/10 rounded-2xl p-4">
+                </div>
+            </div>
+            <div id="pos-cartbar" class="hidden sticky bottom-0 z-10 px-6 py-3 bg-[#1C1C1E]/95 backdrop-blur-md border-t border-white/10">
+                <div class="flex items-center gap-3">
+                    <div class="flex-1 min-w-0">
+                        <div id="pos-cartbar-label" class="text-white text-sm font-semibold truncate"></div>
+                        <div class="text-gray-500 text-[11px]" data-i18n="pos_cartbar_hint">Нажмите «Оплатить», чтобы открыть чек</div>
+                    </div>
+                    <button onclick="openPayModal()" class="h-12 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-colors shrink-0"><i class="fa-solid fa-cash-register mr-2"></i><span data-i18n="pos_pay">Оплатить</span></button>
+                </div>
+            </div>
+    </div>
+
+    <!-- Оплата: чек всплывает отдельным окном -->
+    <div id="pay-modal" onclick="if(event.target === this) closeModal('pay-modal')" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-md border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[92vh] overflow-y-auto show-scroll">
+            <div class="flex justify-between items-center sticky top-0 bg-[#1C1C1E] z-10 p-5 pb-3 border-b border-white/5">
+                <div>
+                    <h3 class="text-lg font-semibold text-white" data-i18n="pos_pay_title">Оплата</h3>
+                    <p id="pay-modal-sub" class="text-xs text-gray-500 mt-0.5"></p>
+                </div>
+                <button onclick="closeModal('pay-modal')" class="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5 pt-4">
+
                             <div class="flex items-center justify-between mb-2">
                                 <div class="flex items-center gap-2">
                                     <span class="text-white font-semibold text-sm" data-i18n="pos_ticket">Чек</span>
@@ -339,12 +360,8 @@
                             <button id="pos-pay-btn" onclick="processSales(event)" class="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-all font-semibold flex items-center justify-center shadow-lg shadow-emerald-500/20 opacity-40 pointer-events-none">
                                 <i class="fa-solid fa-cash-register mr-2"></i><span data-i18n="pos_pay">Оплатить</span>
                             </button>
-                        </div>
-                    </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                                    </div>
+        </div>
     </div>
 
     <!-- Приёмка заказа от поставщика -->

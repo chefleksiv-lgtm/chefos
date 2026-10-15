@@ -175,6 +175,21 @@
             // Во время оплаты кнопка показывает спиннер без <span> — не падаем.
             const btnLabel = btn.querySelector('span');
             if (btnLabel) btnLabel.textContent = `${t('pos_pay')} ${currentCurrency}${tt.total}`;
+            // Плашка корзины на главном экране кассы
+            const cartbar = document.getElementById('pos-cartbar');
+            if (cartbar) {
+                cartbar.classList.toggle('hidden', tt.count === 0);
+                const lbl = document.getElementById('pos-cartbar-label');
+                if (lbl) lbl.textContent = `${t('pos_ticket')} • ${tt.count} • ${currentCurrency}${tt.total}`;
+            }
+        }
+        // Оплата — отдельным всплывающим окном
+        function openPayModal() {
+            if (!posTicket.length) return;
+            const sub = document.getElementById('pay-modal-sub');
+            if (sub) sub.textContent = posTableCtx ? `${t('table_prefix')} ${posTableCtx.tableName}` : t('takeaway_tag');
+            renderTicket();
+            openModal('pay-modal');
         }
         function posQty(key, delta) {
             const l = posTicket.find(x => x.key === key);
@@ -238,11 +253,6 @@
             if (!wrap) return;
             const show = (typeof force === 'boolean') ? force : wrap.classList.contains('hidden');
             wrap.classList.toggle('hidden', !show);
-            // Касса справа от плана: при открытом плане чек и поиск уходят в одну колонку
-            const dishesInner = document.querySelector('#sales-pane-dishes > div');
-            if (dishesInner && dishesInner.classList) dishesInner.classList.toggle('lg:flex-row', !show);
-            const ticketCol = document.querySelector('#sales-pane-dishes .ticket-col');
-            if (ticketCol && ticketCol.classList) ticketCol.classList.toggle('lg:w-[340px]', !show);
             if (show) {
                 if (typeof renderFloorPlan === 'function') renderFloorPlan();
                 if (typeof renderReservations === 'function') renderReservations();
@@ -388,7 +398,7 @@
 
                 btn.innerHTML = `<i class="fa-solid fa-check mr-2"></i> <span>${t('pos_success')}</span>`;
                 setTimeout(() => {
-                    closeModal('sales-modal');
+                    closeModal('pay-modal');
                     if (tableCtx && typeof renderFloorPlan === 'function') renderFloorPlan();
                     const okMsg = tableCtx ? `${t('pos_success')}: ${tableCtx.tableName}` : (change > 0 ? `${t('pos_success')}. ${t('pos_change')}: ${currentCurrency}${change}` : `${t('pos_success')} (${totalSold})`);
                     showNotification(okMsg);
