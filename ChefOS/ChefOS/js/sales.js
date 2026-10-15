@@ -203,8 +203,6 @@
             const tabs = (typeof tableTabsDB !== 'undefined' && Array.isArray(tableTabsDB)) ? tableTabsDB : [];
             const tables = (typeof tablesDB !== 'undefined' && Array.isArray(tablesDB)) ? tablesDB : [];
             const chips = [];
-            const takeawayOn = !posTableCtx;
-            chips.push(`<button onclick="posCtxTakeaway()" class="shrink-0 h-10 px-4 rounded-xl text-sm font-medium transition-colors ${takeawayOn ? 'bg-emerald-500 text-white' : 'bg-[#2C2C2E] text-gray-300'}"><i class="fa-solid fa-bag-shopping mr-2"></i><span>${t('sales_tab_takeaway')}</span></button>`);
             tables.forEach(tb => {
                 const tab = tabs.find(x => x.tableId === tb.id);
                 const occupied = !!tab;
@@ -220,11 +218,12 @@
             chips.push(`<button onclick="togglePosFloor()" class="shrink-0 h-10 px-4 rounded-xl text-sm font-medium transition-colors ${floorOpen ? 'bg-purple-500 text-white' : 'bg-[#2C2C2E] text-gray-300'}"><i class="fa-solid fa-map mr-2"></i><span>${t('pos_floor_plan')}</span></button>`);
             row.innerHTML = chips.join('');
         }
-        function posCtxTakeaway() {
-            if (posTableCtx || posTicket.length) posClear();
-            renderPosCtx();
-        }
         function posCtxTable(tableId) {
+            // повторный тап по загруженному столу — выгрузить (режим выноса)
+            if (posTableCtx && posTableCtx.tableId === tableId) {
+                posClear();
+                return;
+            }
             const tabs = (typeof tableTabsDB !== 'undefined' && Array.isArray(tableTabsDB)) ? tableTabsDB : [];
             const tab = tabs.find(x => x.tableId === tableId);
             if (tab) {
@@ -239,6 +238,11 @@
             if (!wrap) return;
             const show = (typeof force === 'boolean') ? force : wrap.classList.contains('hidden');
             wrap.classList.toggle('hidden', !show);
+            // Касса справа от плана: при открытом плане чек и поиск уходят в одну колонку
+            const dishesInner = document.querySelector('#sales-pane-dishes > div');
+            if (dishesInner && dishesInner.classList) dishesInner.classList.toggle('lg:flex-row', !show);
+            const ticketCol = document.querySelector('#sales-pane-dishes .ticket-col');
+            if (ticketCol && ticketCol.classList) ticketCol.classList.toggle('lg:w-[340px]', !show);
             if (show) {
                 if (typeof renderFloorPlan === 'function') renderFloorPlan();
                 if (typeof renderReservations === 'function') renderReservations();
