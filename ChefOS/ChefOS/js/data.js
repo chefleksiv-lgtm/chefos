@@ -139,6 +139,16 @@
 
         // Финансы
         function getCurrentMonthKey() { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`; }
+        // Локальная дата ресторана (America/Toronto) в формате YYYY-MM-DD.
+        // toISOString() даёт UTC — вечером в Торонто это уже «завтра».
+        function localDateKey(d) {
+            try {
+                return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d || new Date());
+            } catch (e) {
+                const x = d || new Date();
+                return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+            }
+        }
 
         const menuDB = [
             { id: 1, type: 'dish', name: 'Салат Цезарь с курицей', category: 'Холодный цех', isTTKActive: true, status: 'in_stock', portions: 1, yield: 220, costPrice: 4.5, menuPrice: 24, targetFoodCost: 20.5, calories: 350, protein: 25, fat: 18, carbs: 12, glutenFree: false, lactoseFree: false, img: 'https://images.unsplash.com/photo-1550304943-4f24f54ddde9?auto=format&fit=crop&q=80&w=800', ingredients: [ {name: 'Ромен', weight: '100g'}, {name: 'Куриное филе', weight: '80g'} ], steps: ['Нарезать ромен.', 'Замешать с соусом.', 'Выложить курицу.'], subRecipes: [ { name: 'Соус Цезарь', yield: '50g', ingredients: ['Майонез 40g', 'Анчоусы 5g', 'Чеснок 5g'], steps: ['Перебить анчоусы и чеснок.', 'Смешать с майонезом.'] } ] },

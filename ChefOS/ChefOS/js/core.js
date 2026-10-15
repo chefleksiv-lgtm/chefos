@@ -7,8 +7,12 @@
             const safe = isNaN(v) ? 0 : v;
             return currentCurrency + safe.toLocaleString('en-CA', { minimumFractionDigits: d, maximumFractionDigits: d });
         }
+        const _modalCloseTimers = {};
         function openModal(id) {
-            const el = document.getElementById(id); const content = el.children[0]; el.classList.remove('hidden');
+            const el = document.getElementById(id); if (!el) return;
+            if (_modalCloseTimers[id]) { clearTimeout(_modalCloseTimers[id]); delete _modalCloseTimers[id]; }
+            if (!el.classList.contains('hidden')) return; // уже открыт — не наслаиваем поверх
+            const content = el.children[0]; el.classList.remove('hidden');
             syncBodyScrollLock();
             setTimeout(() => { el.classList.remove('opacity-0'); if(content && content.classList.contains('scale-95')){ content.classList.remove('scale-95'); content.classList.add('scale-100'); } }, 10);
         }
@@ -18,9 +22,11 @@
             document.body.classList.toggle('modal-open', anyOpen);
         }
         function closeModal(id) {
-            const el = document.getElementById(id); const content = el.children[0]; el.classList.add('opacity-0');
+            const el = document.getElementById(id); if (!el) return;
+            const content = el.children[0]; el.classList.add('opacity-0');
             if(content && content.classList.contains('scale-100')){ content.classList.remove('scale-100'); content.classList.add('scale-95'); }
-            setTimeout(() => { el.classList.add('hidden'); syncBodyScrollLock(); }, 300);
+            if (_modalCloseTimers[id]) clearTimeout(_modalCloseTimers[id]);
+            _modalCloseTimers[id] = setTimeout(() => { el.classList.add('hidden'); syncBodyScrollLock(); delete _modalCloseTimers[id]; }, 300);
         }
         function showNotification(text) {
             const n = document.createElement('div'); n.className = 'fixed top-10 left-1/2 transform -translate-x-1/2 bg-zinc-800 text-white px-6 py-3 rounded-2xl shadow-lg z-[200] transition-opacity duration-300 border border-white/10'; n.textContent = text;

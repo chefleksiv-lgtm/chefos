@@ -95,7 +95,7 @@
                 const pct = items.length ? Math.round(done / items.length * 100) : 0;
                 const isMine = String(p.authorId) === String(myId);
                 const canEditDraft = (p.status === 'draft') && (isMine || prepCanApprove());
-                const canCheck = (p.status === 'sent') &&
+                const canCheck = (p.status === 'sent' || (p.status === 'done' && prepCanApprove())) &&
                     ((p.assignees || []).some(a => String(a.id) === String(myId)) || prepCanApprove());
                 const assignees = (p.assignees || []).map(a => a.name).join(', ');
                 const itemsHtml = items.map((it, idx) => {
@@ -114,7 +114,9 @@
                 } else if (p.status === 'draft') {
                     actions = `<div class="mt-3 text-xs text-gray-500"><i class="fa-solid fa-pen mr-1.5"></i>Черновик автора, ещё не отправлен.</div>`;
                 } else if (p.status === 'done') {
-                    actions = `<div class="mt-3 text-xs text-emerald-300/80"><i class="fa-solid fa-check-double mr-1.5"></i>Выполнен — все позиции готовы.</div>`;
+                    actions = `<div class="mt-3 flex items-center justify-between gap-2"><span class="text-xs text-emerald-300/80"><i class="fa-solid fa-check-double mr-1.5"></i>Выполнен — все позиции готовы.</span>${prepCanApprove() ? `<button onclick="prepDelete(${p.id})" class="h-9 w-9 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white transition-colors shrink-0" title="Удалить"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}</div>`;
+                } else if (p.status === 'sent') {
+                    actions = prepCanApprove() ? `<div class="mt-3 flex justify-end"><button onclick="prepDelete(${p.id})" class="h-9 px-4 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white text-xs font-medium transition-colors"><i class="fa-solid fa-trash-can mr-1.5"></i>Удалить список</button></div>` : '';
                 }
                 const assignHtml = (p.status !== 'draft' && assignees)
                     ? `<div class="text-xs text-gray-500 mb-1"><i class="fa-solid fa-users mr-1.5 text-teal-400"></i>${prepEsc(assignees)}</div>` : '';
@@ -135,11 +137,16 @@
         function prepToggleItem(id, idx) {
             const p = (typeof prepDB !== 'undefined' ? prepDB : []).find(x => x.id === id);
             if (!p || !Array.isArray(p.items) || !p.items[idx]) return;
-            if (p.status !== 'sent') { renderPrep(); return; }
+            if (p.status !== 'sent' && !(p.status === 'done' && prepCanApprove())) { renderPrep(); return; }
             const myId = prepAuthorId();
             const isAssignee = (p.assignees || []).some(a => String(a.id) === String(myId));
             if (!isAssignee && !prepCanApprove()) { renderPrep(); return; }
             p.items[idx].done = !p.items[idx].done;
+            // Снятие галочки с выполненного списка (шеф) — список снова «отправлен».
+            if (p.status === 'done' && !p.items[idx].done) {
+                p.status = 'sent';
+                delete p.doneAt;
+            }
             if (p.items.length && p.items.every(i => i.done)) {
                 p.status = 'done';
                 p.doneAt = Date.now();
@@ -182,8 +189,10 @@
             const p = (typeof prepDB !== 'undefined' ? prepDB : []).find(x => x.id === id);
             if (!p) return;
             const myId = prepAuthorId();
-            if (p.status !== 'draft' || (String(p.authorId) !== String(myId) && !prepCanApprove())) return;
-            showConfirm('Удалить заготовку?', 'Черновик будет удалён без возможности восстановления.', () => {
+            const isDraft = p.status === 'draft';
+            // Черновик — автор или шеф; отправленный/выполненный — только шеф/су-шеф.
+            if (isDraft ? (String(p.authorId) !== String(myId) && !prepCanApprove()) : !prepCanApprove()) return;
+            showConfirm('Удалить заготовку?', isDraft ? 'Черновик будет удалён без возможности восстановления.' : 'Список будет удалён без возможности восстановления.', () => {
                 const i = prepDB.findIndex(x => x.id === id);
                 if (i >= 0) prepDB.splice(i, 1);
                 markDirty();

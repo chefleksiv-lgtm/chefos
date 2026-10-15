@@ -400,7 +400,9 @@
                 setTimeout(() => {
                     closeModal('pay-modal');
                     if (tableCtx && typeof renderFloorPlan === 'function') renderFloorPlan();
-                    const okMsg = tableCtx ? `${t('pos_success')}: ${tableCtx.tableName}` : (change > 0 ? `${t('pos_success')}. ${t('pos_change')}: ${currentCurrency}${change}` : `${t('pos_success')} (${totalSold})`);
+                    const okMsg = tableCtx
+                        ? (change > 0 ? `${t('pos_success')}: ${tableCtx.tableName}. ${t('pos_change')}: ${currentCurrency}${change}` : `${t('pos_success')}: ${tableCtx.tableName}`)
+                        : (change > 0 ? `${t('pos_success')}. ${t('pos_change')}: ${currentCurrency}${change}` : `${t('pos_success')} (${totalSold})`);
                     showNotification(okMsg);
                     setTimeout(() => { btn.innerHTML = originalHTML; renderTicket(); }, 500);
                 }, 700);
@@ -412,6 +414,147 @@
                     showNotification(t('pos_error'));
                 }
             }, 400);
+        }
+
+        // --- ВОЗВРАТ (v2.9): оформление возврата по чеку за сегодня ---
+        // HTML модалки (#return-modal) уже был в index.html, JS дописан здесь.
+        let returnReceipt = null;
+        let returnQty = {};
+        function returnToday() { return (typeof localDateKey === 'function') ? localDateKey() : new Date().toISOString().slice(0, 10); }
+        function returnReceiptsToday() {
+            const today = returnToday();
+            const out = [];
+            Object.keys(receiptsDB || {}).forEach(m => (receiptsDB[m] || []).forEach(r => {
+                if (!r || !r.ts) return;
+                const rDay = (typeof localDateKey === 'function') ? localDateKey(new Date(r.ts)) : r.ts.slice(0, 10);
+                if (rDay === today) out.push(r);
+            }));
+            return out.sort((a, b) => (b.id || 0) - (a.id || 0));
+        }
+        function returnLineGross(it) {
+            const mods = (it.mods || []).reduce((s, m) => s + (m.price || 0), 0);
+            return ((it.price || 0) + mods);
+        }
+        function openReturnModal() {
+            returnReceipt = null; returnQty = {};
+            document.getElementById('return-step-list').classList.remove('hidden');
+            document.getElementById('return-step-detail').classList.add('hidden');
+            renderReturnReceipts();
+            openModal('return-modal');
+        }
+        function renderReturnReceipts() {
+            const list = returnReceiptsToday();
+            const box = document.getElementById('return-receipts');
+            if (!list.length) {
+                box.innerHTML = `<p class="text-center text-gray-500 text-sm py-6">${t('return_empty')}</p>`;
+                return;
+            }
+            box.innerHTML = list.map(r => {
+                const refunded = Math.round((r.returned || 0) * 100) / 100;
+                const avail = Math.round((r.total - refunded) * 100) / 100;
+                const time = (r.ts || '').slice(11, 16);
+                const label = r.tableName ? escapeHtml(r.tableName) : t('takeaway_tag');
+                return `<button onclick="selectReturnReceipt(${r.id})" ${avail <= 0 ? 'disabled' : ''}
+                    class="w-full text-left p-3 rounded-xl bg-white/5 border border-white/10 hover:border-amber-500/60 transition-colors disabled:opacity-40">
+                    <div class="flex justify-between items-center">
+                        <span class="text-white text-sm font-semibold">#${r.id} · ${time} · ${label}</span>
+                        <span class="text-amber-400 text-sm font-bold">${currentCurrency}${r.total.toFixed(2)}</span>
+                    </div>
+                    <div class="text-[11px] text-gray-500 mt-1">${t('return_done')}: ${currentCurrency}${refunded.toFixed(2)} · ${t('return_avail')}: ${currentCurrency}${avail.toFixed(2)}</div>
+                </button>`;
+            }).join('');
+        }
+        function selectReturnReceipt(id) {
+            const r = returnReceiptsToday().find(x => x.id === id);
+            if (!r) return;
+            returnReceipt = r; returnQty = {};
+            document.getElementById('return-step-list').classList.add('hidden');
+            document.getElementById('return-step-detail').classList.remove('hidden');
+            document.getElementById('return-reason').innerHTML =
+                ['r_dislike', 'r_kitchen', 'r_wait', 'r_spoiled', 'r_other'].map(k => `<option value="${k}">${t(k)}</option>`).join('');
+            document.getElementById('return-note').value = '';
+            renderReturnItems();
+        }
+        function returnBack() {
+            returnReceipt = null; returnQty = {};
+            document.getElementById('return-step-detail').classList.add('hidden');
+            document.getElementById('return-step-list').classList.remove('hidden');
+            renderReturnReceipts();
+        }
+        function renderReturnItems() {
+            const r = returnReceipt;
+            if (!r) return;
+            const box = document.getElementById('return-items');
+            const rq = r.returnedQty || {};
+            box.innerHTML = (r.items || []).map((it, i) => {
+                const maxQ = Math.max(0, (it.qty || 0) - (rq[i] || 0));
+                const q = Math.min(returnQty[i] || 0, maxQ);
+                returnQty[i] = q;
+                const modTxt = (it.mods || []).length ? ' <span class="text-gray-500">+' + it.mods.map(m => escapeHtml(m.name)).join(', ') + '</span>' : '';
+                return `<div class="flex items-center gap-2 p-2.5 rounded-xl bg-white/5 border border-white/10">
+                    <div class="flex-1 min-w-0">
+                        <div class="text-white text-sm truncate">${escapeHtml(it.name)}${modTxt}</div>
+                        <div class="text-[11px] text-gray-500">${currentCurrency}${returnLineGross(it).toFixed(2)} × ${it.qty}</div>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button onclick="returnChQty(${i},-1)" class="w-8 h-8 rounded-full bg-white/10 text-white active:scale-90">−</button>
+                        <span class="w-6 text-center text-white text-sm font-bold">${q}</span>
+                        <button onclick="returnChQty(${i},1)" class="w-8 h-8 rounded-full bg-white/10 text-white active:scale-90">+</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        function returnChQty(i, d) {
+            const r = returnReceipt;
+            if (!r || !r.items[i]) return;
+            const rq = r.returnedQty || {};
+            const maxQ = Math.max(0, (r.items[i].qty || 0) - (rq[i] || 0));
+            returnQty[i] = Math.min(maxQ, Math.max(0, (returnQty[i] || 0) + d));
+            renderReturnItems();
+        }
+        function confirmReturn() {
+            const r = returnReceipt;
+            if (!r) return;
+            const rq = r.returnedQty || {};
+            // Скидка распределяется пропорционально по строкам (как в чеке).
+            const discFactor = (r.subtotal > 0) ? (r.total / r.subtotal) : 1;
+            let refund = 0;
+            const lines = [];
+            (r.items || []).forEach((it, i) => {
+                const q = Math.min(returnQty[i] || 0, Math.max(0, (it.qty || 0) - (rq[i] || 0)));
+                if (q > 0) {
+                    refund += returnLineGross(it) * q * discFactor;
+                    lines.push({ idx: i, qty: q, dishId: it.id });
+                }
+            });
+            refund = Math.round(refund * 100) / 100;
+            if (!(refund > 0)) { showNotification(t('return_empty')); return; }
+            const mKey = (r.ts || '').slice(0, 7) || getCurrentMonthKey();
+            // Финансы: доход месяца чека уменьшается; склад не трогаем (блюдо уже списано/утилизировано).
+            if (!financeDB[mKey]) financeDB[mKey] = { income: 0, cogs: 0, payroll: 0, losses: 0 };
+            financeDB[mKey].income = Math.round((financeDB[mKey].income - refund) * 100) / 100;
+            // ABC-аналитика: возвращённые блюда вычитаем из продаж.
+            if (!salesDB[mKey]) salesDB[mKey] = {};
+            lines.forEach(l => {
+                salesDB[mKey][l.dishId] = Math.max(0, (salesDB[mKey][l.dishId] || 0) - l.qty);
+            });
+            // Учёт возвращённых количеств по строкам чека.
+            if (!r.returnedQty) r.returnedQty = {};
+            lines.forEach(l => { r.returnedQty[l.idx] = (r.returnedQty[l.idx] || 0) + l.qty; });
+            r.returned = Math.round(((r.returned || 0) + refund) * 100) / 100;
+            // Денежная операция — видна в разделе «Деньги».
+            if (!Array.isArray(moneyTxDB)) moneyTxDB = [];
+            const reasonKey = document.getElementById('return-reason').value;
+            const note = document.getElementById('return-note').value.trim().slice(0, 60);
+            moneyTxDB.push({
+                id: Date.now(), date: returnToday(), type: 'out',
+                amount: refund, cat: 'mcat_other',
+                note: `${t('return_title')} #${r.id} (${t(reasonKey)})${note ? ' · ' + note : ''}`.slice(0, 120)
+            });
+            markDirty();
+            closeModal('return-modal');
+            showNotification(`${t('return_ok')}: ${currentCurrency}${refund.toFixed(2)}`);
+            if (typeof renderFinanceTab === 'function') { try { renderFinanceTab(); } catch (e) {} }
         }
 
         // Ядро проведения продажи (v2.3, v2.9): финансы, склад, salesDB, KDS, чеки.

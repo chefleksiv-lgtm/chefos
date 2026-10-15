@@ -10,6 +10,7 @@
             if(activeMenuFilters.gluten) f = f.filter(d => d.glutenFree);
             if(activeMenuFilters.lactose) f = f.filter(d => d.lactoseFree);
             if(activeMenuFilters.allergen) f = f.filter(d => !allergensOfDish(d).includes(activeMenuFilters.allergen));
+            let _html = '';
             f.forEach(d => {
                 let sHtml = '';
                 if (currentAppRole !== 'cashier') {
@@ -28,8 +29,9 @@
                 const priceHtml = rolePerm(currentAppRole, 'seeMenuPrices')
                     ? `<span id="menu-price-${d.id}" class="text-emerald-400 font-bold">${currentCurrency}${d.menuPrice || 0}</span>`
                     : `<span class="text-gray-600 font-bold">—</span>`;
-                grid.innerHTML += `<div class="bg-[#1C1C1E] border border-white/5 rounded-2xl overflow-hidden cursor-pointer hover:border-orange-500/50 transition-colors group" onclick="openDishDetails(${d.id})"><div class="h-32 w-full relative overflow-hidden"><img src="${d.img}" class="w-full h-full object-cover opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-500">${sHtml}</div><div class="p-4"><h3 class="font-semibold text-white leading-tight mb-1">${d.name}</h3>${algBadges}<div class="flex items-center justify-between mt-2"><span class="flex items-center gap-2">${priceHtml}${fcBadge}</span>${priceEdit}</div></div></div>`;
+                _html += `<div class="bg-[#1C1C1E] border border-white/5 rounded-2xl overflow-hidden cursor-pointer hover:border-orange-500/50 transition-colors group" onclick="openDishDetails(${d.id})"><div class="h-32 w-full relative overflow-hidden"><img src="${d.img}" class="w-full h-full object-cover opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-500">${sHtml}</div><div class="p-4"><h3 class="font-semibold text-white leading-tight mb-1">${d.name}</h3>${algBadges}<div class="flex items-center justify-between mt-2"><span class="flex items-center gap-2">${priceHtml}${fcBadge}</span>${priceEdit}</div></div></div>`;
             });
+            grid.innerHTML = _html;
             if(f.length === 0) grid.innerHTML = `<div class="col-span-full text-center text-gray-500 py-10">${t('menu_not_found')}</div>`;
         }
         function openDishDetails(id) {

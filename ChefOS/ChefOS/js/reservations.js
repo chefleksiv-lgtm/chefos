@@ -2,7 +2,7 @@
         let resvDate = '';
         let editingResvId = null;
 
-        function resvToday() { return new Date().toISOString().slice(0, 10); }
+        function resvToday() { return (typeof localDateKey === 'function') ? localDateKey() : new Date().toISOString().slice(0, 10); }
         function renderReservations() {
             const box = document.getElementById('reservations-list');
             if (!box) return;

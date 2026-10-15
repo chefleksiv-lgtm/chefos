@@ -50,7 +50,32 @@
         function timeclockDateKey() {
             const inp = document.getElementById('timeclock-date');
             if (inp && inp.value) return inp.value;
-            return new Date().toISOString().slice(0, 10);
+            return (typeof localDateKey === 'function') ? localDateKey() : new Date().toISOString().slice(0, 10);
+        }
+        function timeclockToday() {
+            return (typeof localDateKey === 'function') ? localDateKey() : new Date().toISOString().slice(0, 10);
+        }
+        // Дебаунс дабл-тапа: кнопка «Ушёл» после клика превращается в «Пришёл»
+        // на том же месте — второй тап открывал бы новую смену вместо закрытия.
+        let _clockLock = {};
+        function clockToggle(empId) {
+            if (!Array.isArray(timeclockDB)) timeclockDB = [];
+            const nowMs = Date.now();
+            if (_clockLock[empId] && nowMs - _clockLock[empId] < 1500) return;
+            _clockLock[empId] = nowMs;
+            const key = timeclockDateKey();
+            const today = timeclockToday();
+            if (key !== today) return; // отметки — только за сегодня, история только для просмотра
+            const open = timeclockDB.find(e => String(e.employeeId) === String(empId) && e.date === key && !e.clockOut);
+            const now = new Date().toISOString();
+            if (open) {
+                open.clockOut = now;
+            } else {
+                const emp = (teamDB || []).find(e => String(e.id) === String(empId));
+                timeclockDB.unshift({ id: Date.now(), employeeId: empId, employeeName: emp ? emp.name : '', date: key, clockIn: now, clockOut: null });
+            }
+            markDirty();
+            renderTimeclock();
         }
         function shiftDurationHours(start, end) {
             const [sh, sm] = String(start || '0:0').split(':').map(Number);
@@ -78,22 +103,6 @@
             const d = new Date(iso);
             return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
         }
-        function clockToggle(empId) {
-            if (!Array.isArray(timeclockDB)) timeclockDB = [];
-            const key = timeclockDateKey();
-            const today = new Date().toISOString().slice(0, 10);
-            if (key !== today) return; // отметки — только за сегодня, история только для просмотра
-            const open = timeclockDB.find(e => String(e.employeeId) === String(empId) && e.date === key && !e.clockOut);
-            const now = new Date().toISOString();
-            if (open) {
-                open.clockOut = now;
-            } else {
-                const emp = (teamDB || []).find(e => String(e.id) === String(empId));
-                timeclockDB.unshift({ id: Date.now(), employeeId: empId, employeeName: emp ? emp.name : '', date: key, clockIn: now, clockOut: null });
-            }
-            markDirty();
-            renderTimeclock();
-        }
         function deleteClockEntry(id) {
             timeclockDB = timeclockDB.filter(e => e.id !== id);
             markDirty();
@@ -102,7 +111,7 @@
         function renderTimeclock() {
             if (!Array.isArray(timeclockDB)) timeclockDB = [];
             const key = timeclockDateKey();
-            const today = new Date().toISOString().slice(0, 10);
+            const today = timeclockToday();
             const isToday = key === today;
             const dateInp = document.getElementById('timeclock-date');
             if (dateInp && !dateInp.value) dateInp.value = today;
@@ -288,10 +297,12 @@
             const editor = (typeof canEditSchedule === 'function') ? canEditSchedule() : (currentAppRole === 'chef');
             const weekDates = (typeof currentWeekDates === 'function') ? currentWeekDates() : WEEK_DAYS.map(() => '');
             const dayOffMap = (typeof dayOffsByDate === 'function') ? dayOffsByDate(activeKitchen) : {};
+            const todayKey = (typeof timeclockToday === 'function') ? timeclockToday() : new Date().toISOString().slice(0, 10);
 
             WEEK_DAYS.forEach((day, di) => {
+                const isToday = weekDates[di] === todayKey;
                 const dayKey = `day_${day.toLowerCase() === 'пн' ? 'mon' : day.toLowerCase() === 'вт' ? 'tue' : day.toLowerCase() === 'ср' ? 'wed' : day.toLowerCase() === 'чт' ? 'thu' : day.toLowerCase() === 'пт' ? 'fri' : day.toLowerCase() === 'сб' ? 'sat' : 'sun'}`;
-                let col = `<div class="flex flex-col gap-2"><div class="text-center font-medium text-gray-400 py-2 border-b border-white/10 mb-2">${t(dayKey)}${weekDates[di] ? `<div class="text-[10px] text-gray-600 font-normal">${weekDates[di].slice(5)}</div>` : ''}</div>`;
+                let col = `<div class="flex flex-col gap-2${isToday ? ' bg-teal-500/5 rounded-2xl px-1 -mx-1 border border-teal-500/30' : ''}"><div class="text-center font-medium ${isToday ? 'text-teal-300' : 'text-gray-400'} py-2 border-b ${isToday ? 'border-teal-500/40' : 'border-white/10'} mb-2">${t(dayKey)}${isToday ? ` <span class="text-[9px] font-bold bg-teal-500/20 text-teal-300 px-1.5 py-0.5 rounded-full align-middle">${t('sched_today')}</span>` : ''}${weekDates[di] ? `<div class="text-[10px] ${isToday ? 'text-teal-400/70' : 'text-gray-600'} font-normal">${weekDates[di].slice(5)}</div>` : ''}</div>`;
                 // маркер выходного, если дата попадает в отображаемую неделю
                 (dayOffMap[weekDates[di]] || []).forEach(empId => {
                     col += `<div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-2 text-center"><p class="text-[10px] text-amber-400 font-medium"><i class="fa-solid fa-umbrella-beach mr-1"></i>${empName(empId)} — ${t('dayoff_marker')}</p></div>`;

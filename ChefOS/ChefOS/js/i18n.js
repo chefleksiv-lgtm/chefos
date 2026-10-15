@@ -509,6 +509,8 @@
             'notif_saved': { ru: 'Сохранено', en: 'Saved' },
             'notif_deleted': { ru: 'Удалено', en: 'Deleted' },
             'notif_enter_name': { ru: 'Введите название', en: 'Enter name' },
+            'sched_today': { ru: 'Сегодня', en: 'Today' },
+            'notif_enter_category': { ru: 'Выберите категорию', en: 'Select a category' },
             'notif_kitchen_exists': { ru: 'Такой цех уже существует!', en: 'Kitchen already exists!' },
             'notif_kitchen_renamed': { ru: 'Цех переименован', en: 'Kitchen renamed' },
             'notif_ttk_saved': { ru: 'ТТК сохранена!', en: 'Recipe saved!' },

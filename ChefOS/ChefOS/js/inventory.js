@@ -1,7 +1,7 @@
         // --- СКЛАД И ИНВЕНТАРЬ ---
         function initDropdowns() {
             const fc = document.getElementById('inventory-category-filter'), fs = document.getElementById('inventory-supplier-filter'), ec = document.getElementById('edit-ing-category'), es = document.getElementById('edit-ing-supplier'), sc = document.getElementById('edit-sup-category');
-            fc.innerHTML = `<option value="all">${t('inv_cat_all')}</option>`; ec.innerHTML = '';
+            fc.innerHTML = `<option value="all">${t('inv_cat_all')}</option>`; ec.innerHTML = `<option value="">—</option>`;
             INGREDIENT_CATEGORIES.forEach(c => { fc.insertAdjacentHTML('beforeend', `<option value="${c}">${t(c)}</option>`); ec.insertAdjacentHTML('beforeend', `<option value="${c}">${t(c)}</option>`); });
             sc.innerHTML = ''; SUPPLIER_CATEGORIES.forEach(c => { sc.insertAdjacentHTML('beforeend', `<option value="${c}">${t(c)}</option>`); });
             updateSupplierDropdowns();
@@ -134,6 +134,9 @@
             if (ex >= 0) editingAltPrices[ex].price = Math.round(p * 100) / 100;
             else editingAltPrices.push({ supplier: sup, price: Math.round(p * 100) / 100 });
             document.getElementById('edit-ing-alt-price').value = '';
+            // Если основная цена не задана — подставляем введённую (это и есть цена закупки).
+            const mainPriceEl = document.getElementById('edit-ing-price');
+            if (mainPriceEl && !(parseFloat(mainPriceEl.value) > 0)) mainPriceEl.value = (Math.round(p * 100) / 100).toFixed(2);
             renderAltPrices();
         }
         function removeAltPrice(idx) { editingAltPrices.splice(idx, 1); renderAltPrices(); }
@@ -146,7 +149,7 @@
         function saveIngredientChanges() {
             if (_savingIngredient) return; _savingIngredient = true;
             try {
-            const n = document.getElementById('edit-ing-name').value.trim(); if(!n) { showNotification(t('notif_enter_name')); return; } const p = parseFloat(document.getElementById('edit-ing-price').value) || 0;
+            const n = document.getElementById('edit-ing-name').value.trim(); if(!n) { showNotification(t('notif_enter_name')); return; } const cat = document.getElementById('edit-ing-category').value; if(!cat) { showNotification(t('notif_enter_category')); return; } const p = parseFloat(document.getElementById('edit-ing-price').value) || 0;
             const yieldPct = Math.min(100, Math.max(1, parseInt(document.getElementById('edit-ing-yield').value) || 100));
             const minQty = Math.max(0, parseFloat(document.getElementById('edit-ing-minqty').value) || 0);
             const allergens = getSelectedAllergens();

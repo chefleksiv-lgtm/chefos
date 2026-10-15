@@ -66,17 +66,27 @@
         function renderKDS() {
             if (!Array.isArray(kdsDB)) kdsDB = [];
             const active = kdsDB.filter(x => x.status === 'new').sort((a, b) => new Date(a.ts) - new Date(b.ts));
-            const doneCount = kdsDB.filter(x => x.status === 'done').length;
+            const done = kdsDB.filter(x => x.status === 'done').sort((a, b) => new Date(b.ts) - new Date(a.ts));
             const box = document.getElementById('kds-tickets');
             document.getElementById('kds-active-count').textContent = active.length;
             const clearBtn = document.getElementById('kds-clear-btn');
-            if (clearBtn) clearBtn.style.display = doneCount ? '' : 'none';
+            if (clearBtn) clearBtn.style.display = done.length ? '' : 'none';
             const setBtn = document.getElementById('kds-settings-btn');
             if (setBtn) setBtn.style.display = currentAppRole === 'chef' ? '' : 'none';
-            if (!active.length) {
+            if (!active.length && !done.length) {
                 box.innerHTML = `<div class="col-span-full text-center py-16"><i class="fa-solid fa-bell-concierge text-4xl text-gray-700 mb-4"></i><p class="text-gray-500 text-sm">${t('kds_empty')}</p></div>`;
                 return;
             }
+            const doneHtml = done.map(tk => `
+                <div class="bg-[#1C1C1E] border border-green-500/40 rounded-2xl p-5 flex flex-col opacity-60">
+                    <div class="flex items-center justify-between mb-3 pb-3 border-b border-white/10">
+                        <span class="text-lg font-bold text-white">#${tk.num}${tk.table ? ` <span class="text-amber-400 text-sm font-semibold">· ${escapeHtml(tk.table)}</span>` : ""}</span>
+                        <span class="text-sm font-bold text-green-400"><i class="fa-solid fa-check mr-1"></i>${t('kds_done')}</span>
+                    </div>
+                    <div class="flex-1 space-y-2">
+                        ${(tk.items || []).map(it => `<div class="flex items-baseline gap-2"><span class="text-2xl font-bold text-green-400/70 w-10 shrink-0">${it.qty}×</span><span class="text-gray-300 font-medium leading-snug">${escapeHtml(it.name)}</span></div>`).join('')}
+                    </div>
+                </div>`).join('');
             box.innerHTML = active.map(tk => {
                 const mins = kdsElapsedMin(tk.ts);
                 const th = kdsThreshold();
@@ -94,5 +104,5 @@
                     </div>
                     <button onclick="bumpTicket(${tk.id})" class="w-full h-12 rounded-xl bg-green-500/20 hover:bg-green-500 text-green-400 hover:text-white font-bold text-sm transition-colors"><i class="fa-solid fa-check mr-2"></i>${t('kds_done')}</button>
                 </div>`;
-            }).join('');
+            }).join('') + doneHtml;
         }
