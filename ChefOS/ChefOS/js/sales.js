@@ -187,7 +187,7 @@
         function openPayModal() {
             if (!posTicket.length) return;
             const sub = document.getElementById('pay-modal-sub');
-            if (sub) sub.textContent = posTableCtx ? `${t('table_prefix')} ${posTableCtx.tableName}` : t('takeaway_tag');
+            if (sub) sub.textContent = posTableCtx ? posTableCtx.tableName : t('takeaway_tag');
             renderTicket();
             openModal('pay-modal');
         }
