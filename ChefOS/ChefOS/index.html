@@ -330,19 +330,6 @@
                                 <button id="pos-pay-cash" onclick="posSetPay('cash')" class="h-11 rounded-xl bg-emerald-500 text-white text-sm font-semibold"><i class="fa-solid fa-money-bill-wave mr-1"></i><span data-i18n="pos_cash">Наличные</span></button>
                                 <button id="pos-pay-card" onclick="posSetPay('card')" class="h-11 rounded-xl bg-[#2C2C2E] text-gray-300 text-sm font-semibold border border-white/10"><i class="fa-solid fa-credit-card mr-1"></i><span data-i18n="pos_card">Карта</span></button>
                             </div>
-                            <div class="mb-3">
-                                <div class="text-[11px] text-gray-500 mb-1" data-i18n="pos_tip">Чаевые</div>
-                                <div class="flex gap-1 mb-1.5">
-                                    <div class="relative flex-1">
-                                        <input type="number" id="pos-tip" min="0" step="0.01" value="0" oninput="renderTicket()" class="w-full h-10 bg-[#2C2C2E] border border-white/10 text-white rounded-xl pl-3 pr-7 text-sm outline-none focus:border-emerald-500">
-                                        <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
-                                    </div>
-                                    <button onclick="posTipPct(10)" class="h-10 px-2.5 rounded-xl bg-[#2C2C2E] text-gray-300 text-xs border border-white/10">10%</button>
-                                    <button onclick="posTipPct(15)" class="h-10 px-2.5 rounded-xl bg-[#2C2C2E] text-gray-300 text-xs border border-white/10">15%</button>
-                                    <button onclick="posTipPct(20)" class="h-10 px-2.5 rounded-xl bg-[#2C2C2E] text-gray-300 text-xs border border-white/10">20%</button>
-                                </div>
-                                <select id="pos-tip-emp" class="w-full h-10 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-3 text-sm outline-none focus:border-emerald-500"></select>
-                            </div>
                             <div id="pos-cash-block">
                                 <div class="text-[11px] text-gray-500 mb-1" data-i18n="pos_tendered">Получено</div>
                                 <div class="flex gap-1 mb-2">
