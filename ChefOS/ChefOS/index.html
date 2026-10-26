@@ -692,6 +692,31 @@
                 </div>
             </div>
 
+            <div class="mt-6 pt-6 border-t border-white/10">
+                <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2"><i class="fa-solid fa-kitchen-set text-blue-400"></i> <span data-i18n="ttk_prod_section">Производство и подача</span></h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_station">Станция</label><input type="text" id="edit-ttk-station" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_pan_size">Размер противней</label><input type="text" id="edit-ttk-pan-size" placeholder="GN 1/1" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                        <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_pan_count">Количество противней</label><input type="number" min="0" id="edit-ttk-pan-count" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    </div>
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_portion_tool">Инструмент порционирования</label><input type="text" id="edit-ttk-portion-tool" placeholder="Скуб №8" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_storage">Хранение</label><input type="text" id="edit-ttk-storage" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_shelf_life">Срок годности</label><input type="text" id="edit-ttk-shelf-life" placeholder="24 ч при +4°C" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_revision_date">Дата пересмотра</label><input type="date" id="edit-ttk-revision-date" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_version">Версия</label><input type="text" id="edit-ttk-version" placeholder="1.0" class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 outline-none focus:ring-2 focus:ring-blue-500"></div>
+                </div>
+                <div class="mt-4">
+                    <label class="block text-sm text-gray-400 mb-1 font-medium" data-i18n="ttk_plating_photo">Фото подачи</label>
+                    <input type="file" id="ttk-plating-upload" class="hidden" accept="image/*" onchange="previewTTKPlatingImage(event)">
+                    <div id="ttk-plating-preview-container" class="w-full h-32 rounded-2xl border-2 border-dashed border-white/20 bg-black/30 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500/50 hover:bg-white/5 transition-all overflow-hidden relative" onclick="document.getElementById('ttk-plating-upload').click()">
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-gray-400 mb-2" id="ttk-plating-icon"></i>
+                        <span class="text-sm text-gray-400 font-medium" id="ttk-plating-text" data-i18n="ttk_plating_photo_text">Нажмите, чтобы загрузить фото подачи</span>
+                        <img id="ttk-plating-preview" src="" class="hidden absolute inset-0 w-full h-full object-cover">
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-white/10">
                 <div class="flex flex-col">
                     <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2"><i class="fa-solid fa-carrot text-orange-400"></i> <span data-i18n="ttk_ingr">Ингредиенты</span></h4>

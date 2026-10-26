@@ -51,6 +51,18 @@
                 subHtml = `<div id="ttk-tab-prep" class="${activeTabs.ttk === 'prep' ? '' : 'hidden'} space-y-8">`; d.subRecipes.forEach(sub => { subHtml += `<div class="bg-[#1C1C1E] rounded-2xl p-6 border border-white/5"><div class="flex justify-between items-end mb-4 pb-4 border-b border-white/5"><h3 class="text-lg font-semibold text-white">${sub.name} <span class="text-xs text-gray-500 ml-2 font-normal">${t('ttk_yield')} ${sub.yield}</span></h3></div><div class="grid grid-cols-1 md:grid-cols-2 gap-8"><div><h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Состав</h4>${sub.ingredients.map(s => { const p = (typeof parseSubIngredient === 'function') ? parseSubIngredient(s) : null; const nm = p ? p.name : s.split(' ').slice(0, -1).join(' '); const wt = p ? (String(Math.round(p.qty * 100) / 100) + p.unit) : s.split(' ').pop(); return `<div class="text-sm text-gray-300 py-1 flex justify-between gap-2 border-b border-white/5 last:border-0"><span class="min-w-0 break-words">${nm}</span><span class="text-white shrink-0">${wt}</span></div>`; }).join('')}</div><div><h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Приготовление</h4>${sub.steps.map(s => `<p class="text-sm text-gray-300 mb-2 relative pl-4 before:content-['•'] before:absolute before:left-0 before:text-blue-500">${s}</p>`).join('')}</div></div></div>`; }); subHtml += `</div>`;
             }
             
+            // Производственные поля (станция, противни, порционирование, хранение, версия) — видны всем ролям, если заполнены
+            let prodRows = '';
+            if (d.station) prodRows += `<div><p class="text-xs text-gray-500 mb-1">${t('ttk_station')}</p><p class="text-sm font-medium text-white">${escapeHtml(d.station)}</p></div>`;
+            if (d.panSize || d.panCount) prodRows += `<div><p class="text-xs text-gray-500 mb-1">${t('ttk_pan_size')}</p><p class="text-sm font-medium text-white">${escapeHtml(d.panSize || '')}${d.panCount ? ' × ' + d.panCount : ''}</p></div>`;
+            if (d.portionTool) prodRows += `<div><p class="text-xs text-gray-500 mb-1">${t('ttk_portion_tool')}</p><p class="text-sm font-medium text-white">${escapeHtml(d.portionTool)}</p></div>`;
+            if (d.storage) prodRows += `<div><p class="text-xs text-gray-500 mb-1">${t('ttk_storage')}</p><p class="text-sm font-medium text-white">${escapeHtml(d.storage)}</p></div>`;
+            if (d.shelfLife) prodRows += `<div><p class="text-xs text-gray-500 mb-1">${t('ttk_shelf_life')}</p><p class="text-sm font-medium text-white">${escapeHtml(d.shelfLife)}</p></div>`;
+            if (d.revisionDate) prodRows += `<div><p class="text-xs text-gray-500 mb-1">${t('ttk_revision_date')}</p><p class="text-sm font-medium text-white">${escapeHtml(d.revisionDate)}</p></div>`;
+            if (d.version) prodRows += `<div><p class="text-xs text-gray-500 mb-1">${t('ttk_version')}</p><p class="text-sm font-medium text-white">${escapeHtml(d.version)}</p></div>`;
+            const prodHtml = prodRows ? `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 bg-[#1C1C1E] rounded-2xl p-5 border border-white/5">${prodRows}</div>` : '';
+            const platingHtml = d.platingImg ? `<div class="mt-4 rounded-2xl overflow-hidden border border-white/5"><img src="${escapeHtml(d.platingImg)}" class="w-full max-h-56 object-cover"><p class="text-xs text-gray-500 p-3">${t('ttk_plating_photo')}</p></div>` : '';
+
             const ab = document.getElementById('ttk-action-buttons');
             if (currentAppRole === 'chef') {
                 ab.innerHTML = `${d.type==='dish'?(d.isTTKActive?`<button onclick="toggleDishInMenu(${d.id})" class="h-10 px-4 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 text-sm font-medium transition-colors"><i class="fa-solid fa-minus mr-1"></i> ${t('ttk_remove_from_menu')}</button>`:`<button onclick="toggleDishInMenu(${d.id})" class="h-10 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium transition-colors shadow-lg shadow-orange-500/20"><i class="fa-solid fa-plus mr-1"></i> ${t('ttk_add_to_menu')}</button>`):''}<button onclick="openCookMode(${d.id})" class="h-10 px-4 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 text-sm font-medium transition-colors"><i class="fa-solid fa-kitchen-set mr-1"></i> ${t('cook_mode')}</button><button class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors" onclick="openLabelModal('ttk', ${d.id})"><i class="fa-solid fa-tag mr-1"></i> ${t('label_btn')}</button><button onclick="printTTKSheet(${d.id})" class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"><i class="fa-solid fa-print mr-1"></i> ${t('print')}</button><button id="edit-ttk-btn" class="h-10 px-4 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors shadow-lg shadow-blue-500/20" onclick="openTTKEditor(${d.id})"><i class="fa-solid fa-pen mr-1"></i> ${t('edit')}</button><button onclick="deleteTTK(${d.id})" title="${t('ttk_delete_ttk')}" class="h-10 w-10 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white transition-colors flex items-center justify-center"><i class="fa-solid fa-trash-can text-sm"></i></button>`;
@@ -58,7 +70,7 @@
                 ab.innerHTML = `<button onclick="openCookMode(${d.id})" class="h-10 px-4 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 text-sm font-medium transition-colors"><i class="fa-solid fa-kitchen-set mr-1"></i> ${t('cook_mode')}</button><button class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors" onclick="openLabelModal('ttk', ${d.id})"><i class="fa-solid fa-tag mr-1"></i> ${t('label_btn')}</button><button onclick="printTTKSheet(${d.id})" class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"><i class="fa-solid fa-print mr-1"></i> ${t('print')}</button>`;
             }
             
-            c.innerHTML = `<div><div class="h-48 sm:h-64 w-full rounded-3xl overflow-hidden relative shadow-2xl"><img src="${escapeHtml(d.img)}" class="w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-6"><div class="flex flex-col gap-2 items-start">${badge}<h2 class="text-2xl sm:text-3xl font-bold text-white shadow-sm leading-tight">${escapeHtml(d.name)}</h2>${allergenBadgesHTML(d, false)}</div></div></div>${techPanel}${costPanel}</div>${tHtml}<div id="ttk-tab-assembly" class="${activeTabs.ttk === 'assembly' ? '' : 'hidden'} grid grid-cols-1 md:grid-cols-2 gap-8"><div class="bg-[#1C1C1E] rounded-2xl p-6 border border-white/5"><h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${t('ttk_ingr')}</h3>${ingHtml}</div><div><h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${t('ttk_steps')}</h3>${stpHtml}</div></div>${subHtml}`;
+            c.innerHTML = `<div><div class="h-48 sm:h-64 w-full rounded-3xl overflow-hidden relative shadow-2xl"><img src="${escapeHtml(d.img)}" class="w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-6"><div class="flex flex-col gap-2 items-start">${badge}<h2 class="text-2xl sm:text-3xl font-bold text-white shadow-sm leading-tight">${escapeHtml(d.name)}</h2>${allergenBadgesHTML(d, false)}</div></div></div>${techPanel}${costPanel}${prodHtml}${platingHtml}</div>${tHtml}<div id="ttk-tab-assembly" class="${activeTabs.ttk === 'assembly' ? '' : 'hidden'} grid grid-cols-1 md:grid-cols-2 gap-8"><div class="bg-[#1C1C1E] rounded-2xl p-6 border border-white/5"><h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${t('ttk_ingr')}</h3>${ingHtml}</div><div><h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${t('ttk_steps')}</h3>${stpHtml}</div></div>${subHtml}`;
             openModal('ttk-details-modal');
             if (currentAppRole === 'chef') renderScaledLines(id);
             if(hasSub && currentAppRole === 'chef') new Sortable(document.getElementById('ttk-tabs-container'), { animation: 150, delay: 200, delayOnTouchOnly: true });
@@ -87,8 +99,19 @@
             const f = e.target.files[0]; if(!f) return;
             const r = new FileReader(); r.onload = function(ev) { currentTTKImageBase64 = ev.target.result; const p = document.getElementById('ttk-img-preview'); p.src = currentTTKImageBase64; p.classList.remove('hidden'); document.getElementById('ttk-img-icon').classList.add('hidden'); document.getElementById('ttk-img-text').classList.add('hidden'); }; r.readAsDataURL(f);
         }
+        let currentTTKPlatingBase64 = '';
+        function previewTTKPlatingImage(e) {
+            const f = e.target.files[0]; if(!f) return;
+            const r = new FileReader(); r.onload = function(ev) { currentTTKPlatingBase64 = ev.target.result; const p = document.getElementById('ttk-plating-preview'); p.src = currentTTKPlatingBase64; p.classList.remove('hidden'); document.getElementById('ttk-plating-icon').classList.add('hidden'); document.getElementById('ttk-plating-text').classList.add('hidden'); }; r.readAsDataURL(f);
+        }
+        function setTTKPlatingPreview(src) {
+            const p = document.getElementById('ttk-plating-preview'), ic = document.getElementById('ttk-plating-icon'), tx = document.getElementById('ttk-plating-text');
+            currentTTKPlatingBase64 = src || '';
+            if (currentTTKPlatingBase64) { p.src = currentTTKPlatingBase64; p.classList.remove('hidden'); ic.classList.add('hidden'); tx.classList.add('hidden'); }
+            else { p.src = ''; p.classList.add('hidden'); ic.classList.remove('hidden'); tx.classList.remove('hidden'); }
+        }
         function openTTKEditor(id) {
-            editingTTKId = id; document.getElementById('ttk-img-upload').value = ''; 
+            editingTTKId = id; document.getElementById('ttk-img-upload').value = ''; document.getElementById('ttk-plating-upload').value = '';
             const p = document.getElementById('ttk-img-preview'), ic = document.getElementById('ttk-img-icon'), tx = document.getElementById('ttk-img-text');
             
             const datalist = document.getElementById('inventory-names-list');
@@ -100,6 +123,8 @@
             if (id) {
                 document.getElementById('ttk-edit-title').textContent = t('ttk_edit_title'); const d = menuDB.find(i => i.id === id);
                 document.getElementById('edit-ttk-name').value = d.name; document.getElementById('edit-ttk-type').value = d.type; document.getElementById('edit-ttk-category').value = d.category||''; document.getElementById('edit-ttk-portions').value = d.portions||1; document.getElementById('edit-ttk-yield').value = d.yield||0; document.getElementById('edit-ttk-cost').value = d.costPrice||0; document.getElementById('edit-ttk-price').value = d.menuPrice||0; document.getElementById('edit-ttk-target-fc').value = d.targetFoodCost||30; document.getElementById('edit-ttk-cal').value = d.calories||0; document.getElementById('edit-ttk-prot').value = d.prot||0; document.getElementById('edit-ttk-fat').value = d.fat||0; document.getElementById('edit-ttk-carb').value = d.carbs||0;
+                document.getElementById('edit-ttk-station').value = d.station || ''; document.getElementById('edit-ttk-pan-size').value = d.panSize || ''; document.getElementById('edit-ttk-pan-count').value = d.panCount || ''; document.getElementById('edit-ttk-portion-tool').value = d.portionTool || ''; document.getElementById('edit-ttk-storage').value = d.storage || ''; document.getElementById('edit-ttk-shelf-life').value = d.shelfLife || ''; document.getElementById('edit-ttk-revision-date').value = d.revisionDate || ''; document.getElementById('edit-ttk-version').value = d.version || '';
+                setTTKPlatingPreview(d.platingImg || '');
                 currentTTKImageBase64 = d.img; if(currentTTKImageBase64) { p.src = currentTTKImageBase64; p.classList.remove('hidden'); ic.classList.add('hidden'); tx.classList.add('hidden'); } else { p.src=''; p.classList.add('hidden'); ic.classList.remove('hidden'); tx.classList.remove('hidden'); }
                 tempEditIngredients = JSON.parse(JSON.stringify(d.ingredients || []));
                 tempEditSteps = JSON.parse(JSON.stringify(d.steps || []));
@@ -107,6 +132,8 @@
             } else {
                 document.getElementById('ttk-edit-title').textContent = t('ttk_create_title');
                 document.getElementById('edit-ttk-name').value = ''; document.getElementById('edit-ttk-type').value = 'dish'; document.getElementById('edit-ttk-category').value = ''; document.getElementById('edit-ttk-portions').value = 1; document.getElementById('edit-ttk-yield').value = ''; document.getElementById('edit-ttk-cost').value = ''; document.getElementById('edit-ttk-price').value = ''; document.getElementById('edit-ttk-target-fc').value = 30; document.getElementById('edit-ttk-cal').value = ''; document.getElementById('edit-ttk-prot').value = ''; document.getElementById('edit-ttk-fat').value = ''; document.getElementById('edit-ttk-carb').value = '';
+                document.getElementById('edit-ttk-station').value = ''; document.getElementById('edit-ttk-pan-size').value = ''; document.getElementById('edit-ttk-pan-count').value = ''; document.getElementById('edit-ttk-portion-tool').value = ''; document.getElementById('edit-ttk-storage').value = ''; document.getElementById('edit-ttk-shelf-life').value = ''; document.getElementById('edit-ttk-revision-date').value = ''; document.getElementById('edit-ttk-version').value = '';
+                setTTKPlatingPreview('');
                 currentTTKImageBase64 = ''; p.src=''; p.classList.add('hidden'); ic.classList.remove('hidden'); tx.classList.remove('hidden');
                 tempEditIngredients = [];
                 tempEditSteps = [];
@@ -173,7 +200,7 @@
                 const auto = costPerPortion({ type, portions, ingredients: [...tempEditIngredients], subRecipes: (existing && existing.subRecipes) || [] }).perPortion;
                 if (auto > 0) costInput = Math.round(auto * 100) / 100;
             }
-            const data = { name: n, type: type, category: document.getElementById('edit-ttk-category').value, portions: portions, yield: parseInt(document.getElementById('edit-ttk-yield').value)||0, costPrice: costInput, menuPrice: parseFloat(document.getElementById('edit-ttk-price').value)||0, targetFoodCost: parseFloat(document.getElementById('edit-ttk-target-fc').value)||30, calories: parseInt(document.getElementById('edit-ttk-cal').value)||0, protein: parseInt(document.getElementById('edit-ttk-prot').value)||0, fat: parseInt(document.getElementById('edit-ttk-fat').value)||0, carbs: parseInt(document.getElementById('edit-ttk-carb').value)||0, img: img, ingredients: [...tempEditIngredients], steps: [...tempEditSteps], modifiers: [...tempEditModifiers] };
+            const data = { name: n, type: type, category: document.getElementById('edit-ttk-category').value, portions: portions, yield: parseInt(document.getElementById('edit-ttk-yield').value)||0, costPrice: costInput, menuPrice: parseFloat(document.getElementById('edit-ttk-price').value)||0, targetFoodCost: parseFloat(document.getElementById('edit-ttk-target-fc').value)||30, calories: parseInt(document.getElementById('edit-ttk-cal').value)||0, protein: parseInt(document.getElementById('edit-ttk-prot').value)||0, fat: parseInt(document.getElementById('edit-ttk-fat').value)||0, carbs: parseInt(document.getElementById('edit-ttk-carb').value)||0, img: img, ingredients: [...tempEditIngredients], steps: [...tempEditSteps], modifiers: [...tempEditModifiers], station: document.getElementById('edit-ttk-station').value.trim(), panSize: document.getElementById('edit-ttk-pan-size').value.trim(), panCount: parseInt(document.getElementById('edit-ttk-pan-count').value)||0, portionTool: document.getElementById('edit-ttk-portion-tool').value.trim(), storage: document.getElementById('edit-ttk-storage').value.trim(), shelfLife: document.getElementById('edit-ttk-shelf-life').value.trim(), revisionDate: document.getElementById('edit-ttk-revision-date').value || '', version: document.getElementById('edit-ttk-version').value.trim(), platingImg: currentTTKPlatingBase64 || '' };
             if (editingTTKId) { const d = menuDB.find(i => i.id === editingTTKId); if(d) Object.assign(d, data); openTTKDetails(editingTTKId); } 
             else { menuDB.push({ id: Date.now(), isTTKActive: false, status: 'in_stock', glutenFree: false, lactoseFree: false, subRecipes: [], ...data }); }
             markDirty();
@@ -256,6 +283,16 @@
             const costHtml = wantCost ? `<div style="margin-top:10px;font-size:13px;"><b>${t('ttk_cost')}:</b> ${currentCurrency}${d.costPrice} &nbsp; <b>${t('ttk_price')}:</b> ${currentCurrency}${d.menuPrice} &nbsp; <b>${t('tile_fc')}:</b> ${d.menuPrice > 0 ? ((d.costPrice / d.menuPrice) * 100).toFixed(1) : 0}%</div>` : '';
             const nutrHtml = wantNutrition ? `<div style="margin-top:8px;font-size:13px;"><b>${t('ttk_cal')}:</b> ${d.calories || 0} · <b>${t('ttk_prot')}:</b> ${d.protein || 0}${t('unit_g')} · <b>${t('ttk_fat')}:</b> ${d.fat || 0}${t('unit_g')} · <b>${t('ttk_carb')}:</b> ${d.carbs || 0}${t('unit_g')}</div>` : '';
             const photoHtml = d.img ? `<img src="${d.img}" style="width:100%;max-height:220px;object-fit:cover;border-radius:8px;margin-bottom:12px;">` : '';
+            let prodLines = '';
+            if (d.station) prodLines += `<div><b>${t('ttk_station')}:</b> ${escapeHtml(d.station)}</div>`;
+            if (d.panSize || d.panCount) prodLines += `<div><b>${t('ttk_pan_size')}:</b> ${escapeHtml(d.panSize || '')}${d.panCount ? ' × ' + d.panCount : ''}</div>`;
+            if (d.portionTool) prodLines += `<div><b>${t('ttk_portion_tool')}:</b> ${escapeHtml(d.portionTool)}</div>`;
+            if (d.storage) prodLines += `<div><b>${t('ttk_storage')}:</b> ${escapeHtml(d.storage)}</div>`;
+            if (d.shelfLife) prodLines += `<div><b>${t('ttk_shelf_life')}:</b> ${escapeHtml(d.shelfLife)}</div>`;
+            if (d.revisionDate) prodLines += `<div><b>${t('ttk_revision_date')}:</b> ${escapeHtml(d.revisionDate)}</div>`;
+            if (d.version) prodLines += `<div><b>${t('ttk_version')}:</b> ${escapeHtml(d.version)}</div>`;
+            const prodPrintHtml = prodLines ? `<div style="margin-top:12px;font-size:13px;border:1px solid #ddd;border-radius:8px;padding:10px;line-height:1.7;">${prodLines}</div>` : '';
+            const platingPrintHtml = d.platingImg ? `<div style="margin-top:12px;"><div style="font-size:12px;margin-bottom:6px;"><b>${t('ttk_plating_photo')}</b></div><img src="${d.platingImg}" style="width:100%;max-height:220px;object-fit:cover;border-radius:8px;"></div>` : '';
             const today = new Date().toLocaleDateString();
             document.getElementById('print-area').innerHTML = `
                 <div style="font-family:Arial,sans-serif;color:#000;background:#fff;padding:20px;max-width:700px;">
@@ -270,6 +307,8 @@
                     <h3 style="font-size:15px;margin:0 0 6px;">${t('ttk_steps')}</h3>
                     ${stepRows}
                     ${subHtml}
+                    ${prodPrintHtml}
+                    ${platingPrintHtml}
                     ${nutrHtml}
                     ${costHtml}
                     <div style="font-size:10px;color:#555;margin-top:14px;">ChefOS</div>
