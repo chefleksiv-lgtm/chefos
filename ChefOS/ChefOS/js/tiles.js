@@ -26,6 +26,7 @@ function initTileSorting() {
     grid._sortable = new Sortable(grid, {
         animation: 280,
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        handle: '.tile-drag-handle', // тянуть только за ручку — тапы и скролл по плитке не перехватываются
         delay: 250,             // долгое нажатие перед перетаскиванием...
         delayOnTouchOnly: true, // ...только на тачскрине; мышью тянем сразу
         forceFallback: true,    // свой плавный движок вместо нативного DnD

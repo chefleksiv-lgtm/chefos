@@ -10,7 +10,18 @@
         const _modalCloseTimers = {};
         function openModal(id) {
             const el = document.getElementById(id); if (!el) return;
-            if (_modalCloseTimers[id]) { clearTimeout(_modalCloseTimers[id]); delete _modalCloseTimers[id]; }
+            if (_modalCloseTimers[id]) {
+                // Модалка была в фазе закрытия (opacity-0, но ещё не hidden):
+                // возвращаем её в открытое состояние, иначе она залипнет
+                // невидимым оверлеем поверх страницы (клики не проходят,
+                // а body остаётся с modal-open — страница не листается).
+                clearTimeout(_modalCloseTimers[id]); delete _modalCloseTimers[id];
+                el.classList.remove('opacity-0');
+                const content = el.children[0];
+                if (content && content.classList.contains('scale-95')) { content.classList.remove('scale-95'); content.classList.add('scale-100'); }
+                syncBodyScrollLock();
+                return;
+            }
             if (!el.classList.contains('hidden')) return; // уже открыт — не наслаиваем поверх
             const content = el.children[0]; el.classList.remove('hidden');
             syncBodyScrollLock();

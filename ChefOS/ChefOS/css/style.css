@@ -14,7 +14,11 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
             cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation;
+            position: relative;
         }
+        /* Ручка перестановки плиток: drag только отсюда, остальная плитка — тапы и скролл */
+        .tile-drag-handle { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.35); font-size: 11px; cursor: grab; z-index: 2; touch-action: none; }
+        .tile-drag-handle:active { cursor: grabbing; color: rgba(255,255,255,0.7); }
         @media (hover: hover) { .ios-tile:hover { background: rgba(65, 65, 68, 0.85); border-color: rgba(255, 255, 255, 0.25); box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.1); } }
         .ios-tile:active { transform: scale(0.95); background: rgba(44, 44, 46, 0.9); }
         .sortable-chosen { transform: scale(1.05) !important; box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.4) !important; border-color: rgba(245, 158, 11, 0.8) !important; z-index: 50; }
@@ -69,6 +73,9 @@
 
 /* --- Модалки: скролл только внутри (v2.6.1) --- */
 body.modal-open { overflow: hidden; }
+/* Невидимая модалка (opacity-0, в т.ч. залипшая в фазе закрытия) не должна
+   перехватывать клики — иначе элементы под ней не нажимаются */
+[id$="-modal"].opacity-0 { pointer-events: none; }
 [id$="-modal"].overflow-y-auto,
 [id$="-modal"] .overflow-y-auto { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 
