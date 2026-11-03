@@ -178,7 +178,7 @@
         function renderEditSteps() {
             const list = document.getElementById('edit-ttk-steps-list'); list.innerHTML = '';
             tempEditSteps.forEach((step, idx) => {
-                list.innerHTML += `<div class="flex gap-3 bg-black/40 border border-white/5 p-2.5 rounded-lg"><span class="w-5 h-5 shrink-0 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-xs font-bold">${idx+1}</span><p class="text-white text-sm flex-1 pt-0.5">${step}</p><button onclick="removeEditStep(${idx})" class="text-red-400 hover:text-red-500 w-6 h-6 flex items-center justify-center shrink-0 rounded-md hover:bg-white/5"><i class="fa-solid fa-xmark"></i></button></div>`;
+                list.innerHTML += `<div class="flex gap-3 bg-black/40 border border-white/5 p-2.5 rounded-lg"><span class="w-5 h-5 shrink-0 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-xs font-bold">${idx+1}</span><p class="text-white text-sm flex-1 min-w-0 break-words pt-0.5">${step}</p><button onclick="removeEditStep(${idx})" class="text-red-400 hover:text-red-500 w-6 h-6 flex items-center justify-center shrink-0 rounded-md hover:bg-white/5"><i class="fa-solid fa-xmark"></i></button></div>`;
             });
         }
         function addEditStep() {

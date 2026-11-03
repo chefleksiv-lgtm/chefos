@@ -643,14 +643,14 @@
         </div>
     </div>
 
-    <div id="dish-modal" onclick="if(event.target === this) closeModal('dish-modal')" class="hidden fixed inset-0 z-[60] bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
+    <div id="dish-modal" onclick="if(event.target === this) closeModal('dish-modal')" class="hidden fixed inset-0 z-[60] bg-[#0F0F11] overflow-y-auto overflow-x-hidden opacity-0 transition-opacity duration-300">
         <div class="max-w-4xl mx-auto p-6 sm:p-10 pb-20">
             <button onclick="closeModal('dish-modal')" class="text-gray-400 hover:text-white mb-6 flex items-center gap-2"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
             <div id="dish-content" class="flex flex-col gap-8"></div>
         </div>
     </div>
 
-    <div id="ttk-details-modal" onclick="if(event.target === this) closeModal('ttk-details-modal')" class="hidden fixed inset-0 z-[60] bg-[#0F0F11] overflow-y-auto opacity-0 transition-opacity duration-300">
+    <div id="ttk-details-modal" onclick="if(event.target === this) closeModal('ttk-details-modal')" class="hidden fixed inset-0 z-[60] bg-[#0F0F11] overflow-y-auto overflow-x-hidden opacity-0 transition-opacity duration-300">
         <div class="max-w-4xl mx-auto p-6 sm:p-10 pb-20">
             <div class="flex flex-col gap-3 mb-6">
                 <button onclick="closeModal('ttk-details-modal')" class="text-gray-400 hover:text-white flex items-center gap-2 transition-colors self-start"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
@@ -661,7 +661,7 @@
     </div>
 
     <div id="ttk-edit-modal" onclick="if(event.target === this) closeModal('ttk-edit-modal')" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
-        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-3xl p-6 sm:p-8 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-y-auto show-scroll" id="ttk-edit-content">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-3xl p-6 sm:p-8 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-y-auto overflow-x-hidden show-scroll" id="ttk-edit-content">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-xl font-semibold text-white" id="ttk-edit-title" data-i18n="ttk_edit_title">Редактирование ТТК</h3>
                 <button onclick="closeModal('ttk-edit-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"><i class="fa-solid fa-xmark"></i></button>
