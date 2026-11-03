@@ -262,6 +262,10 @@
         // Бронирование столиков (v2.6): [{id, date, time, name, phone, guests, tableId, note, status}]
         let reservationsDB = [];
 
+        // Лист ожидания кассы (2.1.7): [{id, name, guests, ts}] — в PERSISTED_KEYS
+        // и LOCATION_KEYS, поэтому сохраняется и синкается, как tablesDB.
+        let waitlistDB = [];
+
         // Флаг одноразовой миграции v1.7
         let v17migrated = false;
 

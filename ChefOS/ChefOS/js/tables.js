@@ -1,5 +1,12 @@
         // --- ПЛАН ЗАЛА И СТОЛИКИ (v2.3) ---
-        // tablesDB: [{id, name, seats, x, y (в % от плана), shape:'round'|'square'}]
+        // tablesDB: [{id, name, seats, x, y (в % от плана), shape:'round'|'square',
+        //   waiterId: id сотрудника из teamDB или null — официант, за которым закреплён столик}]
+        // Назначение живёт прямо на столике: tablesDB уже в PERSISTED_KEYS и LOCATION_KEYS,
+        // поэтому оно сохраняется и синкается вместе с планом зала, миграция не нужна
+        // (у старых столиков waiterId просто нет = «не назначен»).
+        // Отдельного списка официантов в приложении нет: должности в teamDB — свободный текст,
+        // в начальных данных только кухня. Поэтому в выбор даём сотрудников из teamDB:
+        // если есть люди с ролью «Официант»/waiter — только их, иначе — всех сотрудников.
         // tableTabsDB: [{id, tableId, items:{dishId:qty}, sent:{dishId:qty}, ts}]
         let floorEditMode = false;
         let activeTableTabId = null;
@@ -9,6 +16,50 @@
         function tableTabFor(tableId) {
             if (!Array.isArray(tableTabsDB)) tableTabsDB = [];
             return tableTabsDB.find(x => x.tableId === tableId) || null;
+        }
+
+        // --- Официанты столиков ---
+        const WAITER_COLORS = ['#f87171', '#fb923c', '#facc15', '#4ade80', '#38bdf8', '#a78bfa', '#f472b6', '#2dd4bf'];
+        function waiterCandidates() {
+            const all = (typeof teamDB !== 'undefined' && Array.isArray(teamDB)) ? teamDB : [];
+            const waiters = all.filter(e => /официант|waiter/i.test(e.role || ''));
+            return waiters.length ? waiters : all;
+        }
+        function waiterById(id) {
+            if (id == null || id === '') return null;
+            const all = (typeof teamDB !== 'undefined' && Array.isArray(teamDB)) ? teamDB : [];
+            return all.find(e => e.id == id) || null;
+        }
+        function waiterColor(id) {
+            let h = 0; const s = String(id);
+            for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+            return WAITER_COLORS[h % WAITER_COLORS.length];
+        }
+        function waiterFirstName(e) { return (e.name || '').trim().split(/\s+/)[0] || ''; }
+        // i18n.js сейчас не трогаем (там идёт отдельный фикс): берём ключ, если он есть,
+        // иначе — русскую подпись. Как только ключи table_waiter/table_no_waiter появятся
+        // в i18n.js, подхватятся автоматически.
+        function waiterLabel(key, fallback) {
+            try {
+                const v = (typeof t === 'function') ? t(key) : key;
+                return (v && v !== key) ? v : fallback;
+            } catch (e) { return fallback; }
+        }
+        function parseWaiterId(v) {
+            if (!v) return null;
+            const n = Number(v);
+            return isNaN(n) ? v : n;
+        }
+        function setTableWaiter(tableId, waiterId) {
+            const tb = tablesDB.find(v => v.id === tableId);
+            if (!tb) return;
+            tb.waiterId = waiterId;
+            markDirty();
+            renderFloorPlan();
+        }
+        function setTableWaiterFromPicker(value) {
+            if (!activeTableId) return;
+            setTableWaiter(activeTableId, parseWaiterId(value));
         }
 
         // Вкладки кассы: блюда / зал
@@ -27,6 +78,43 @@
             return Math.round(total * 100) / 100;
         }
 
+        // 2.1.6 (stage 2): статус «забронирован» — только из существующего
+        // reservationsDB (статус 'new', привязка r.tableId, дата = сегодня).
+        // Новый модуль броней не изобретаем: нет сегодняшней брони — нет индикатора.
+        function tableReservedToday(tableId) {
+            try {
+                if (typeof reservationsDB === 'undefined' || !Array.isArray(reservationsDB)) return false;
+                const today = (typeof resvToday === 'function') ? resvToday() : '';
+                if (!today) return false;
+                return reservationsDB.some(r => r && r.status === 'new' && r.tableId != null && String(r.tableId) === String(tableId) && r.date === today);
+            } catch (e) { return false; }
+        }
+
+        // 2.1.6 (stage 2): панель официантов без столиков — как UNASSIGNED SERVERS
+        // на референсе SevenRooms. Создаётся динамически после #floor-plan
+        // (index.html не трогаем), обновляется при каждом renderFloorPlan.
+        // Назначение считается по тому же waiterCandidates(), что и выпадающие списки.
+        function renderFloorWaitersPanel() {
+            const floorPlan = document.getElementById('floor-plan');
+            if (!floorPlan) return;
+            let panel = document.getElementById('floor-waiters-panel');
+            if (!panel) {
+                panel = document.createElement('div');
+                panel.id = 'floor-waiters-panel';
+                panel.className = 'mt-3 rounded-2xl bg-black/40 border border-white/10 p-3';
+                floorPlan.insertAdjacentElement('afterend', panel);
+            }
+            const cands = waiterCandidates();
+            if (!cands.length) { panel.classList.add('hidden'); return; }
+            panel.classList.remove('hidden');
+            const assignedIds = (Array.isArray(tablesDB) ? tablesDB : []).map(tb => tb.waiterId);
+            const unassigned = cands.filter(e => !assignedIds.some(a => a != null && String(a) === String(e.id)));
+            const rows = unassigned.length
+                ? unassigned.map(e => `<div class="flex items-center gap-2 py-1 min-w-0"><span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${waiterColor(e.id)}"></span><span class="text-sm text-gray-200 truncate">${escapeHtml(e.name)}</span><span class="text-xs text-gray-500 shrink-0">${waiterLabel('floor_no_tables', 'нет столиков')}</span></div>`).join('')
+                : `<div class="text-sm text-gray-500">${waiterLabel('floor_all_waiters_assigned', 'Все официанты закреплены за столиками')}</div>`;
+            panel.innerHTML = `<p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">${waiterLabel('floor_unassigned_waiters', 'Официанты без столиков')}</p>${rows}`;
+        }
+
         function renderFloorPlan() {
             const plan = document.getElementById('floor-canvas');
             if (!plan) return;
@@ -39,13 +127,16 @@
             plan.innerHTML = tablesDB.map(tb => {
                 const tab = tableTabFor(tb.id);
                 const occupied = !!tab;
-                const ring = occupied ? 'border-amber-400/90 shadow-amber-500/25' : 'border-white/15 shadow-black/40';
+                const reserved = !occupied && tableReservedToday(tb.id);
+                const ring = occupied ? 'border-amber-400/90 shadow-amber-500/25' : reserved ? 'border-violet-400/90 shadow-violet-500/25' : 'border-white/15 shadow-black/40';
                 const shape = tb.shape === 'square' ? 'rounded-[22%]' : 'rounded-full';
                 const itemCount = tab ? Object.values(tab.items || {}).reduce((a, b) => a + b, 0) : 0;
                 const px = tableSizePx(tb);
                 const tabSum = occupied ? tableTabSum(tab) : 0;
                 const elapsed = occupied ? tableElapsedMin(tab) : 0;
                 const pillAbove = tb.y > 76;
+                const waiter = waiterById(tb.waiterId);
+                const waiterLine = waiter ? `<div class="flex items-center justify-center gap-1 mt-0.5 max-w-[88%] min-w-0 pointer-events-none"><span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:${waiterColor(waiter.id)}"></span><span class="text-gray-300 text-[8px] font-medium truncate">${escapeHtml(waiterFirstName(waiter))}</span></div>` : '';
                 return `<div class="floor-table absolute select-none ${floorEditMode ? 'cursor-move' : 'cursor-pointer active:scale-95'} transition-transform"
                     data-id="${tb.id}" style="left:${tb.x}%; top:${tb.y}%; transform:translate(-50%,-50%); touch-action:none;"
                     ${floorEditMode ? `onpointerdown="tableDragStart(event, ${tb.id})" onclick="openTableEdit(${tb.id})"` : `onclick="openTableTab(${tb.id})"`}>
@@ -53,6 +144,7 @@
                         <div class="${shape} w-full h-full bg-gradient-to-b from-[#3A3A3C] to-[#262628] border-2 ${ring} shadow-lg flex flex-col items-center justify-center pointer-events-none">
                             <div class="text-white font-semibold tracking-wide leading-none ${px >= 92 ? 'text-2xl' : px >= 72 ? 'text-xl' : 'text-lg'}">${escapeHtml(tb.name)}</div>
                             <div class="text-gray-500 ${px >= 72 ? 'text-[10px]' : 'text-[9px]'} mt-1 font-medium">${tb.seats} ${t('table_seats_short')}</div>
+                            ${waiterLine}
                         </div>
                         ${occupied && !floorEditMode ? `<div class="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1 rounded-full bg-amber-400 text-black text-[11px] font-bold flex items-center justify-center pointer-events-none shadow-md shadow-black/40">${itemCount}</div>` : ''}
                         ${((tab && tab.allergies && tab.allergies.length) || (tb.allergies && tb.allergies.length)) ? `<div class="absolute -bottom-1.5 -left-1.5 w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center pointer-events-none shadow-md shadow-black/40" title="${t('table_allergies')}">!</div>` : ''}
@@ -73,6 +165,8 @@
             }
             const eb = document.getElementById('floor-edit-btn');
             if (eb) eb.innerHTML = `<i class="fa-solid ${floorEditMode ? 'fa-check' : 'fa-pen'} mr-2"></i><span>${floorEditMode ? t('floor_done') : t('floor_edit')}</span>`;
+            renderFloorWaitersPanel();
+            renderPosHost();
             floorInitGestures();
             applyFloorTransform();
         }
@@ -235,7 +329,29 @@
             renderTableSizeBtns();
             document.getElementById('table-edit-delete').style.display = tb ? '' : 'none';
             document.getElementById('table-edit-title').textContent = tb ? t('table_edit_title') : t('table_add_title');
+            renderTableWaiterSelect();
             openModal('table-edit-modal');
+        }
+        // Селект официанта в диалоге столика. Разметку index.html не трогаем:
+        // строку доклеиваем в диалог при открытии, перед кнопкой «Сохранить».
+        function renderTableWaiterSelect() {
+            const modal = document.getElementById('table-edit-modal');
+            if (!modal) return;
+            let row = document.getElementById('table-edit-waiter-row');
+            if (!row) {
+                row = document.createElement('div');
+                row.id = 'table-edit-waiter-row';
+                const saveBtn = modal.querySelector('button[onclick="saveTableEdit()"]');
+                if (saveBtn && saveBtn.parentNode) saveBtn.parentNode.insertBefore(row, saveBtn);
+                else modal.appendChild(row);
+            }
+            const tb = editingTableId ? tablesDB.find(v => v.id === editingTableId) : null;
+            const cur = tb ? tb.waiterId : null;
+            const opts = waiterCandidates().map(e => `<option value="${e.id}" ${cur == e.id ? 'selected' : ''}>${escapeHtml(e.name)}${e.role ? ' — ' + escapeHtml(e.role) : ''}</option>`).join('');
+            row.innerHTML = `<label class="text-xs text-gray-400 block mb-1">${waiterLabel('table_waiter', 'Официант')}</label>
+                <select id="table-edit-waiter" class="w-full h-11 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-3 outline-none focus:border-emerald-500">
+                    <option value="">${waiterLabel('table_no_waiter', 'Не назначен')}</option>${opts}
+                </select>`;
         }
         function renderTableShapeBtns() {
             const r = document.getElementById('table-shape-round');
@@ -265,11 +381,14 @@
             const name = document.getElementById('table-edit-name').value.trim();
             const seats = Math.max(1, Math.min(20, parseInt(document.getElementById('table-edit-seats').value) || 2));
             if (!name) { showNotification(t('table_name_needed')); return; }
+            const wSel = document.getElementById('table-edit-waiter');
+            // undefined — селекта нет (сохранение не из диалога): чужое назначение не трогаем.
+            const waiterId = wSel ? parseWaiterId(wSel.value) : undefined;
             if (editingTableId) {
                 const tb = tablesDB.find(v => v.id === editingTableId);
-                if (tb) { tb.name = name; tb.seats = seats; tb.shape = pendingTableShape; tb.size = pendingTableSize; }
+                if (tb) { tb.name = name; tb.seats = seats; tb.shape = pendingTableShape; tb.size = pendingTableSize; if (waiterId !== undefined) tb.waiterId = waiterId; }
             } else {
-                tablesDB.push({ id: Date.now(), name, seats, shape: pendingTableShape, size: pendingTableSize, x: pendingTableXY ? Math.round(pendingTableXY.x * 10) / 10 : 50, y: pendingTableXY ? Math.round(pendingTableXY.y * 10) / 10 : 50 });
+                tablesDB.push({ id: Date.now(), name, seats, shape: pendingTableShape, size: pendingTableSize, waiterId: waiterId !== undefined ? waiterId : null, x: pendingTableXY ? Math.round(pendingTableXY.x * 10) / 10 : 50, y: pendingTableXY ? Math.round(pendingTableXY.y * 10) / 10 : 50 });
             }
             markDirty();
             closeModal('table-edit-modal');
@@ -339,15 +458,18 @@
             renderTableTab();
             openModal('table-tab-modal');
         }
-        // Посадить гостей: открыть пустой счёт = стол занят
+        // Посадить гостей: открыть пустой счёт = стол занят. Размер компании и имя
+        // берутся из формы в свободной панели (если она есть); посадка из хост-панели
+        // и броней идёт через posSeatTable с теми же полями на счёте.
         function seatTableGuests() {
             if (!activeTableId || tableTabFor(activeTableId)) return;
-            const stb = tablesDB.find(v => v.id === activeTableId);
-            const legacyAlg = (stb && stb.allergies) ? stb.allergies.slice() : [];
-            if (stb) stb.allergies = [];
-            tableTabsDB.push({ id: Date.now(), tableId: activeTableId, items: {}, sent: {}, ts: new Date().toISOString(), allergies: legacyAlg });
-            activeTableTabId = tableTabsDB[tableTabsDB.length - 1].id;
-            markDirty();
+            const gEl = document.getElementById('table-seat-guests');
+            const nEl = document.getElementById('table-seat-name');
+            const guests = gEl ? Math.max(1, Math.min(20, parseInt(gEl.value) || 2)) : 0;
+            const guestName = nEl ? nEl.value.trim() : '';
+            const tab = posSeatTable(activeTableId, guests, guestName);
+            if (!tab) return;
+            activeTableTabId = tab.id;
             renderTableTab();
             renderFloorPlan();
         }
@@ -394,6 +516,31 @@
             }
             return { total: Math.round(total * 100) / 100, count };
         }
+        // Быстрое назначение официанта из счёта столика: тап по столику → селект.
+        // Строку доклеиваем в модалку при каждой отрисовке (разметку index.html не трогаем),
+        // значение всегда берётся из tb.waiterId, поэтому не расходится с планом зала.
+        // Назначение не привязано к посадке гостей: оно живёт на столике и переживает
+        // освобождение счёта — это закрепление секций, а не текущего заказа.
+        function renderTableWaiterPicker() {
+            const stBtn = document.getElementById('table-status-btn');
+            if (!stBtn || !stBtn.parentNode) return;
+            const tb = tablesDB.find(v => v.id === activeTableId);
+            if (!tb) return;
+            let row = document.getElementById('table-tab-waiter-row');
+            if (!row) {
+                row = document.createElement('div');
+                row.id = 'table-tab-waiter-row';
+                row.className = 'px-6 pt-3';
+                stBtn.parentNode.insertAdjacentElement('afterend', row);
+            }
+            const opts = waiterCandidates().map(e => `<option value="${e.id}" ${tb.waiterId == e.id ? 'selected' : ''}>${escapeHtml(e.name)}${e.role ? ' — ' + escapeHtml(e.role) : ''}</option>`).join('');
+            row.innerHTML = `<div class="flex items-center gap-2">
+                <label class="text-xs text-gray-400 shrink-0">${waiterLabel('table_waiter', 'Официант')}</label>
+                <select onchange="setTableWaiterFromPicker(this.value)" class="flex-1 h-10 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-3 outline-none focus:border-emerald-500 text-sm">
+                    <option value="">${waiterLabel('table_no_waiter', 'Не назначен')}</option>${opts}
+                </select>
+            </div>`;
+        }
         function renderTableTab() {
             const tab = activeTab();
             const tb = tablesDB.find(v => v.id === (tab ? tab.tableId : activeTableId));
@@ -415,10 +562,12 @@
                 stBtn.classList.toggle('pointer-events-none', !occupied);
             }
             const subEl = document.querySelector('#table-tab-modal [data-i18n="table_tab_subtitle"]');
+            renderTableWaiterPicker();
             if (!tab) {
                 const title = document.getElementById('table-tab-title');
                 if (title) title.textContent = (t('table_prefix') + ' ' + (tb ? tb.name : '')) + (tb ? ` · ${tb.seats} ${t('table_seats_short')}` : '');
                 if (subEl) subEl.textContent = t('table_is_free');
+                renderTableSeatForm();
                 return;
             }
             const title = document.getElementById('table-tab-title');
@@ -559,6 +708,254 @@
             activeTableId = null;
             closeModal('table-tab-modal');
             renderFloorPlan();
+        }
+
+        // --- ХОСТ КАССЫ (2.1.7): лист ожидания, брони на сегодня, посажены, счётчики ---
+        // Всё в tables.js, разметка index.html не тронута: панель создаётся динамически
+        // после панели официантов (или после #floor-plan) и живёт внутри pos-floor-wrap,
+        // поэтому показывается/скрывается вместе с планом зала. Обновляется при каждом
+        // renderFloorPlan + раз в 60 сек (только панель, без перерисовки плана — чтобы
+        // не сбивать зум/панораму и не стирать ввод в формах: значения полей сохраняются).
+        // waitlistDB — новая коллекция (объявлена в data.js, добавлена в PERSISTED_KEYS
+        // и LOCATION_KEYS): сохраняется и синкается, как tablesDB. Брони — существующий
+        // reservationsDB: статусы new/done/cancelled + новое значение noshow (не пришёл),
+        // VIP — простое поле vip на самой брони, отдельного хранилища нет.
+        // Сервисов Lunch/Dinner в кассе нет — переключение даты/сервиса не делаем:
+        // хост-панель всегда про сегодня.
+        function posHostLabel(key, fallback) { return waiterLabel(key, fallback); }
+        function posFmtElapsed(min) {
+            min = Math.max(0, Math.floor(min || 0));
+            if (min < 60) return min + ' ' + waiterLabel('table_min_short', 'мин');
+            return Math.floor(min / 60) + 'ч ' + (min % 60) + ' ' + waiterLabel('table_min_short', 'мин');
+        }
+        function posTimeHHMM(iso) {
+            try { const d = new Date(iso); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+            catch (e) { return ''; }
+        }
+        function posFreeTables() {
+            return (Array.isArray(tablesDB) ? tablesDB : []).filter(tb => !tableTabFor(tb.id));
+        }
+        function posTableById(id) {
+            return (Array.isArray(tablesDB) ? tablesDB : []).find(x => String(x.id) === String(id)) || null;
+        }
+        function posFreeTableOptions(selectedId) {
+            const opts = posFreeTables().map(tb => `<option value="${tb.id}" ${String(tb.id) === String(selectedId) ? 'selected' : ''}>${posHostLabel('pos_table_prefix', 'Стол')} ${escapeHtml(tb.name)} · ${tb.seats} ${waiterLabel('table_seats_short', 'мест')}</option>`).join('');
+            return `<option value="">${posHostLabel('pos_choose_table', 'Выбрать стол…')}</option>` + opts;
+        }
+        // Посадить гостей на стол: создаёт счёт (стол становится занятым).
+        // guests/guestName необязательны — старые вызовы без них работают как раньше.
+        function posSeatTable(tableId, guests, guestName) {
+            const tb = posTableById(tableId);
+            if (!tb) return null;
+            if (tableTabFor(tb.id)) { showNotification(posHostLabel('pos_table_busy', 'Стол уже занят')); return null; }
+            const legacyAlg = (tb.allergies) ? tb.allergies.slice() : [];
+            if (tb.allergies) tb.allergies = [];
+            const tab = { id: Date.now(), tableId: tb.id, items: {}, sent: {}, ts: new Date().toISOString(), allergies: legacyAlg };
+            if (guests) tab.guests = guests;
+            if (guestName) tab.guestName = guestName;
+            if (!Array.isArray(tableTabsDB)) tableTabsDB = [];
+            tableTabsDB.push(tab);
+            markDirty();
+            return tab;
+        }
+        function posWaitlist() { if (!Array.isArray(waitlistDB)) waitlistDB = []; return waitlistDB; }
+        function posWaitlistAdd() {
+            const nEl = document.getElementById('pos-wl-name');
+            const gEl = document.getElementById('pos-wl-guests');
+            const guests = gEl ? Math.max(1, Math.min(20, parseInt(gEl.value) || 1)) : 1;
+            const name = nEl ? nEl.value.trim() : '';
+            posWaitlist().push({ id: Date.now(), name: name, guests: guests, ts: new Date().toISOString() });
+            if (nEl) nEl.value = '';
+            markDirty(); renderPosHost();
+            showNotification(posHostLabel('pos_wl_added', 'Добавлен в лист ожидания'));
+        }
+        function posWaitlistRemove(id) {
+            if (!Array.isArray(waitlistDB)) return;
+            waitlistDB = waitlistDB.filter(w => String(w.id) !== String(id));
+            markDirty(); renderPosHost();
+        }
+        function posWaitlistSeat(id) {
+            const w = (Array.isArray(waitlistDB) ? waitlistDB : []).find(x => String(x.id) === String(id));
+            if (!w) return;
+            const sel = document.getElementById('pos-wl-table-' + w.id);
+            const tableId = sel ? sel.value : '';
+            if (!tableId) { showNotification(posHostLabel('pos_choose_table', 'Выбрать стол…')); return; }
+            const tab = posSeatTable(tableId, w.guests, w.name);
+            if (!tab) return;
+            posWaitlistRemove(id);
+            renderFloorPlan();
+        }
+        function posResvTodayRows() {
+            const today = (typeof resvToday === 'function') ? resvToday() : new Date().toISOString().slice(0, 10);
+            return (typeof reservationsDB !== 'undefined' && Array.isArray(reservationsDB) ? reservationsDB : [])
+                .filter(r => r.date === today)
+                .sort((a, b) => String(a.time).localeCompare(String(b.time)));
+        }
+        function posResvBadge(st) {
+            const base = 'text-[11px] font-semibold shrink-0';
+            if (st === 'done') return `<span class="${base} text-emerald-400">${waiterLabel('resv_done', 'посажены')}</span>`;
+            if (st === 'cancelled') return `<span class="${base} text-gray-500">${waiterLabel('resv_cancelled', 'отменена')}</span>`;
+            if (st === 'noshow') return `<span class="${base} text-rose-400">${posHostLabel('resv_noshow', 'Не пришёл')}</span>`;
+            return `<span class="${base} text-amber-400">${waiterLabel('resv_new', 'ожидает')}</span>`;
+        }
+        function posResvSeat(id) {
+            const r = (Array.isArray(reservationsDB) ? reservationsDB : []).find(x => String(x.id) === String(id));
+            if (!r || r.status !== 'new') return;
+            const sel = document.getElementById('pos-resv-table-' + r.id);
+            const tableId = sel ? sel.value : (r.tableId || '');
+            if (!tableId) { showNotification(posHostLabel('pos_choose_table', 'Выбрать стол…')); return; }
+            const tab = posSeatTable(tableId, r.guests, r.name);
+            if (!tab) return;
+            r.tableId = tab.tableId;
+            r.status = 'done';
+            markDirty(); renderFloorPlan();
+            if (typeof renderReservations === 'function') renderReservations();
+        }
+        function posResvSetStatus(id, st) {
+            const r = (Array.isArray(reservationsDB) ? reservationsDB : []).find(x => String(x.id) === String(id));
+            if (!r) return;
+            r.status = st; markDirty(); renderPosHost();
+            if (typeof renderReservations === 'function') renderReservations();
+        }
+        function posResvVip(id) {
+            const r = (Array.isArray(reservationsDB) ? reservationsDB : []).find(x => String(x.id) === String(id));
+            if (!r) return;
+            r.vip = !r.vip; markDirty(); renderPosHost();
+        }
+        function posHostStats() {
+            const tabs = Array.isArray(tableTabsDB) ? tableTabsDB : [];
+            const tables = Array.isArray(tablesDB) ? tablesDB : [];
+            let covers = 0, incomplete = false;
+            tabs.forEach(t => { if (t.guests) covers += t.guests; else incomplete = true; });
+            const free = posFreeTables().length;
+            const resvNew = posResvTodayRows().filter(r => r.status === 'new').length;
+            return { occupied: tabs.length, covers: covers, coversPlus: incomplete, free: free, tables: tables.length, resvNew: resvNew, waiting: posWaitlist().length };
+        }
+        let _posHostTimer = null;
+        function renderPosHost() {
+            const anchor = document.getElementById('floor-waiters-panel') || document.getElementById('floor-plan');
+            if (!anchor) return;
+            let panel = document.getElementById('pos-host-panel');
+            if (!panel) {
+                panel = document.createElement('div');
+                panel.id = 'pos-host-panel';
+                panel.className = 'mt-3 rounded-2xl bg-black/40 border border-white/10 p-3 space-y-4';
+                anchor.insertAdjacentElement('afterend', panel);
+            }
+            // Сохраняем ввод пользователя: перерисовка не должна стирать
+            // набираемое имя, число гостей и выбранные в строках столы.
+            const saved = {};
+            panel.querySelectorAll('input, select').forEach(el => { if (el.id) saved[el.id] = el.value; });
+            const st = posHostStats();
+            const tabs = (Array.isArray(tableTabsDB) ? tableTabsDB : []).slice().sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
+            const seatedHtml = tabs.length === 0
+                ? `<p class="text-sm text-gray-500">${posHostLabel('pos_seated_empty', 'Пока никто не сидит')}</p>`
+                : tabs.map(tab => {
+                    const tb = posTableById(tab.tableId);
+                    const waiter = tb ? waiterById(tb.waiterId) : null;
+                    const sum = (typeof tableTabSum === 'function') ? tableTabSum(tab) : 0;
+                    const cnt = Object.values(tab.items || {}).reduce((a, b) => a + b, 0);
+                    return `<div onclick="openTableTab(${tb ? tb.id : tab.tableId})" class="flex items-center gap-2 py-1.5 cursor-pointer active:opacity-70 min-w-0">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm text-white truncate">${posHostLabel('pos_table_prefix', 'Стол')} ${escapeHtml(tb ? tb.name : '?')}${tab.guestName ? ' · ' + escapeHtml(tab.guestName) : ''}${tab.guests ? ' · ' + tab.guests + ' ' + waiterLabel('resv_guests', 'гост.') : ''}</p>
+                            <p class="text-[11px] text-gray-500 truncate">${posTimeHHMM(tab.ts)} · ${posFmtElapsed(tableElapsedMin(tab))}${waiter ? ' · ' + escapeHtml(waiterFirstName(waiter)) : ''}${cnt ? ' · ' + cnt + ' ' + waiterLabel('unit_pcs', 'шт') : ''}</p>
+                        </div>
+                        <span class="text-emerald-400 text-sm font-bold shrink-0">${currentCurrency}${sum}</span>
+                    </div>`;
+                }).join('');
+            const resvRows = posResvTodayRows();
+            const resvHtml = resvRows.length === 0
+                ? `<p class="text-sm text-gray-500">${posHostLabel('pos_resv_empty', 'На сегодня броней нет')}</p>`
+                : resvRows.map(r => {
+                    const assigned = posTableById(r.tableId);
+                    const acts = r.status === 'new'
+                        ? `<div class="flex items-center gap-1.5 mt-1.5">
+                            <select id="pos-resv-table-${r.id}" class="h-9 flex-1 min-w-0 bg-[#2C2C2E] border border-white/10 text-white rounded-lg px-2 text-xs outline-none focus:border-purple-500">${posFreeTableOptions(r.tableId)}</select>
+                            <button onclick="posResvSeat('${r.id}')" class="h-9 px-3 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-white text-xs font-semibold transition-colors shrink-0">${posHostLabel('pos_seat', 'Посадить')}</button>
+                            <button onclick="posResvSetStatus('${r.id}','noshow')" class="h-9 px-3 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 text-xs font-medium transition-colors shrink-0">${posHostLabel('pos_noshow', 'Не пришёл')}</button>
+                            <button onclick="posResvSetStatus('${r.id}','cancelled')" class="h-9 px-3 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 text-xs font-medium transition-colors shrink-0">${posHostLabel('pos_cancel', 'Отмена')}</button>
+                        </div>`
+                        : '';
+                    return `<div class="py-1.5 ${r.status === 'cancelled' || r.status === 'noshow' ? 'opacity-50' : ''}">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-sm font-bold text-white shrink-0">${escapeHtml(r.time || '')}</span>
+                            <p class="text-sm text-white truncate flex-1 min-w-0">${escapeHtml(r.name || '')} · ${r.guests || 1} ${waiterLabel('resv_guests', 'гост.')}</p>
+                            <button onclick="posResvVip('${r.id}')" title="${posHostLabel('pos_vip', 'VIP')}" class="text-base leading-none shrink-0 ${r.vip ? 'text-amber-400' : 'text-gray-600'}">${r.vip ? '★' : '☆'}</button>
+                            ${posResvBadge(r.status)}
+                        </div>
+                        <p class="text-[11px] text-gray-500 truncate">${posHostLabel('pos_table_prefix', 'Стол')}: ${assigned ? escapeHtml(assigned.name) : posHostLabel('resv_no_table', 'Без стола')}${r.phone ? ' · ' + escapeHtml(r.phone) : ''}${r.note ? ' · ' + escapeHtml(r.note) : ''}</p>
+                        ${acts}
+                    </div>`;
+                }).join('');
+            const wl = posWaitlist();
+            const wlHtml = wl.length === 0
+                ? `<p class="text-sm text-gray-500">${posHostLabel('pos_wl_empty', 'Лист ожидания пуст')}</p>`
+                : wl.map(w => {
+                    const waitMin = Math.max(0, Math.floor((Date.now() - new Date(w.ts).getTime()) / 60000));
+                    return `<div class="py-1.5">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <p class="text-sm text-white truncate flex-1 min-w-0">${escapeHtml(w.name || posHostLabel('pos_walkin', 'Walk-in'))} · ${w.guests} ${waiterLabel('resv_guests', 'гост.')}</p>
+                            <span class="text-[11px] text-gray-500 shrink-0">${posFmtElapsed(waitMin)}</span>
+                            <button onclick="posWaitlistRemove(${w.id})" class="w-8 h-8 rounded-lg bg-white/5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"><i class="fa-solid fa-xmark text-xs"></i></button>
+                        </div>
+                        <div class="flex items-center gap-1.5 mt-1.5">
+                            <select id="pos-wl-table-${w.id}" class="h-9 flex-1 min-w-0 bg-[#2C2C2E] border border-white/10 text-white rounded-lg px-2 text-xs outline-none focus:border-emerald-500">${posFreeTableOptions('')}</select>
+                            <button onclick="posWaitlistSeat(${w.id})" class="h-9 px-3 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-white text-xs font-semibold transition-colors shrink-0">${posHostLabel('pos_seat', 'Посадить')}</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            panel.innerHTML = `<div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                    <span class="text-white font-semibold">${posHostLabel('pos_occupied', 'Занято')}: ${st.occupied}/${st.tables}</span>
+                    <span class="text-gray-300">${posHostLabel('pos_covers', 'Гостей')}: ${st.covers}${st.coversPlus ? '+' : ''}</span>
+                    <span class="text-gray-300">${posHostLabel('pos_free', 'Свободно')}: ${st.free}</span>
+                    <span class="text-gray-300">${posHostLabel('pos_resv_today', 'Броней')}: ${st.resvNew}</span>
+                    <span class="text-gray-300">${posHostLabel('pos_waiting', 'Ожидают')}: ${st.waiting}</span>
+                    <span class="text-[11px] text-gray-500 ml-auto"><span class="text-amber-400">●</span> ${posHostLabel('pos_st_occupied', 'занят')} <span class="text-violet-400">●</span> ${posHostLabel('pos_st_reserved', 'забронирован')} <span class="text-gray-500">●</span> ${posHostLabel('pos_st_free', 'свободен')}</span>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">${posHostLabel('pos_seated', 'Посажены')}</p>
+                    ${seatedHtml}
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">${posHostLabel('pos_reservations', 'Брони на сегодня')}</p>
+                    ${resvHtml}
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">${posHostLabel('pos_waitlist', 'Лист ожидания')}</p>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <input id="pos-wl-name" type="text" maxlength="40" placeholder="${posHostLabel('pos_wl_name_ph', 'Имя (можно пустым)')}" class="h-10 flex-1 min-w-0 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-3 text-sm outline-none focus:border-emerald-500">
+                        <input id="pos-wl-guests" type="number" min="1" max="20" value="2" class="h-10 w-16 shrink-0 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-2 text-sm outline-none focus:border-emerald-500 text-center">
+                        <button onclick="posWaitlistAdd()" class="h-10 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold transition-colors shrink-0">${posHostLabel('pos_wl_add', 'В лист')}</button>
+                    </div>
+                    <div class="flex items-center gap-1 mb-2">
+                        ${[1, 2, 3, 4, 5, 6].map(n => `<button onclick="document.getElementById('pos-wl-guests').value=${n}" class="h-8 w-8 rounded-lg bg-white/5 text-gray-300 text-xs font-semibold hover:bg-white/10 transition-colors">${n}</button>`).join('')}
+                        <span class="text-[11px] text-gray-500 ml-1">${posHostLabel('pos_wl_guests_hint', 'гостей')}</span>
+                    </div>
+                    ${wlHtml}
+                </div>`;
+            Object.keys(saved).forEach(id => { const el = document.getElementById(id); if (el) el.value = saved[id]; });
+            if (!_posHostTimer) _posHostTimer = setInterval(() => { try { renderPosHost(); } catch (e) {} }, 60000);
+        }
+
+        // Форма посадки в модалке счёта: размер компании + имя. Доклеивается
+        // в свободную панель при отрисовке (разметку index.html не трогаем),
+        // строится один раз, чтобы перерисовки не стирали ввод.
+        function renderTableSeatForm() {
+            const pane = document.getElementById('table-tab-free');
+            if (!pane) return;
+            let row = document.getElementById('table-seat-form');
+            if (!row) {
+                row = document.createElement('div');
+                row.id = 'table-seat-form';
+                row.className = 'flex gap-2 mb-3';
+                const btn = pane.querySelector('button[onclick="seatTableGuests()"]');
+                if (btn && btn.parentNode) btn.parentNode.insertBefore(row, btn);
+                else pane.appendChild(row);
+            }
+            if (row._built) return;
+            row._built = true;
+            row.innerHTML = `<input id="table-seat-guests" type="number" min="1" max="20" value="2" class="h-11 w-20 shrink-0 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-3 text-sm outline-none focus:border-emerald-500 text-center">
+                <input id="table-seat-name" type="text" maxlength="40" placeholder="${posHostLabel('pos_seat_name_ph', 'Имя гостей (необязательно)')}" class="h-11 flex-1 min-w-0 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-3 text-sm outline-none focus:border-emerald-500">`;
         }
 
         function escapeHtml(s) {

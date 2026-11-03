@@ -19,6 +19,8 @@
                     ? `<span class="text-[11px] font-semibold text-emerald-400">${t('resv_done')}</span>`
                     : r.status === 'cancelled'
                     ? `<span class="text-[11px] font-semibold text-gray-500">${t('resv_cancelled')}</span>`
+                    : r.status === 'noshow'
+                    ? `<span class="text-[11px] font-semibold text-rose-400">${(t('resv_noshow') !== 'resv_noshow') ? t('resv_noshow') : 'Не пришёл'}</span>`
                     : `<span class="text-[11px] font-semibold text-amber-400">${t('resv_new')}</span>`;
                 const acts = r.status === 'new'
                     ? `<button onclick="resvSetStatus('${r.id}','done')" class="h-8 px-3 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-white text-xs font-semibold transition-colors">${t('resv_seat')}</button>
