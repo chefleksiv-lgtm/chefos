@@ -95,14 +95,41 @@
             openTTKDetails(id); filterTTK(); if(!document.getElementById('menu-modal').classList.contains('hidden')) filterMenu();
         }
 
+        // 2.1.5: фото с телефона — огромные (несколько МБ в base64), а localStorage на iOS ~5 МБ:
+        // сохранение молча падало с QuotaExceededError, а интерфейс всё равно писал «ТТК сохранена».
+        // Сжимаем до 1200px по длинной стороне, JPEG 0.82 — обычно 150–350 КБ вместо 3–6 МБ.
+        // Переменная ставится только когда сжатая версия готова: если сохранить раньше,
+        // уйдёт старое фото, а не битый полуфабрикат.
+        function compressTTKImage(dataUrl, done) {
+            try {
+                const img = new Image();
+                img.onload = function () {
+                    try {
+                        const maxSide = 1200;
+                        const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+                        if (!w || !h) { done(dataUrl); return; }
+                        const scale = Math.min(1, maxSide / Math.max(w, h));
+                        if (scale === 1) { done(dataUrl); return; }
+                        const c = document.createElement('canvas');
+                        c.width = Math.round(w * scale); c.height = Math.round(h * scale);
+                        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                        let out = '';
+                        try { out = c.toDataURL('image/jpeg', 0.82); } catch (e) { out = ''; }
+                        done(out || dataUrl);
+                    } catch (e) { done(dataUrl); }
+                };
+                img.onerror = function () { done(dataUrl); };
+                img.src = dataUrl;
+            } catch (e) { done(dataUrl); }
+        }
         function previewTTKImage(e) {
             const f = e.target.files[0]; if(!f) return;
-            const r = new FileReader(); r.onload = function(ev) { currentTTKImageBase64 = ev.target.result; const p = document.getElementById('ttk-img-preview'); p.src = currentTTKImageBase64; p.classList.remove('hidden'); document.getElementById('ttk-img-icon').classList.add('hidden'); document.getElementById('ttk-img-text').classList.add('hidden'); }; r.readAsDataURL(f);
+            const r = new FileReader(); r.onload = function(ev) { compressTTKImage(ev.target.result, function(compressed) { currentTTKImageBase64 = compressed; const p = document.getElementById('ttk-img-preview'); p.src = compressed; p.classList.remove('hidden'); document.getElementById('ttk-img-icon').classList.add('hidden'); document.getElementById('ttk-img-text').classList.add('hidden'); }); }; r.readAsDataURL(f);
         }
         let currentTTKPlatingBase64 = '';
         function previewTTKPlatingImage(e) {
             const f = e.target.files[0]; if(!f) return;
-            const r = new FileReader(); r.onload = function(ev) { currentTTKPlatingBase64 = ev.target.result; const p = document.getElementById('ttk-plating-preview'); p.src = currentTTKPlatingBase64; p.classList.remove('hidden'); document.getElementById('ttk-plating-icon').classList.add('hidden'); document.getElementById('ttk-plating-text').classList.add('hidden'); }; r.readAsDataURL(f);
+            const r = new FileReader(); r.onload = function(ev) { compressTTKImage(ev.target.result, function(compressed) { currentTTKPlatingBase64 = compressed; const p = document.getElementById('ttk-plating-preview'); p.src = compressed; p.classList.remove('hidden'); document.getElementById('ttk-plating-icon').classList.add('hidden'); document.getElementById('ttk-plating-text').classList.add('hidden'); }); }; r.readAsDataURL(f);
         }
         function setTTKPlatingPreview(src) {
             const p = document.getElementById('ttk-plating-preview'), ic = document.getElementById('ttk-plating-icon'), tx = document.getElementById('ttk-plating-text');
@@ -204,8 +231,13 @@
             if (editingTTKId) { const d = menuDB.find(i => i.id === editingTTKId); if(d) Object.assign(d, data); openTTKDetails(editingTTKId); } 
             else { menuDB.push({ id: Date.now(), isTTKActive: false, status: 'in_stock', glutenFree: false, lactoseFree: false, subRecipes: [], ...data }); }
             markDirty();
+            // 2.1.5: сохранить сразу и честно показать результат: раньше markDirty()
+            // только ставил флаг, а автосейв через 5 сек мог молча упасть (переполнение),
+            // при этом уведомление всё равно говорило «ТТК сохранена».
+            let ttkSavedOk = true;
+            try { if (typeof saveState === 'function') ttkSavedOk = saveState(); } catch (e) { ttkSavedOk = false; }
             filterTTK(); if(!document.getElementById('menu-modal').classList.contains('hidden')) filterMenu(); 
-            closeModal('ttk-edit-modal'); showNotification(t('notif_ttk_saved'));
+            closeModal('ttk-edit-modal'); showNotification(ttkSavedOk ? t('notif_ttk_saved') : t('notif_ttk_save_failed'));
         }
 
 

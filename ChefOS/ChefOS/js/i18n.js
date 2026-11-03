@@ -532,6 +532,7 @@
             'notif_kitchen_exists': { ru: 'Такой цех уже существует!', en: 'Kitchen already exists!' },
             'notif_kitchen_renamed': { ru: 'Цех переименован', en: 'Kitchen renamed' },
             'notif_ttk_saved': { ru: 'ТТК сохранена!', en: 'Recipe saved!' },
+            'notif_ttk_save_failed': { ru: 'Не удалось сохранить: хранилище переполнено, фото не сохранено', en: 'Could not save: storage is full, photo was not saved' },
             'notif_book_loaded': { ru: 'Книга успешно загружена!', en: 'Book successfully uploaded!' },
             'notif_book_fail': { ru: 'Не удалось открыть файл', en: 'Could not open the file' },
             'book_translate': { ru: 'Перевести', en: 'Translate' },
