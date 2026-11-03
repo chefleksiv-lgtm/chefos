@@ -13,6 +13,9 @@
             // не ставит свежую метку времени — правки (в т.ч. удаления) уходят
             // на сервер со старой меткой, и другая копия потом их перетирает.
             try { if (typeof syncResetHashBaseline === 'function') syncResetHashBaseline(); } catch (e) {}
+            // 2.1.9: единая база ТТК — ПОСЛЕ хэш-базы, чтобы объединённый набор
+            // отметился изменённым и ушёл на сервер со свежей меткой.
+            try { if (typeof migrateUnifyMenuDB === 'function') migrateUnifyMenuDB(); } catch (e) {}
             if (typeof ensureLocations === 'function') ensureLocations();
             if (typeof renderLocationSelector === 'function') renderLocationSelector();
             refreshCurrencyUI();

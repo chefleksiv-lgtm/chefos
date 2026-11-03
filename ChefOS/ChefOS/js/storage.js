@@ -6,6 +6,9 @@
 // До входа (или без сервера) используется legacy-ключ.
 let STORAGE_KEY = 'chefos_state_v1';
 function storageKeyForUser(userId) { return 'chefos_state_v1_' + String(userId); }
+// 2.1.9: флаг объединения базы ТТК (единая menuDB, не per-location).
+// В PERSISTED_KEYS → синкается как отдельная коллекция (false→true, монотонно).
+let menuDBUnifiedV1 = false;
 
 // Какие переменные из data.js сохраняем.
 // Не сохраняем: currentAppRole/currentPin (авторизация — каждый раз заново),
@@ -20,7 +23,7 @@ const PERSISTED_KEYS = [
     'menuDB', 'suppliersDB', 'inventoryDB', 'teamDB', 'scheduleDB', 'financeDB', 'wasteDB',
     'payrollDB', 'timeclockDB', 'salesDB', 'receiptsDB', 'kdsDB', 'tipsDB', 'ordersDB', 'moneyTxDB', 'prepDB', 'v17migrated',
     'invoicesDB', 'syncMeta', 'syncLog',
-    'swapRequestsDB', 'notificationsDB', 'dayOffRequestsDB', 'dayOffDB', 'v19migrated',
+    'swapRequestsDB', 'notificationsDB', 'dayOffRequestsDB', 'dayOffDB', 'v19migrated', 'menuDBUnifiedV1',
     'locationsDB', 'activeLocationId', 'locationData',
     'fsPointsDB', 'fsTempDB', 'fsCheckTemplate', 'fsCheckDB',
     'kdsThresholds',
@@ -35,7 +38,7 @@ const LOCATION_KEYS = [
     'currentFoodCosts', 'targetFoodCosts',
     'chefNotes',
     'activeTabs', 'activeMenuFilters', 'activeTTKFilter',
-    'menuDB', 'suppliersDB', 'inventoryDB', 'teamDB', 'scheduleDB', 'financeDB', 'wasteDB',
+    'suppliersDB', 'inventoryDB', 'teamDB', 'scheduleDB', 'financeDB', 'wasteDB',
     'payrollDB', 'timeclockDB', 'salesDB', 'receiptsDB', 'kdsDB', 'tipsDB', 'ordersDB', 'prepDB',
     'invoicesDB', 'syncLog',
     'swapRequestsDB', 'notificationsDB', 'dayOffRequestsDB', 'dayOffDB', 'moneyTxDB',
@@ -62,9 +65,20 @@ function stashLocationState() {
             try { snap[key] = deepCopy(eval(key)); } catch (e) { /* пропускаем */ }
         }
         locationData[activeLocationId] = snap;
+        // 2.1.9: menuDB — единая на аккаунт, в LOCATION_KEYS её больше нет. Но зеркалим
+        // её в stash каждой локации, чтобы экземпляр со СТАРЫМ кодом (его applyLocationState
+        // читает stash menuDB) тоже видел объединённый набор, а не устаревший локальный.
+        try {
+            const unified = deepCopy(menuDB);
+            for (const locId of Object.keys(locationData)) {
+                if (locationData[locId] && typeof locationData[locId] === 'object') locationData[locId].menuDB = deepCopy(unified);
+            }
+        } catch (e) { /* зеркало не критично для сохранения */ }
     } catch (e) { console.error('[ChefOS] stashLocationState failed:', e); }
 }
-// Загрузить состояние локации в рабочие переменные (in-place, как loadState)
+// Загрузить состояние локации в рабочие переменные (in-place, как loadState).
+// 2.1.9: menuDB здесь НЕ трогается — она исключена из LOCATION_KEYS и едина на аккаунт.
+// stash menuDB (зеркало для старого кода) намеренно игнорируется.
 function applyLocationState(locId) {
     const st = (locationData && locationData[locId]) || null;
     const src = st || DEFAULT_LOCATION_STATE;
@@ -83,6 +97,94 @@ function applyLocationState(locId) {
             try { eval(key + ' = incoming'); } catch (e) { /* пропускаем */ }
         }
     }
+}
+
+// --- 2.1.9: ЕДИНАЯ БАЗА ТТК ---
+// menuDB больше не входит в LOCATION_KEYS: вкладка ТТК — одна общая база рецептов
+// на весь аккаунт, а не отдельная на локацию. Объединение — одноразовая миграция при
+// загрузке (migrateUnifyMenuDB): union рабочего набора и всех stash'ей локаций.
+// «Полнота» записи — для выбора победителя при дублях (более полная никогда не
+// заменяется более пустой):
+function menuFullnessScore(d) {
+    if (!d || typeof d !== 'object') return 0;
+    let s = 0;
+    if (Array.isArray(d.ingredients)) s += d.ingredients.length * 10;
+    if (Array.isArray(d.steps)) s += d.steps.length * 5;
+    if (Array.isArray(d.subRecipes)) s += d.subRecipes.length * 3;
+    if (d.img) s += 2;
+    if (d.yield > 0) s += 1;
+    if (d.menuPrice > 0) s += 1;
+    if (d.costPrice > 0) s += 1;
+    return s;
+}
+function menuNormName(d) {
+    return String((d && d.name) || '').trim().toLowerCase();
+}
+// Одноразовое объединение menuDB. Идемпотентна по построению (union + dedup), а флаг
+// menuDBUnifiedV1 (PERSISTED_KEYS, синкается) гарантирует один запуск на аккаунт.
+// Порядок: рабочий набор первым, затем stash'и — при равных баллах побеждает первый.
+// Дубли: сначала по id, потом по нормализованному имени (тип + имя, без регистра и
+// пробелов по краям). Записи без id и без имени не мержатся ни с чем — никогда не удаляем.
+// Вызывается в main.js ПОСЛЕ syncResetHashBaseline, чтобы объединённый набор ушёл
+// на сервер со свежей меткой (а не был поглощён baseline).
+function migrateUnifyMenuDB() {
+    try {
+        if (typeof menuDB === 'undefined' || !Array.isArray(menuDB)) return;
+        if (menuDBUnifiedV1) return;
+        const merged = [];
+        const byId = new Map();
+        const byName = new Map();
+        function consider(rec) {
+            if (!rec || typeof rec !== 'object') return;
+            const idKey = (rec.id !== undefined && rec.id !== null && rec.id !== '') ? 'id:' + String(rec.id) : null;
+            const nameKey = menuNormName(rec) ? 'nm:' + String(rec.type || 'dish') + '|' + menuNormName(rec) : null;
+            let idx = -1;
+            if (idKey && byId.has(idKey)) idx = byId.get(idKey);
+            else if (nameKey && byName.has(nameKey)) idx = byName.get(nameKey);
+            if (idx < 0) {
+                merged.push(deepCopy(rec));
+                const ni = merged.length - 1;
+                if (idKey) byId.set(idKey, ni);
+                if (nameKey) byName.set(nameKey, ni);
+                return;
+            }
+            const cur = merged[idx];
+            const winner = menuFullnessScore(rec) > menuFullnessScore(cur) ? rec : cur;
+            const loser = winner === rec ? cur : rec;
+            const w = deepCopy(winner);
+            // Состав/шаги не теряем: если у победителя их нет, а у проигравшего есть — добираем.
+            if ((!Array.isArray(w.ingredients) || !w.ingredients.length) && Array.isArray(loser.ingredients) && loser.ingredients.length) w.ingredients = deepCopy(loser.ingredients);
+            if ((!Array.isArray(w.steps) || !w.steps.length) && Array.isArray(loser.steps) && loser.steps.length) w.steps = deepCopy(loser.steps);
+            merged[idx] = w;
+            // Перелинкуем оба ключа на победителя, чтобы третья копия тоже смержилась сюда.
+            if (idKey) byId.set(idKey, idx);
+            const loserIdKey = (loser.id !== undefined && loser.id !== null && loser.id !== '') ? 'id:' + String(loser.id) : null;
+            if (loserIdKey) byId.set(loserIdKey, idx);
+            const loserNameKey = menuNormName(loser) ? 'nm:' + String(loser.type || 'dish') + '|' + menuNormName(loser) : null;
+            if (loserNameKey) byName.set(loserNameKey, idx);
+            if (nameKey) byName.set(nameKey, idx);
+        }
+        menuDB.forEach(consider);
+        if (typeof locationData === 'object' && locationData) {
+            for (const locId of Object.keys(locationData)) {
+                const st = locationData[locId];
+                if (st && Array.isArray(st.menuDB)) st.menuDB.forEach(consider);
+            }
+        }
+        // menuDB — const-массив: заменяем содержимое in-place.
+        menuDB.length = 0;
+        merged.forEach(r => menuDB.push(r));
+        // Сразу зеркалим объединённый набор в stash'и (для старого кода) — не ждём автосейва.
+        try {
+            if (typeof locationData === 'object' && locationData) {
+                for (const locId of Object.keys(locationData)) {
+                    if (locationData[locId] && typeof locationData[locId] === 'object') locationData[locId].menuDB = deepCopy(menuDB);
+                }
+            }
+        } catch (e) { /* зеркало не критично */ }
+        menuDBUnifiedV1 = true;
+        if (typeof markDirty === 'function') markDirty();
+    } catch (e) { console.error('[ChefOS] migrateUnifyMenuDB failed:', e); }
 }
 
 let _storageDirty = false;
