@@ -167,6 +167,7 @@
             if (eb) eb.innerHTML = `<i class="fa-solid ${floorEditMode ? 'fa-check' : 'fa-pen'} mr-2"></i><span>${floorEditMode ? t('floor_done') : t('floor_edit')}</span>`;
             renderFloorWaitersPanel();
             renderPosHost();
+            posDockZoomControls();
             floorInitGestures();
             applyFloorTransform();
         }
@@ -842,11 +843,11 @@
                 panel.className = 'mt-3 rounded-2xl bg-black/40 border border-white/10 p-3 space-y-4';
                 anchor.insertAdjacentElement('afterend', panel);
             }
+            posBuildCashChrome();
             // Сохраняем ввод пользователя: перерисовка не должна стирать
             // набираемое имя, число гостей и выбранные в строках столы.
             const saved = {};
             panel.querySelectorAll('input, select').forEach(el => { if (el.id) saved[el.id] = el.value; });
-            const st = posHostStats();
             const tabs = (Array.isArray(tableTabsDB) ? tableTabsDB : []).slice().sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
             const seatedHtml = tabs.length === 0
                 ? `<p class="text-sm text-gray-500">${posHostLabel('pos_seated_empty', 'Пока никто не сидит')}</p>`
@@ -858,7 +859,7 @@
                     return `<div onclick="openTableTab(${tb ? tb.id : tab.tableId})" class="flex items-center gap-2 py-1.5 cursor-pointer active:opacity-70 min-w-0">
                         <div class="flex-1 min-w-0">
                             <p class="text-sm text-white truncate">${posHostLabel('pos_table_prefix', 'Стол')} ${escapeHtml(tb ? tb.name : '?')}${tab.guestName ? ' · ' + escapeHtml(tab.guestName) : ''}${tab.guests ? ' · ' + tab.guests + ' ' + waiterLabel('resv_guests', 'гост.') : ''}</p>
-                            <p class="text-[11px] text-gray-500 truncate">${posTimeHHMM(tab.ts)} · ${posFmtElapsed(tableElapsedMin(tab))}${waiter ? ' · ' + escapeHtml(waiterFirstName(waiter)) : ''}${cnt ? ' · ' + cnt + ' ' + waiterLabel('unit_pcs', 'шт') : ''}</p>
+                            <p class="text-[11px] text-gray-500 truncate">${posTimeHHMM(tab.ts)} · <span class="pos-seated-elapsed" data-tab-id="${tab.id}">${posFmtElapsed(tableElapsedMin(tab))}</span>${waiter ? ' · ' + escapeHtml(waiterFirstName(waiter)) : ''}${cnt ? ' · ' + cnt + ' ' + waiterLabel('unit_pcs', 'шт') : ''}</p>
                         </div>
                         <span class="text-emerald-400 text-sm font-bold shrink-0">${currentCurrency}${sum}</span>
                     </div>`;
@@ -881,7 +882,7 @@
                             <span class="text-sm font-bold text-white shrink-0">${escapeHtml(r.time || '')}</span>
                             <p class="text-sm text-white truncate flex-1 min-w-0">${escapeHtml(r.name || '')} · ${r.guests || 1} ${waiterLabel('resv_guests', 'гост.')}</p>
                             <button onclick="posResvVip('${r.id}')" title="${posHostLabel('pos_vip', 'VIP')}" class="text-base leading-none shrink-0 ${r.vip ? 'text-amber-400' : 'text-gray-600'}">${r.vip ? '★' : '☆'}</button>
-                            ${posResvBadge(r.status)}
+                            <span id="pos-resv-badge-${r.id}">${posResvBadge(r.status)}</span>
                         </div>
                         <p class="text-[11px] text-gray-500 truncate">${posHostLabel('pos_table_prefix', 'Стол')}: ${assigned ? escapeHtml(assigned.name) : posHostLabel('resv_no_table', 'Без стола')}${r.phone ? ' · ' + escapeHtml(r.phone) : ''}${r.note ? ' · ' + escapeHtml(r.note) : ''}</p>
                         ${acts}
@@ -895,7 +896,7 @@
                     return `<div class="py-1.5">
                         <div class="flex items-center gap-2 min-w-0">
                             <p class="text-sm text-white truncate flex-1 min-w-0">${escapeHtml(w.name || posHostLabel('pos_walkin', 'Walk-in'))} · ${w.guests} ${waiterLabel('resv_guests', 'гост.')}</p>
-                            <span class="text-[11px] text-gray-500 shrink-0">${posFmtElapsed(waitMin)}</span>
+                            <span class="pos-wl-wait text-[11px] text-gray-500 shrink-0" data-wl-id="${w.id}">${posFmtElapsed(waitMin)}</span>
                             <button onclick="posWaitlistRemove(${w.id})" class="w-8 h-8 rounded-lg bg-white/5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"><i class="fa-solid fa-xmark text-xs"></i></button>
                         </div>
                         <div class="flex items-center gap-1.5 mt-1.5">
@@ -904,23 +905,15 @@
                         </div>
                     </div>`;
                 }).join('');
-            panel.innerHTML = `<div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                    <span class="text-white font-semibold">${posHostLabel('pos_occupied', 'Занято')}: ${st.occupied}/${st.tables}</span>
-                    <span class="text-gray-300">${posHostLabel('pos_covers', 'Гостей')}: ${st.covers}${st.coversPlus ? '+' : ''}</span>
-                    <span class="text-gray-300">${posHostLabel('pos_free', 'Свободно')}: ${st.free}</span>
-                    <span class="text-gray-300">${posHostLabel('pos_resv_today', 'Броней')}: ${st.resvNew}</span>
-                    <span class="text-gray-300">${posHostLabel('pos_waiting', 'Ожидают')}: ${st.waiting}</span>
-                    <span class="text-[11px] text-gray-500 ml-auto"><span class="text-amber-400">●</span> ${posHostLabel('pos_st_occupied', 'занят')} <span class="text-violet-400">●</span> ${posHostLabel('pos_st_reserved', 'забронирован')} <span class="text-gray-500">●</span> ${posHostLabel('pos_st_free', 'свободен')}</span>
-                </div>
-                <div>
+            panel.innerHTML = `<div id="pos-host-sec-seated">
                     <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">${posHostLabel('pos_seated', 'Посажены')}</p>
                     ${seatedHtml}
                 </div>
-                <div>
+                <div id="pos-host-sec-resv">
                     <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">${posHostLabel('pos_reservations', 'Брони на сегодня')}</p>
                     ${resvHtml}
                 </div>
-                <div>
+                <div id="pos-host-sec-wl">
                     <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">${posHostLabel('pos_waitlist', 'Лист ожидания')}</p>
                     <div class="flex items-center gap-1.5 mb-2">
                         <input id="pos-wl-name" type="text" maxlength="40" placeholder="${posHostLabel('pos_wl_name_ph', 'Имя (можно пустым)')}" class="h-10 flex-1 min-w-0 bg-[#2C2C2E] border border-white/10 text-white rounded-xl px-3 text-sm outline-none focus:border-emerald-500">
@@ -934,7 +927,154 @@
                     ${wlHtml}
                 </div>`;
             Object.keys(saved).forEach(id => { const el = document.getElementById(id); if (el) el.value = saved[id]; });
-            if (!_posHostTimer) _posHostTimer = setInterval(() => { try { renderPosHost(); } catch (e) {} }, 60000);
+            if (!_posHostTimer) _posHostTimer = setInterval(() => { try { posHostTick(); } catch (e) {} }, 60000);
+            posHostTick();
+            posApplyHostTab();
+        }
+
+        // --- ХОСТ КАССЫ 2.1.8: липкая шапка, вкладки, док кнопок зума, тик без пересборки ---
+        // 1) Кнопки зума (+/−/сброс) раньше лежали absolute-слоем внутри #floor-plan
+        // с backdrop-blur: на iOS такой слой при прокрутке модалки «прилипает»
+        // к экрану и наезжает на липкую шапку «Касса». Теперь кнопки переезжают
+        // в обычную строку над планом (нормальный поток документа, без blur) —
+        // прилипать нечему, прокручиваются вместе с планом.
+        // 2) Липкая шапка кассы: счётчики + вкладки «Зал/Посажены/Брони/Лист» +
+        // поиск блюд (перенесён сюда же из низа страницы). Шапка sticky под
+        // шапкой модалки (top измеряется по её высоте), поэтому счётчики и
+        // переключение всегда под рукой без прокрутки. Вкладки только
+        // показывают/скрывают блоки, данные не трогают; сетка блюд ниже
+        // остаётся как раньше (поиск из шапки её фильтрует). Тап по вкладке
+        // при закрытом плане открывает план (togglePosFloor(true)).
+        // 3) Тик раз в 60 сек больше НЕ пересобирает панель целиком (это
+        // сбрасывало фокус при наборе имени в листе ожидания): обновляются
+        // только счётчики шапки, числа на вкладках, таймеры «сидят/ждут»
+        // и бейджи статусов броней. Новые/удалённые строки появляются при
+        // следующем явном действии (посадка, добавление, перерисовка плана).
+        let _posHostTab = 'floor';
+        function posStickyCountersHtml(st) {
+            return `<span class="text-white font-semibold">${posHostLabel('pos_occupied', 'Занято')}: ${st.occupied}/${st.tables}</span>
+                <span class="text-gray-300">${posHostLabel('pos_covers', 'Гостей')}: ${st.covers}${st.coversPlus ? '+' : ''}</span>
+                <span class="text-gray-300">${posHostLabel('pos_free', 'Свободно')}: ${st.free}</span>
+                <span class="text-gray-300">${posHostLabel('pos_resv_today', 'Броней')}: ${st.resvNew}</span>
+                <span class="text-gray-300">${posHostLabel('pos_waiting', 'Ожидают')}: ${st.waiting}</span>
+                <span class="text-[11px] text-gray-500 ml-auto"><span class="text-amber-400">●</span> ${posHostLabel('pos_st_occupied', 'занят')} <span class="text-violet-400">●</span> ${posHostLabel('pos_st_reserved', 'забронирован')} <span class="text-gray-500">●</span> ${posHostLabel('pos_st_free', 'свободен')}</span>`;
+        }
+        // Точечное обновление без пересборки: не трогает input/select вообще,
+        // поэтому фокус и набираемый текст никуда не деваются.
+        function posHostTick() {
+            const st = posHostStats();
+            const cc = document.getElementById('pos-sticky-counters');
+            if (cc) cc.innerHTML = posStickyCountersHtml(st);
+            document.querySelectorAll('.pos-tab-count').forEach(el => {
+                const t = el.dataset.tab;
+                const n = t === 'seated' ? st.occupied : t === 'resv' ? st.resvNew : t === 'wl' ? st.waiting : 0;
+                el.textContent = n > 0 ? ' (' + n + ')' : '';
+            });
+            document.querySelectorAll('.pos-seated-elapsed').forEach(el => {
+                const tab = (Array.isArray(tableTabsDB) ? tableTabsDB : []).find(x => String(x.id) === el.dataset.tabId);
+                if (tab) el.textContent = posFmtElapsed(tableElapsedMin(tab));
+            });
+            document.querySelectorAll('.pos-wl-wait').forEach(el => {
+                const w = (Array.isArray(waitlistDB) ? waitlistDB : []).find(x => String(x.id) === el.dataset.wlId);
+                if (w) el.textContent = posFmtElapsed(Math.max(0, Math.floor((Date.now() - new Date(w.ts).getTime()) / 60000)));
+            });
+            (Array.isArray(reservationsDB) ? reservationsDB : []).forEach(r => {
+                const b = document.getElementById('pos-resv-badge-' + r.id);
+                if (b) b.innerHTML = posResvBadge(r.status);
+            });
+        }
+        function posHostTab(tab) {
+            _posHostTab = tab;
+            const wrap = document.getElementById('pos-floor-wrap');
+            if (wrap && wrap.classList.contains('hidden') && typeof togglePosFloor === 'function') {
+                togglePosFloor(true); // откроет план → renderFloorPlan → renderPosHost → posApplyHostTab
+                return;
+            }
+            posApplyHostTab();
+        }
+        function posApplyHostTab() {
+            const floor = _posHostTab === 'floor';
+            const setVis = (el, vis) => { if (el) el.style.display = vis ? '' : 'none'; };
+            setVis(document.getElementById('floor-plan'), floor);
+            const hint = document.getElementById('floor-hint');
+            setVis(hint ? hint.parentElement : null, floor);
+            setVis(document.getElementById('floor-waiters-panel'), floor);
+            setVis(document.getElementById('pos-zoom-dock'), floor);
+            const rl = document.getElementById('reservations-list');
+            setVis(rl ? (rl.closest('div.mb-6') || rl.parentElement) : null, floor);
+            const panel = document.getElementById('pos-host-panel');
+            setVis(panel, !floor);
+            if (panel) {
+                setVis(document.getElementById('pos-host-sec-seated'), _posHostTab === 'seated');
+                setVis(document.getElementById('pos-host-sec-resv'), _posHostTab === 'resv');
+                setVis(document.getElementById('pos-host-sec-wl'), _posHostTab === 'wl');
+            }
+            document.querySelectorAll('.pos-tab-btn').forEach(b => {
+                const active = b.dataset.posTab === _posHostTab;
+                b.className = 'pos-tab-btn h-11 flex-1 rounded-xl text-sm font-semibold transition-colors ' + (active ? 'bg-emerald-500 text-white' : 'bg-white/5 text-gray-300');
+            });
+        }
+        function posBuildCashChrome() {
+            if (document.getElementById('pos-sticky-bar')) return;
+            const ctxRow = document.getElementById('pos-ctx-row');
+            if (!ctxRow || !ctxRow.parentElement) return;
+            const bar = document.createElement('div');
+            bar.id = 'pos-sticky-bar';
+            bar.style.cssText = 'position:sticky;z-index:20;background:#1C1C1E;border-bottom:1px solid rgba(255,255,255,0.08);padding:10px 24px 12px;';
+            bar.innerHTML = `<div id="pos-sticky-counters" class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm"></div>
+                <div class="flex gap-2 mt-2">
+                    <button onclick="posHostTab('floor')" data-pos-tab="floor" class="pos-tab-btn h-11 flex-1 rounded-xl text-sm font-semibold transition-colors">Зал</button>
+                    <button onclick="posHostTab('seated')" data-pos-tab="seated" class="pos-tab-btn h-11 flex-1 rounded-xl text-sm font-semibold transition-colors">Посажены<span class="pos-tab-count" data-tab="seated"></span></button>
+                    <button onclick="posHostTab('resv')" data-pos-tab="resv" class="pos-tab-btn h-11 flex-1 rounded-xl text-sm font-semibold transition-colors">Брони<span class="pos-tab-count" data-tab="resv"></span></button>
+                    <button onclick="posHostTab('wl')" data-pos-tab="wl" class="pos-tab-btn h-11 flex-1 rounded-xl text-sm font-semibold transition-colors">Лист<span class="pos-tab-count" data-tab="wl"></span></button>
+                </div>
+                <div id="pos-sticky-search-slot" class="mt-2"></div>`;
+            ctxRow.parentElement.insertAdjacentElement('beforebegin', bar);
+            // Поиск блюд переезжает в шапку: сам input не пересоздаётся,
+            // поэтому filterSalesList() продолжает работать по тому же id.
+            const search = document.getElementById('sales-search');
+            const slot = document.getElementById('pos-sticky-search-slot');
+            if (search && search.parentElement && slot) {
+                const searchWrap = search.parentElement;
+                slot.appendChild(searchWrap);
+                if (searchWrap.classList) searchWrap.classList.remove('mb-4');
+            } else if (slot) {
+                slot.style.display = 'none';
+            }
+            // Шапка висит ровно под липкой шапкой модалки: top = её высота.
+            const syncTop = () => {
+                let header = null, el = document.querySelector('[data-i18n="sales_title"]');
+                while (el) { if (el.classList && el.classList.contains('sticky')) { header = el; break; } el = el.parentElement; }
+                bar.style.top = (header ? header.offsetHeight : 0) + 'px';
+            };
+            syncTop();
+            if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', syncTop);
+            posApplyHostTab();
+        }
+        function posDockZoomControls() {
+            const plan = document.getElementById('floor-plan');
+            if (!plan || document.getElementById('pos-zoom-dock')) return;
+            const reset = document.getElementById('floor-zoom-reset');
+            if (!reset || !reset.parentElement) return;
+            const ctrl = reset.parentElement;
+            const dock = document.createElement('div');
+            dock.id = 'pos-zoom-dock';
+            dock.className = 'flex items-center gap-2 mb-3';
+            const label = document.createElement('span');
+            label.className = 'text-xs text-gray-500 mr-1';
+            label.textContent = posHostLabel('pos_zoom', 'Масштаб');
+            dock.appendChild(label);
+            // Переезд кнопок (inline onclick переезжают вместе с узлами),
+            // сброс/расширение сохраняет id — applyFloorTransform по-прежнему
+            // показывает/скрывает его через класс hidden.
+            ctrl.className = 'flex flex-row gap-2';
+            ctrl.querySelectorAll('button').forEach(b => {
+                const wasHidden = b.classList.contains('hidden');
+                b.className = 'h-11 w-11 rounded-xl bg-[#2C2C2E] border border-white/10 text-white text-lg font-bold active:scale-95 transition-transform shadow';
+                if (wasHidden) b.classList.add('hidden');
+            });
+            dock.appendChild(ctrl);
+            plan.insertAdjacentElement('beforebegin', dock);
         }
 
         // Форма посадки в модалке счёта: размер компании + имя. Доклеивается
