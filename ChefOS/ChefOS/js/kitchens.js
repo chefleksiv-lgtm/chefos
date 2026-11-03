@@ -11,10 +11,19 @@
                     if (currentAppRole === 'chef') {
                         actionsHtml = `<div class="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors ml-1" onclick="event.stopPropagation(); showRenameKitchenModal('${kitchen}')" title="${t('edit')}"><i class="fa-solid fa-pen text-[10px] text-gray-600"></i></div>`;
                         if (kitchens.length > 1) {
-                            actionsHtml += `<div class="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors ml-0.5" onclick="event.stopPropagation(); showConfirm('${t('confirm_title')}', '${t('confirm_msg')}', () => { kitchens = kitchens.filter(k => k !== kitchen); markDirty(); selectKitchen(kitchens[0]); })"><i class="fa-solid fa-xmark text-xs text-gray-600"></i></div>`;
+                            actionsHtml += `<div class="kitchen-delete-btn w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors ml-0.5"><i class="fa-solid fa-xmark text-xs text-gray-600"></i></div>`;
                         }
                     }
                     btn.innerHTML = `<span>${t(kitchen)}</span><div class="flex items-center">${actionsHtml}</div>`;
+                    // Удаление — НЕ инлайн-onclick: стрелочная функция в строке onclick
+                    // выполняется в глобальном скоупе, где переменной kitchen нет, и
+                    // клик «Подтвердить» падал с ReferenceError, оставляя диалог открытым.
+                    // Вешаем настоящий обработчик с замыканием на kitchen.
+                    const delBtn = btn.querySelector('.kitchen-delete-btn');
+                    if (delBtn) delBtn.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        showConfirm(t('confirm_title'), t('confirm_msg'), () => { kitchens = kitchens.filter(k => k !== kitchen); markDirty(); selectKitchen(kitchens[0]); });
+                    });
                 } else {
                     btn.textContent = t(kitchen);
                 }

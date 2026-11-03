@@ -53,7 +53,9 @@
         }
         function closeConfirmModal() { closeModal('confirm-modal'); confirmActionCallback = null; }
         document.getElementById('confirm-action-btn').addEventListener('click', () => {
-            if (confirmActionCallback) confirmActionCallback();
-            closeConfirmModal();
+            // Диалог должен закрыться всегда, даже если колбэк упадёт, —
+            // иначе подтверждение «залипает» открытым без видимых изменений.
+            try { if (confirmActionCallback) confirmActionCallback(); }
+            finally { closeConfirmModal(); }
         });
 
