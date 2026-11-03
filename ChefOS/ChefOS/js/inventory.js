@@ -41,6 +41,7 @@
                 let supplierHtml = '';
                 let priceHtml = '';
                 let sumHtml = '';
+                let deleteHtml = '';
                 let pointerClass = '';
                 let onclickAttr = '';
 
@@ -52,9 +53,10 @@
                     sumHtml = `<div class="md:col-span-3 flex justify-between md:justify-end text-sm"><span class="md:hidden text-gray-500">${t('inv_th_sum')}:</span><span class="font-bold text-white">${currentCurrency}${it.toLocaleString('ru-RU')}</span></div>`;
                     pointerClass = 'cursor-pointer hover:border-purple-500/50 hover:bg-[#2C2C2E]';
                     onclickAttr = `onclick="openIngredientEditModal(${i.id})"`;
+                    deleteHtml = `<div class="md:col-span-1 flex justify-end"><button type="button" onclick="event.stopPropagation(); deleteIngredientById(${i.id})" class="w-9 h-9 shrink-0 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-colors" title="Удалить"><i class="fa-solid fa-trash-can text-sm"></i></button></div>`;
                 }
 
-                l.innerHTML += `<div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-4 flex flex-col md:grid md:grid-cols-12 md:items-center gap-3 transition-all group ${pointerClass}" ${onclickAttr}><div class="md:col-span-${currentAppRole === 'chef' ? '5' : '10'} flex flex-col min-w-0"><span class="font-semibold text-white break-words">${i.name}</span><div class="flex items-center mt-0.5 overflow-hidden"><span class="text-[10px] sm:text-xs text-purple-400 font-medium">${t(i.category)}</span>${supplierHtml}</div></div><div class="md:col-span-2 flex justify-between md:justify-end text-sm"><span class="md:hidden text-gray-500">${t('inv_th_stock')}:</span><span class="font-medium text-white bg-zinc-800 px-2.5 py-1 rounded-lg border border-white/5 group-hover:bg-zinc-700 transition-colors">${i.quantity.toFixed(2)} ${t('unit_'+i.unit)}</span></div>${priceHtml}${sumHtml}</div>`;
+                l.innerHTML += `<div class="bg-[#1C1C1E] border border-white/5 rounded-2xl p-4 flex flex-col md:grid md:grid-cols-12 md:items-center gap-3 transition-all group ${pointerClass}" ${onclickAttr}><div class="md:col-span-${currentAppRole === 'chef' ? '4' : '10'} flex flex-col min-w-0"><span class="font-semibold text-white break-words">${i.name}</span><div class="flex items-center mt-0.5 overflow-hidden"><span class="text-[10px] sm:text-xs text-purple-400 font-medium">${t(i.category)}</span>${supplierHtml}</div></div><div class="md:col-span-2 flex justify-between md:justify-end text-sm"><span class="md:hidden text-gray-500">${t('inv_th_stock')}:</span><span class="font-medium text-white bg-zinc-800 px-2.5 py-1 rounded-lg border border-white/5 group-hover:bg-zinc-700 transition-colors">${i.quantity.toFixed(2)} ${t('unit_'+i.unit)}</span></div>${priceHtml}${sumHtml}${deleteHtml}</div>`;
             });
             
             const h = document.getElementById('inventory-total-header');
@@ -115,6 +117,8 @@
             list.innerHTML = h.map(e => `<div class="flex justify-between text-xs bg-black/30 rounded-lg px-3 py-1.5"><span class="text-gray-500">${e.date}</span><span class="text-gray-300 font-medium">${currentCurrency}${e.price}</span></div>`).join('');
         }
         function deleteIngredient() { showConfirm(t('confirm_title'), t('confirm_msg'), () => { inventoryDB = inventoryDB.filter(i => i.id !== editingIngredientId); markDirty(); closeModal('ingredient-edit-modal'); filterInventory(); showNotification(t('notif_deleted')); }); }
+        // 2.1.10: удаление прямо из списка склада (кнопка-корзина в строке) — без открытия редактора.
+        function deleteIngredientById(id) { showConfirm(t('confirm_title'), t('confirm_msg'), () => { inventoryDB = inventoryDB.filter(i => i.id !== id); markDirty(); filterInventory(); showNotification(t('notif_deleted')); }); }
         // --- ЦЕНЫ ДРУГИХ ПОСТАВЩИКОВ (v2.2): сравнение цен для заказов ---
         let editingAltPrices = [];
         function renderAltPrices() {
