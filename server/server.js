@@ -486,7 +486,7 @@ const server = http.createServer(async (req, res) => {
 
         // --- ping ---
         if (req.method === 'GET' && p === '/api/ping') {
-            send(res, 200, { ok: true, time: Date.now(), version: '2.1.2' });
+            send(res, 200, { ok: true, time: Date.now(), version: '2.1.3' });
             return;
         }
 
