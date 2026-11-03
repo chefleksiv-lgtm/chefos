@@ -9,6 +9,10 @@
             migrateV17();
             migrateV18();
             migrateV19();
+            // Хэш-база для синка: без неё первое сохранение после перезагрузки
+            // не ставит свежую метку времени — правки (в т.ч. удаления) уходят
+            // на сервер со старой меткой, и другая копия потом их перетирает.
+            try { if (typeof syncResetHashBaseline === 'function') syncResetHashBaseline(); } catch (e) {}
             if (typeof ensureLocations === 'function') ensureLocations();
             if (typeof renderLocationSelector === 'function') renderLocationSelector();
             refreshCurrencyUI();

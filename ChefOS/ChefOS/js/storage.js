@@ -193,7 +193,10 @@ function startAutosave() {
             try {
                 if (!e || e.key !== STORAGE_KEY) return;
                 if (_storageDirty) return; // есть свои несохранённые правки — не трогаем
-                if (loadState() && typeof refreshOpenViews === 'function') refreshOpenViews();
+                if (loadState()) {
+                    try { if (typeof syncResetHashBaseline === 'function') syncResetHashBaseline(); } catch (err) {}
+                    if (typeof refreshOpenViews === 'function') refreshOpenViews();
+                }
             } catch (err) { /* ignore */ }
         });
     }

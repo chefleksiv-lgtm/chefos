@@ -191,6 +191,12 @@
                 currentEmployeeId = meId;
             } catch (e) {}
             try { if (typeof syncResetHashBaseline === 'function') syncResetHashBaseline(); } catch (e) {}
+            // Вход = серверные данные: включаем синк, иначе свежий экземпляр
+            // (например, ярлык на главном экране со своим localStorage) никогда
+            // не подтянет данные аккаунта — тихий синк через 1.5 сек просто
+            // не сработает из-за выключенного флага. Выключить обратно можно
+            // в Настройках.
+            try { if (typeof syncMeta !== 'undefined' && typeof syncAuthToken === 'function' && syncAuthToken()) { syncMeta.enabled = true; if (typeof markDirty === 'function') markDirty(); } } catch (e) {}
             accountHide();
             // PIN-экран не показываем: владелец входит сразу шефом
             const pin = document.getElementById('pin-screen');

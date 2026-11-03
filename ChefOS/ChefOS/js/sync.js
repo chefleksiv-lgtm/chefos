@@ -155,7 +155,7 @@ function mergeCollections(localState, localTs, remoteState, remoteTs, logFn) {
             val = localState ? localState[key] : undefined;
             wts = lts; winner = 'local';
         }
-        if (lts !== rts && Math.min(lts, rts) > 0) {
+        if (lts > 0 && rts > 0) {
             const loserVal = winner === 'remote' ? (localState && localState[key]) : (remoteState && remoteState[key]);
             if (syncHashOf(val) !== syncHashOf(loserVal)) {
                 conflicts.push({ key: key, winner: winner, localTs: lts, remoteTs: rts });
@@ -289,6 +289,15 @@ async function syncNow(manual) {
         const remote = await syncPull();
         const merged = mergeCollections(syncCollectState(), syncMeta.keyTs || {}, remote.state, remote.keyTs || {});
         const applied = syncApplyState(merged.state);
+        // Конфликты (включая равные метки с разным содержимым) фиксируем
+        // свежей меткой, иначе равные метки вечно держат раскол: каждая
+        // сторона при pull оставляет своё, а сервер хранит whoever pushed last.
+        if (merged.conflicts && merged.conflicts.length) {
+            const now = Date.now();
+            for (const c of merged.conflicts) {
+                try { if (typeof syncMeta !== 'undefined' && syncMeta.keyTs) syncMeta.keyTs[c.key] = now; } catch (e) {}
+            }
+        }
         const pushed = await syncPush(syncCollectState(), (syncReadKey('syncMeta') && syncReadKey('syncMeta').keyTs) || {});
         if (pushed && pushed.state) syncApplyState(pushed.state); // сервер мог смержить чужой пуш
         syncMeta.lastSync = Date.now();
