@@ -7,6 +7,7 @@
 //   POST /api/register {login, password}    -> 201 {ok:true, userId} | 409 {error:'login_taken'} | 400 validation
 //   POST /api/login {login, password}       -> 200 {ok:true, token, login, userId} | 401 {error:'bad_credentials'}
 //   POST /api/logout                        (Bearer) -> 200 {ok:true}
+//   POST /api/delete-account                (Bearer) -> 200 {ok:true} — полное удаление аккаунта и всех его данных (без восстановления)
 //   GET  /api/pull                          (Bearer) -> {state, keyTs} — данные ТОЛЬКО этого пользователя
 //   POST /api/push {deviceId, state, keyTs} (Bearer) -> {state, keyTs} — merge per-collection LWW внутри аккаунта
 //   GET  /...                               -> статика фронта (FRONT_DIR)
@@ -72,6 +73,23 @@ class FileBackend {
     async deleteSession(token) {
         const all = this._readJson(this.sessionsFile, {});
         if (all[token]) { delete all[token]; this._writeJsonAtomic(this.sessionsFile, all); }
+    }
+    async deleteUser(login) {
+        const all = this._readJson(this.usersFile, {});
+        if (all[login]) { delete all[login]; this._writeJsonAtomic(this.usersFile, all); }
+    }
+    async deleteUserStore(userId) {
+        const safe = String(userId).replace(/[^a-zA-Z0-9_-]/g, '');
+        if (!safe) return;
+        try { fs.unlinkSync(path.join(this.usersDir, safe + '.json')); } catch (e) { /* файла нет — нечего удалять */ }
+    }
+    async deleteUserSessions(userId) {
+        const all = this._readJson(this.sessionsFile, {});
+        let changed = false;
+        for (const [tok, sess] of Object.entries(all)) {
+            if (sess && sess.userId === userId) { delete all[tok]; changed = true; }
+        }
+        if (changed) this._writeJsonAtomic(this.sessionsFile, all);
     }
     async loadUserStore(userId) {
         const safe = String(userId).replace(/[^a-zA-Z0-9_-]/g, '');
@@ -222,6 +240,24 @@ class TursoBackend {
         await this._ready;
         await this._pipeline([
             { sql: 'DELETE FROM sessions WHERE token = ?', args: [hranaValue(token)] }
+        ]);
+    }
+    async deleteUser(login) {
+        await this._ready;
+        await this._pipeline([
+            { sql: 'DELETE FROM users WHERE login = ?', args: [hranaValue(login)] }
+        ]);
+    }
+    async deleteUserStore(userId) {
+        await this._ready;
+        await this._pipeline([
+            { sql: 'DELETE FROM stores WHERE user_id = ?', args: [hranaValue(userId)] }
+        ]);
+    }
+    async deleteUserSessions(userId) {
+        await this._ready;
+        await this._pipeline([
+            { sql: 'DELETE FROM sessions WHERE user_id = ?', args: [hranaValue(userId)] }
         ]);
     }
 }
@@ -450,7 +486,7 @@ const server = http.createServer(async (req, res) => {
 
         // --- ping ---
         if (req.method === 'GET' && p === '/api/ping') {
-            send(res, 200, { ok: true, time: Date.now(), version: '2.0.0' });
+            send(res, 200, { ok: true, time: Date.now(), version: '2.1.0' });
             return;
         }
 
@@ -502,6 +538,26 @@ const server = http.createServer(async (req, res) => {
             const m = /^Bearer\s+(.+)$/.exec(String(h).trim());
             if (m) await revokeToken(m[1]);
             send(res, 200, { ok: true });
+            return;
+        }
+
+        // --- delete-account (без восстановления: стирает запись, данные и сессии) ---
+        if (req.method === 'POST' && p === '/api/delete-account') {
+            const user = requireAuth(req, res);
+            if (!user) return;
+            try {
+                await backend.deleteUserStore(user.userId);
+                await backend.deleteUserSessions(user.userId);
+                await backend.deleteUser(user.login);
+                for (const [tok, sess] of tokens) {
+                    if (sess && sess.userId === user.userId) tokens.delete(tok);
+                }
+                console.log('[chefos] deleted account', user.login);
+                send(res, 200, { ok: true });
+            } catch (e) {
+                console.error('[chefos] delete-account failed:', e);
+                send(res, 500, { ok: false, error: 'internal_error' });
+            }
             return;
         }
 

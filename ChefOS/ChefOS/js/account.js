@@ -255,9 +255,22 @@
                     '<span class="text-xs text-gray-500" data-i18n="acc_logged_as">Вы вошли как</span>' +
                     '<span class="text-sm text-white font-medium" id="account-settings-name">—</span>' +
                 '</div>' +
-                '<button id="account-logout-btn" class="w-full h-11 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm transition-colors" data-i18n="acc_logout_btn">Выйти из аккаунта</button>';
+                '<button id="account-logout-btn" class="w-full h-11 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm transition-colors" data-i18n="acc_logout_btn">Выйти из аккаунта</button>' +
+            '<button id="account-delete-btn" class="w-full h-11 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm transition-colors mt-2" data-i18n="acc_delete_btn">Удалить аккаунт</button>';
             anchor.parentNode.insertBefore(div, anchor.nextSibling);
             document.getElementById('account-logout-btn').addEventListener('click', accountLogout);
+            document.getElementById('account-delete-btn').addEventListener('click', () => {
+                showConfirm(t('acc_delete_title'), t('acc_delete_msg'), async () => {
+                    let r = null;
+                    try { r = await accountApi('/api/delete-account', { method: 'POST' }); } catch (e) { r = null; }
+                    if (r && r.ok) {
+                        try { showNotification(t('acc_deleted')); } catch (e) {}
+                        try { await accountLogout(); } catch (e) {}
+                    } else {
+                        try { showNotification(t('acc_delete_failed')); } catch (e) {}
+                    }
+                });
+            });
             if (typeof applyTranslations === 'function') { try { applyTranslations(); } catch (e) {} }
         }
         function accountRefreshSettingsUI() {
