@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
+    <style>html, body { overflow-x: hidden; }</style>
 </head>
 <body class="min-h-screen p-6 sm:p-10 flex flex-col items-center relative overflow-x-hidden">
 
@@ -568,7 +569,7 @@
                     </div>
                 </div>
                 <button onclick="closeModal('settings-modal')" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all font-medium" data-i18n="save">Сохранить</button>
-                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.12</div>
+                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.13</div>
             </div>
         </div>
     </div>
@@ -646,7 +647,7 @@
     <div id="dish-modal" onclick="if(event.target === this) closeModal('dish-modal')" class="hidden fixed inset-0 z-[60] bg-[#0F0F11] overflow-y-auto overflow-x-hidden opacity-0 transition-opacity duration-300">
         <div class="max-w-4xl mx-auto p-6 sm:p-10 pb-20">
             <button onclick="closeModal('dish-modal')" class="text-gray-400 hover:text-white mb-6 flex items-center gap-2"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
-            <div id="dish-content" class="flex flex-col gap-8"></div>
+            <div id="dish-content" class="flex flex-col gap-8 overflow-x-hidden min-w-0"></div>
         </div>
     </div>
 
@@ -656,7 +657,7 @@
                 <button onclick="closeModal('ttk-details-modal')" class="text-gray-400 hover:text-white flex items-center gap-2 transition-colors self-start"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></div> <span data-i18n="back">Назад</span></button>
                 <div class="flex flex-wrap gap-2" id="ttk-action-buttons"></div>
             </div>
-            <div id="ttk-details-content" class="flex flex-col gap-8"></div>
+            <div id="ttk-details-content" class="flex flex-col gap-8 overflow-x-hidden min-w-0"></div>
         </div>
     </div>
 
@@ -1505,7 +1506,7 @@
     <script src="js/tables.js?v=2.1.8"></script>
     <script src="js/reservations.js"></script>
     <script src="js/menu.js?v=2d051e2"></script>
-    <script src="js/ttk.js?v=2.1.12"></script>
+    <script src="js/ttk.js?v=2.1.13"></script>
     <script src="js/books.js"></script>
     <script src="js/inventory.js?v=2.1.10"></script>
     <script src="js/invoice-ocr.js"></script>
