@@ -13,14 +13,15 @@
         function filterTTK() {
             const q = document.getElementById('ttk-search').value.toLowerCase(), grid = document.getElementById('ttk-grid'); grid.innerHTML = '';
             let f = menuDB.filter(d => activeTTKFilter === 'dishes' ? d.type === 'dish' : d.type === 'prep');
-            if(q) f = f.filter(d => d.name.toLowerCase().includes(q));
+            // 2.1.12: поиск по названию И категории (иначе «пицца» не находит пиццы с латинскими названиями, а сетка молча пустеет); защита от записей без названия
+            if(q) f = f.filter(d => (d.name || '').toLowerCase().includes(q) || (d.category || '').toLowerCase().includes(q));
             let _html = '';
             f.forEach(d => {
                 const badge = d.isTTKActive ? `<div class="absolute top-3 right-3 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded border border-blue-700">${t('ttk_badge_menu')}</div>` : `<div class="absolute top-3 right-3 bg-gray-500 text-white text-[10px] font-bold px-2 py-0.5 rounded border border-gray-700">${t('ttk_badge_prep')}</div>`;
                 const fcInfo = currentAppRole === 'chef' ? `<span class="${d.targetFoodCost > 0 && (d.costPrice/d.menuPrice)*100 > d.targetFoodCost ? 'text-red-400' : 'text-green-400'}">FC: ${d.menuPrice>0?((d.costPrice/d.menuPrice)*100).toFixed(1):0}%</span>` : '';
                 _html += `<div class="bg-[#1C1C1E] border border-white/5 rounded-2xl overflow-hidden cursor-pointer hover:border-blue-500/50 transition-colors group" onclick="openTTKDetails(${d.id})"><div class="h-32 w-full relative overflow-hidden"><img src="${escapeHtml(d.img)}" class="w-full h-full object-cover opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-500">${badge}</div><div class="p-4"><h3 class="font-semibold text-white leading-tight mb-2 truncate">${escapeHtml(d.name)}</h3><div class="flex justify-between text-xs text-gray-400"><span>${t('ttk_yield')} ${d.yield}${t('unit_g')}</span>${fcInfo}</div></div></div>`;
             });
-            grid.innerHTML = _html;
+            grid.innerHTML = _html || `<p class="col-span-full text-center text-gray-500 py-8">${t('ttk_no_results')}</p>`;
         }
 
         function openTTKDetails(id) {

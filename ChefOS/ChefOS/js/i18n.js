@@ -322,6 +322,7 @@
             'menu_stop': { ru: 'Стоп-лист', en: 'Stop List' },
             'ttk_subtitle': { ru: 'База ТТК', en: 'Recipes Base' },
             'ttk_search': { ru: 'Поиск ТТК...', en: 'Search recipes...' },
+            'ttk_no_results': { ru: 'Ничего не найдено', en: 'Nothing found' },
             'ttk_filter_dish': { ru: 'Готовые блюда', en: 'Dishes' },
             'ttk_filter_prep': { ru: 'Заготовки и Соусы', en: 'Preps & Sauces' },
             'ttk_badge_menu': { ru: 'В МЕНЮ', en: 'IN MENU' },
