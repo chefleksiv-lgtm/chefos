@@ -568,7 +568,7 @@
                     </div>
                 </div>
                 <button onclick="closeModal('settings-modal')" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all font-medium" data-i18n="save">Сохранить</button>
-                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.10</div>
+                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.11</div>
             </div>
         </div>
     </div>
@@ -1351,8 +1351,9 @@
             <div class="w-11"></div>
         </div>
         <div class="h-1 bg-white/10 mx-4 sm:mx-6 rounded-full overflow-hidden flex-shrink-0"><div id="cook-progress" class="h-full bg-orange-500 rounded-full transition-all duration-300" style="width:0%"></div></div>
-        <div class="flex-1 overflow-y-auto p-6 sm:p-10 flex items-center justify-center">
-            <div id="cook-body" class="w-full"></div>
+        <!-- 2.1.11: центрирование через m-auto у ребёнка вместо items-center у скролл-контейнера: при длинном списке центрирование обрезало верх и низ, верхние строки было не долистать -->
+        <div class="flex-1 overflow-y-auto overflow-x-hidden p-6 sm:p-10 flex">
+            <div id="cook-body" class="w-full m-auto"></div>
         </div>
         <div class="flex items-center justify-between gap-4 p-4 sm:p-6 flex-shrink-0">
             <button id="cook-prev" onclick="cookPrev()" class="h-14 px-8 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-medium transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i><span data-i18n="back">Назад</span></button>
