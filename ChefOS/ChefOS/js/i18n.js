@@ -325,6 +325,7 @@
             'ttk_no_results': { ru: 'Ничего не найдено', en: 'Nothing found' },
             'ttk_filter_dish': { ru: 'Готовые блюда', en: 'Dishes' },
             'ttk_filter_prep': { ru: 'Заготовки и Соусы', en: 'Preps & Sauces' },
+            'ttk_filter_all': { ru: 'Все', en: 'All' },
             'ttk_badge_menu': { ru: 'В МЕНЮ', en: 'IN MENU' },
             'ttk_badge_prep': { ru: 'ПРОРАБОТКА', en: 'DRAFT' },
             'ttk_yield': { ru: 'Выход:', en: 'Yield:' },

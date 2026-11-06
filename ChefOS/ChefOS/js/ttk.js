@@ -1,7 +1,10 @@
         // --- БАЗА ТТК И РЕДАКТОР ---
+        let activeTTKCategory = 'all';
+        let _ttkCatSig = '';
         function openTTKModal() { document.getElementById('ttk-search').value = ''; toggleTTKFilter('dishes'); openModal('ttk-modal'); }
         function toggleTTKFilter(type) {
             activeTTKFilter = type;
+            activeTTKCategory = 'all'; _ttkCatSig = '';
             const bd = document.getElementById('filter-ttk-dishes'), bp = document.getElementById('filter-ttk-preps');
             const on = "h-8 px-4 rounded-full border border-blue-500 bg-blue-500/20 text-white text-xs font-medium transition-colors whitespace-nowrap";
             const off = "h-8 px-4 rounded-full border border-white/20 text-gray-300 text-xs font-medium hover:bg-white/10 transition-colors whitespace-nowrap";
@@ -10,18 +13,47 @@
             if (grid) grid.classList.remove('hidden');
             filterTTK();
         }
+        // 2.1.14: фильтр по категориям — чипы строятся из категорий, которые реально есть в базе (Десерт, Пицца, Горячий цех...), со счётчиками; перестройка только при смене набора
+        function renderTTKCategoryFilters() {
+            const box = document.getElementById('ttk-category-filters');
+            if (!box) return;
+            const base = menuDB.filter(d => activeTTKFilter === 'dishes' ? d.type === 'dish' : d.type === 'prep');
+            const map = {};
+            base.forEach(d => {
+                const c = (d.category || '').trim();
+                if (!c) return;
+                const k = c.toLowerCase();
+                if (!map[k]) map[k] = { label: c, n: 0 };
+                map[k].n++;
+            });
+            const cats = Object.keys(map).map(k => map[k]).sort((a, b) => b.n - a.n || a.label.localeCompare(b.label, 'ru'));
+            const sig = JSON.stringify([activeTTKCategory, cats]);
+            if (sig === _ttkCatSig) return;
+            _ttkCatSig = sig;
+            const on = "h-8 px-4 rounded-full border border-blue-500 bg-blue-500/20 text-white text-xs font-medium transition-colors whitespace-nowrap";
+            const off = "h-8 px-4 rounded-full border border-white/20 text-gray-300 text-xs font-medium hover:bg-white/10 transition-colors whitespace-nowrap";
+            let html = `<button onclick="setTTKCategory('all')" class="${activeTTKCategory === 'all' ? on : off}">${t('ttk_filter_all')}</button>`;
+            cats.forEach(c => {
+                const key = c.label.toLowerCase();
+                html += `<button onclick="setTTKCategory('${encodeURIComponent(key)}')" class="${activeTTKCategory === key ? on : off}">${escapeHtml(c.label)} · ${c.n}</button>`;
+            });
+            box.innerHTML = html;
+        }
+        function setTTKCategory(cat) { activeTTKCategory = decodeURIComponent(cat); renderTTKCategoryFilters(); filterTTK(); }
         function filterTTK() {
             const q = document.getElementById('ttk-search').value.toLowerCase(), grid = document.getElementById('ttk-grid'); grid.innerHTML = '';
             let f = menuDB.filter(d => activeTTKFilter === 'dishes' ? d.type === 'dish' : d.type === 'prep');
             // 2.1.12: поиск по названию И категории (иначе «пицца» не находит пиццы с латинскими названиями, а сетка молча пустеет); защита от записей без названия
             if(q) f = f.filter(d => (d.name || '').toLowerCase().includes(q) || (d.category || '').toLowerCase().includes(q));
+            if(activeTTKCategory !== 'all') f = f.filter(d => (d.category || '').trim().toLowerCase() === activeTTKCategory);
             let _html = '';
             f.forEach(d => {
-                const badge = d.isTTKActive ? `<div class="absolute top-3 right-3 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded border border-blue-700">${t('ttk_badge_menu')}</div>` : `<div class="absolute top-3 right-3 bg-gray-500 text-white text-[10px] font-bold px-2 py-0.5 rounded border border-gray-700">${t('ttk_badge_prep')}</div>`;
+                const badge = d.isTTKActive ? `<div class="absolute top-2 right-2 bg-blue-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-blue-700">${t('ttk_badge_menu')}</div>` : `<div class="absolute top-2 right-2 bg-gray-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-gray-700">${t('ttk_badge_prep')}</div>`;
                 const fcInfo = currentAppRole === 'chef' ? `<span class="${d.targetFoodCost > 0 && (d.costPrice/d.menuPrice)*100 > d.targetFoodCost ? 'text-red-400' : 'text-green-400'}">FC: ${d.menuPrice>0?((d.costPrice/d.menuPrice)*100).toFixed(1):0}%</span>` : '';
-                _html += `<div class="bg-[#1C1C1E] border border-white/5 rounded-2xl overflow-hidden cursor-pointer hover:border-blue-500/50 transition-colors group" onclick="openTTKDetails(${d.id})"><div class="h-32 w-full relative overflow-hidden"><img src="${escapeHtml(d.img)}" class="w-full h-full object-cover opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-500">${badge}</div><div class="p-4"><h3 class="font-semibold text-white leading-tight mb-2 truncate">${escapeHtml(d.name)}</h3><div class="flex justify-between text-xs text-gray-400"><span>${t('ttk_yield')} ${d.yield}${t('unit_g')}</span>${fcInfo}</div></div></div>`;
+                _html += `<div class="bg-[#1C1C1E] border border-white/5 rounded-2xl overflow-hidden cursor-pointer hover:border-blue-500/50 transition-colors group" onclick="openTTKDetails(${d.id})"><div class="h-20 sm:h-24 w-full relative overflow-hidden"><img src="${escapeHtml(d.img)}" class="w-full h-full object-cover opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-500">${badge}</div><div class="p-2.5"><h3 class="font-semibold text-white text-sm leading-tight truncate">${escapeHtml(d.name)}</h3>${d.category ? `<div class="text-[11px] text-gray-500 truncate">${escapeHtml(d.category)}</div>` : ''}<div class="flex justify-between text-[11px] text-gray-400 mt-0.5"><span>${t('ttk_yield')} ${d.yield}${t('unit_g')}</span>${fcInfo}</div></div></div>`;
             });
             grid.innerHTML = _html || `<p class="col-span-full text-center text-gray-500 py-8">${t('ttk_no_results')}</p>`;
+            renderTTKCategoryFilters();
         }
 
         function openTTKDetails(id) {
