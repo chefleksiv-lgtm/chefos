@@ -31,7 +31,7 @@
             document.getElementById('selected-date-label').textContent = (formatDataKey(selectedDate) === formatDataKey(new Date()) ? todayStr : '') + selectedDate.toLocaleDateString(langCode, { weekday: 'long', day: 'numeric', month: 'long' }); 
         }
         function toggleEmoji(e) { selectedEmoji = selectedEmoji === e ? null : e; updateEmojiUI(); }
-        function updateEmojiUI() { document.querySelectorAll('.emoji-btn').forEach(b => { if (b.dataset.emoji === selectedEmoji) b.className="emoji-btn w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center transition-all text-sm bg-orange-500/30 border border-orange-500/50"; else b.className="emoji-btn w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center transition-all text-sm bg-white/5 hover:bg-white/10"; }); }
+        function updateEmojiUI() { document.querySelectorAll('.emoji-btn').forEach(b => { if (b.dataset.emoji === selectedEmoji) b.className="emoji-btn w-11 h-11 flex-shrink-0 rounded-full flex items-center justify-center transition-all text-lg bg-orange-500/30 border border-orange-500/50"; else b.className="emoji-btn w-11 h-11 flex-shrink-0 rounded-full flex items-center justify-center transition-all text-lg bg-white/5 hover:bg-white/10"; }); }
         function loadWidgetNote() { 
             const nData = chefNotes[activeKitchen] && chefNotes[activeKitchen][formatDataKey(selectedDate)];
             if(nData) { if(typeof nData==='string') { document.getElementById('widget-notes-input').value = nData; selectedEmoji=null; } else { document.getElementById('widget-notes-input').value = nData.text||''; selectedEmoji = nData.emoji||null; } } 

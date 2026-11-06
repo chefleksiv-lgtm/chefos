@@ -1,4 +1,13 @@
-        // --- КАСТОМНЫЕ UI-КОМПОНЕНТЫ в стиле приложения ---
+        // --- КАСТОМНЫЕ UI-КОМПОНЕНТЫ в стиле приложения --
+        // 2.1.17: фото-заглушка по умолчанию (салат-боул) — не настоящее фото блюда.
+        // Карточки и детали показывают нейтральный плейсхолдер вместо чужого фото.
+        const DEFAULT_DISH_IMG = 'photo-1546069901-ba9599a7e63c';
+        function hasRealPhoto(d) { return !!(d && d.img && !d.img.includes(DEFAULT_DISH_IMG)); }
+        function dishPhotoHtml(d, imgCls) {
+            if (hasRealPhoto(d)) return `<img src="${escapeHtml(d.img)}" loading="lazy" decoding="async" class="${imgCls}">`;
+            const icon = d.category === 'Пицца' ? 'fa-pizza-slice' : 'fa-utensils';
+            return `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#2A2A2E] to-[#1C1C1E]"><i class="fa-solid ${icon} text-2xl text-zinc-600"></i></div>`;
+        }
         // Тёмный дропдаун-пилюля. Нативный <select> рисует белый список средствами ОС —
         // этот компонент держит всё в DOM и наследует тёмную тему.
         //

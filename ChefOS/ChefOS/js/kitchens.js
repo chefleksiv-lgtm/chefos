@@ -4,14 +4,14 @@
             kitchens.forEach(kitchen => {
                 const isActive = kitchen === activeKitchen;
                 const btn = document.createElement('button');
-                btn.className = `shrink-0 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 active:scale-95 flex items-center gap-2 ${isActive ? 'bg-white text-black shadow-sm' : 'bg-[#2C2C2E] text-gray-300 hover:bg-[#3A3A3C]'}`;
+                btn.className = `shrink-0 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 active:scale-95 flex items-center gap-2 ${isActive ? 'bg-orange-500/20 text-orange-300 border border-orange-500/50 shadow-sm' : 'bg-[#2C2C2E] text-gray-300 hover:bg-[#3A3A3C]'}`;
                 
                 if (isActive) {
                     let actionsHtml = '';
                     if (currentAppRole === 'chef') {
-                        actionsHtml = `<div class="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors ml-1" onclick="event.stopPropagation(); showRenameKitchenModal('${kitchen}')" title="${t('edit')}"><i class="fa-solid fa-pen text-[10px] text-gray-600"></i></div>`;
+                        actionsHtml = `<div class="w-5 h-5 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors ml-1" onclick="event.stopPropagation(); showRenameKitchenModal('${kitchen}')" title="${t('edit')}"><i class="fa-solid fa-pen text-[10px] text-orange-200"></i></div>`;
                         if (kitchens.length > 1) {
-                            actionsHtml += `<div class="kitchen-delete-btn w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors ml-0.5"><i class="fa-solid fa-xmark text-xs text-gray-600"></i></div>`;
+                            actionsHtml += `<div class="kitchen-delete-btn w-5 h-5 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors ml-0.5"><i class="fa-solid fa-xmark text-xs text-orange-200"></i></div>`;
                         }
                     }
                     btn.innerHTML = `<span>${t(kitchen)}</span><div class="flex items-center">${actionsHtml}</div>`;

@@ -17,7 +17,7 @@
             position: relative;
         }
         /* Ручка перестановки плиток: drag только отсюда, остальная плитка — тапы и скролл */
-        .tile-drag-handle { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.35); font-size: 11px; cursor: grab; z-index: 2; touch-action: none; }
+        .tile-drag-handle { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.18); font-size: 10px; cursor: grab; z-index: 2; touch-action: none; }
         .tile-drag-handle:active { cursor: grabbing; color: rgba(255,255,255,0.7); }
         @media (hover: hover) { .ios-tile:hover { background: rgba(65, 65, 68, 0.85); border-color: rgba(255, 255, 255, 0.25); box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.1); } }
         .ios-tile:active { transform: scale(0.95); background: rgba(44, 44, 46, 0.9); }
@@ -66,7 +66,7 @@
         .tile-chosen { }
 
 /* Подписи плиток дашборда: без автопереносов со знаком дефиса */
-#tiles-grid h2 { -webkit-hyphens: manual; hyphens: manual; overflow-wrap: break-word; }
+#tiles-grid h2 { -webkit-hyphens: none; hyphens: none; overflow-wrap: break-word; }
 
         /* Кнопки действий в карточке ТТК: не рвём текст, переносим строкой */
         #ttk-action-buttons button { white-space: nowrap; flex-shrink: 0; }
