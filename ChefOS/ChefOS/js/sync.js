@@ -325,6 +325,7 @@ function syncNowManual() {
 function updateSyncStatus() {
     const st = document.getElementById('sync-status');
     if (!st || typeof syncMeta === 'undefined') return;
+    const st2 = document.getElementById('sync-status-settings');
     const dot = (color, pulse) => `<span class="w-2 h-2 rounded-full ${color} inline-block ${pulse ? 'animate-pulse' : ''}"></span>`;
     const time = ts => new Date(ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     if (typeof _syncInProgress !== 'undefined' && _syncInProgress) {
@@ -339,11 +340,15 @@ function updateSyncStatus() {
     } else {
         st.innerHTML = dot('bg-gray-500') + `<span>${t('sync_status_never')}</span>`;
     }
+    if (st2) st2.innerHTML = st.innerHTML;
 }
 function syncSetStatus(text) {
     if (typeof document === 'undefined') return;
+    const html = '<span class="text-gray-400">' + syncEscapeHtml(text) + '</span>';
     const st = document.getElementById('sync-status');
-    if (st) st.innerHTML = '<span class="text-gray-400">' + syncEscapeHtml(text) + '</span>';
+    if (st) st.innerHTML = html;
+    const st2 = document.getElementById('sync-status-settings');
+    if (st2) st2.innerHTML = html;
 }
 
 // ---------- экспорт / импорт JSON (fallback без сервера) ----------
@@ -410,7 +415,7 @@ function syncInjectSettingsUI() {
         '<input type="text" id="sync-url" data-i18n="sync_url_ph" placeholder="URL сервера…" autocapitalize="off" spellcheck="false" ' +
             'class="w-full h-11 bg-[#2C2C2E] text-white rounded-xl px-4 mb-3 outline-none focus:ring-2 focus:ring-orange-500 text-sm">' +
         '<button id="sync-now-btn" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all font-medium mb-2" data-i18n="sync_now">Синхронизировать сейчас</button>' +
-        '<div id="sync-status" class="text-xs text-gray-500 mb-3"></div>' +
+        '<div id="sync-status-settings" class="text-xs text-gray-500 mb-3"></div>' +
         '<div class="flex gap-2">' +
             '<button id="sync-export-btn" class="flex-1 h-10 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-gray-200 text-sm transition-all" data-i18n="sync_export">Экспорт JSON</button>' +
             '<label for="sync-import-file" class="flex-1 h-10 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-gray-200 text-sm transition-all flex items-center justify-center cursor-pointer" data-i18n="sync_import">Импорт JSON</label>' +

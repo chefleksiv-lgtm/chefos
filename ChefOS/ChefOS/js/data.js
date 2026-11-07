@@ -113,6 +113,8 @@
         // 2.1.25: внешний вид — акцентный цвет и тема (dark/light)
         let accentColor = 'orange';
         let themeMode = 'dark';
+        // 2.1.26: гостевое меню по QR (публичный эндпоинт /api/public-menu/:login)
+        let publicMenu = false;
         let currentFoodCosts = { 'Основная кухня': 28.5, 'Горячий цех': 32.1, 'Бар': 21.0 };
         let targetFoodCosts = { 'Основная кухня': 30, 'Горячий цех': 30, 'Бар': 25 };
         let currentMonthDate = new Date();

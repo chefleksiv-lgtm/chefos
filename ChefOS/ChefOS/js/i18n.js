@@ -66,6 +66,13 @@
             'settings_appearance': { ru: 'Внешний вид', en: 'Appearance' },
             'theme_dark': { ru: 'Тёмная', en: 'Dark' },
             'theme_light': { ru: 'Светлая', en: 'Light' },
+            'guest_menu_title': { ru: 'Гостевое меню (QR)', en: 'Guest menu (QR)' },
+            'guest_menu_hint': { ru: 'Гости увидят только названия, категории и цены — без себестоимости и внутренних данных.', en: 'Guests see only names, categories and prices — no costs or internal data.' },
+            'guest_menu_enable': { ru: 'Показывать меню гостям по QR', en: 'Show menu to guests via QR' },
+            'guest_menu_copy': { ru: 'Копировать ссылку', en: 'Copy link' },
+            'guest_menu_copied': { ru: 'Ссылка скопирована', en: 'Link copied' },
+            'guest_menu_no_account': { ru: 'Сначала войди в аккаунт (Настройки → Синхронизация)', en: 'Sign in first (Settings → Sync)' },
+            'ttk_csv_exported': { ru: 'CSV сохранён — откроется в Excel', en: 'CSV saved — opens in Excel' },
             'tile_analytics': { ru: 'Аналитика', en: 'Analytics' },
             // --- v1.7 ---
             'next': { ru: 'Далее', en: 'Next' },

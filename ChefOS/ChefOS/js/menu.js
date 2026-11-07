@@ -99,3 +99,35 @@
             filterMenu(); 
         }
 
+
+        // 2.1.26: гостевое меню по QR (публичная страница /guest.html?u=логин)
+        function guestMenuUrl() {
+            let login = '';
+            try { if (typeof accountUser === 'function') { const u = accountUser(); if (u) login = u.login || ''; } } catch (e) {}
+            return login ? (location.origin + '/guest.html?u=' + encodeURIComponent(login)) : '';
+        }
+        function openGuestMenuModal() {
+            const url = guestMenuUrl();
+            const linkEl = document.getElementById('guest-menu-link');
+            const qrEl = document.getElementById('guest-menu-qr');
+            const tog = document.getElementById('guest-menu-toggle');
+            const warn = document.getElementById('guest-menu-warn');
+            if (tog) tog.checked = !!publicMenu;
+            if (!url) {
+                if (warn) { warn.textContent = t('guest_menu_no_account'); warn.classList.remove('hidden'); }
+                if (linkEl) linkEl.textContent = '';
+                if (qrEl) qrEl.src = '';
+            } else {
+                if (warn) warn.classList.add('hidden');
+                if (linkEl) linkEl.textContent = url;
+                if (qrEl) qrEl.src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=' + encodeURIComponent(url);
+            }
+            openModal('guest-menu-modal');
+        }
+        function togglePublicMenu(on) { publicMenu = !!on; markDirty(); }
+        function copyGuestLink() {
+            const url = guestMenuUrl(); if (!url) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => showNotification(t('guest_menu_copied'))).catch(() => showNotification(url));
+            } else { showNotification(url); }
+        }

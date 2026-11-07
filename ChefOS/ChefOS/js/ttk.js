@@ -429,3 +429,20 @@
                 </div>`;
             setTimeout(() => window.print(), 50);
         }
+
+        // 2.1.26: экспорт базы ТТК в CSV (открывается в Excel)
+        function exportTTKCSV() {
+            const rows = [['Название', 'Тип', 'Категория', 'Выход (г)', 'Порции', 'Цена', 'Себестоимость', 'Фуд-кост %', 'Ккал', 'Белки', 'Жиры', 'Углеводы', 'В меню']];
+            (menuDB || []).forEach(d => {
+                const fc = (d.menuPrice > 0 && d.costPrice > 0) ? ((d.costPrice / d.menuPrice) * 100).toFixed(1) : '';
+                rows.push([d.name || '', d.type === 'dish' ? 'Блюдо' : 'Заготовка', d.category || '', d.yield || '', d.portions || '', d.menuPrice || '', d.costPrice || '', fc, d.calories || '', d.protein || '', d.fat || '', d.carbs || '', d.isTTKActive ? 'Да' : 'Нет']);
+            });
+            const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+            const csv = '\uFEFF' + rows.map(r => r.map(esc).join(';')).join('\r\n');
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+            a.download = 'chefos-ttk-' + new Date().toISOString().slice(0, 10) + '.csv';
+            document.body.appendChild(a); a.click();
+            setTimeout(() => { try { URL.revokeObjectURL(a.href); a.remove(); } catch (e) {} }, 5000);
+            showNotification(t('ttk_csv_exported'));
+        }

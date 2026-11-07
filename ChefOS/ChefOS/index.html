@@ -621,7 +621,7 @@
                     </div>
                 </div>
                 <button onclick="closeModal('settings-modal')" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all font-medium" data-i18n="save">Сохранить</button>
-                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.25</div>
+                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.26</div>
             </div>
         </div>
     </div>
@@ -665,6 +665,7 @@
                     <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i>
                     <input type="text" id="menu-search" onkeyup="filterMenu()" data-i18n="menu_search" placeholder="Поиск блюда..." class="w-full h-11 bg-[#1C1C1E] border border-white/10 text-white rounded-xl pl-10 pr-4 outline-none focus:border-orange-500 text-sm">
                 </div>
+                <button onclick="openGuestMenuModal()" class="h-11 px-4 rounded-xl bg-[#1C1C1E] border border-white/10 text-gray-300 hover:text-white text-sm font-medium transition-colors flex items-center justify-center whitespace-nowrap shrink-0"><i class="fa-solid fa-qrcode mr-2"></i><span data-i18n="guest_menu_title">Гостевое меню (QR)</span></button>
             </div>
             <div class="flex gap-2 overflow-x-auto hide-scrollbar mb-8 pb-2" id="menu-filters-container">
                 <button onclick="toggleFilter('gluten')" id="filter-gluten" class="h-8 px-4 rounded-full border border-white/20 text-xs font-medium text-gray-300 hover:bg-white/10 transition-colors whitespace-nowrap" data-i18n="menu_gluten">Без глютена</button>
@@ -691,6 +692,7 @@
                         <option value="price" data-i18n="ttk_sort_price">По цене</option>
                         <option value="newest" data-i18n="ttk_sort_newest">Сначала новые</option>
                     </select>
+                    <button onclick="exportTTKCSV()" class="h-11 px-4 rounded-xl bg-[#1C1C1E] border border-white/10 text-gray-300 hover:text-white text-sm font-medium transition-colors flex items-center justify-center whitespace-nowrap shrink-0" title="Экспорт в Excel (CSV)"><i class="fa-solid fa-file-csv mr-2"></i>CSV</button>
                     <button id="ttk-add-btn" onclick="openTTKEditor(null)" class="w-full sm:w-auto h-11 px-6 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center whitespace-nowrap"><i class="fa-solid fa-plus mr-2"></i> <span data-i18n="create">Создать</span></button>
                 </div>
             </div>
@@ -1430,11 +1432,30 @@
         </div>
     </div>
 
+    <!-- Модалка: гостевое меню по QR (2.1.26) -->
+    <div id="guest-menu-modal" onclick="if(event.target === this) closeModal('guest-menu-modal')" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto show-scroll text-center">
+            <h3 class="text-xl font-semibold text-white mb-1" data-i18n="guest_menu_title">Гостевое меню (QR)</h3>
+            <p class="text-xs text-gray-500 mb-4" data-i18n="guest_menu_hint">Гости увидят только названия, категории и цены — без себестоимости и внутренних данных.</p>
+            <label class="flex items-center justify-between gap-3 bg-black/30 rounded-2xl px-4 py-3 mb-4 cursor-pointer">
+                <span class="text-sm text-gray-200 text-left" data-i18n="guest_menu_enable">Показывать меню гостям по QR</span>
+                <input type="checkbox" id="guest-menu-toggle" onchange="togglePublicMenu(this.checked)" class="w-5 h-5 accent-orange-500 shrink-0">
+            </label>
+            <div class="bg-white rounded-2xl p-3 inline-block mb-4"><img id="guest-menu-qr" src="" alt="QR" class="w-[200px] h-[200px] block"></div>
+            <p id="guest-menu-link" class="text-xs text-gray-400 break-all mb-1"></p>
+            <p id="guest-menu-warn" class="text-xs text-amber-400 mb-3 hidden"></p>
+            <div class="flex gap-3 mt-4">
+                <button onclick="copyGuestLink()" class="flex-1 h-11 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-white font-medium transition-all" data-i18n="guest_menu_copy">Копировать ссылку</button>
+                <button onclick="closeModal('guest-menu-modal')" class="flex-1 h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-all" data-i18n="close">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
     <div id="print-area" class="hidden"></div>
 
     <script src="js/i18n.js?v=2.1.18"></script>
-    <script src="js/data.js?v=2.1.25"></script>
-    <script src="js/storage.js?v=2.1.25"></script>
+    <script src="js/data.js?v=2.1.26"></script>
+    <script src="js/storage.js?v=2.1.26"></script>
     <script src="js/costing.js"></script>
     <script src="js/ui.js?v=2.1.17"></script>
     <script src="js/tiles.js?v=2.1.21"></script>
@@ -1574,8 +1595,8 @@
     <script src="js/sales.js?v=2.1.24"></script>
     <script src="js/tables.js?v=2.1.24"></script>
     <script src="js/reservations.js"></script>
-    <script src="js/menu.js?v=2.1.22"></script>
-    <script src="js/ttk.js?v=2.1.22"></script>
+    <script src="js/menu.js?v=2.1.26"></script>
+    <script src="js/ttk.js?v=2.1.26"></script>
     <script src="js/books.js"></script>
     <script src="js/inventory.js?v=2.1.20"></script>
     <script src="js/invoice-ocr.js"></script>
@@ -1591,7 +1612,7 @@
     <script src="js/kds.js?v=2.1.24"></script>
     <script src="js/locations.js?v=2.1.9"></script>
     <script src="js/foodsafety.js"></script>
-    <script src="js/sync.js?v=2.1.21"></script>
+    <script src="js/sync.js?v=2.1.26"></script>
     <script src="js/main.js?v=2.1.25"></script>
     <script src="js/swipe-back.js?v=2.1.3"></script>
 
