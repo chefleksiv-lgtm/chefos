@@ -1,5 +1,6 @@
         // --- БАЗА ТТК И РЕДАКТОР ---
         let activeTTKCategory = 'all';
+        let activeTTKSort = 'name';
         let _ttkCatSig = '';
         function openTTKModal() { document.getElementById('ttk-search').value = ''; toggleTTKFilter('dishes'); openModal('ttk-modal'); }
         function toggleTTKFilter(type) {
@@ -32,7 +33,9 @@
             _ttkCatSig = sig;
             const on = "h-8 px-4 rounded-full border border-orange-500 bg-orange-500/20 text-white text-xs font-medium transition-colors whitespace-nowrap";
             const off = "h-8 px-4 rounded-full border border-white/20 text-gray-300 text-xs font-medium hover:bg-white/10 transition-colors whitespace-nowrap";
-            let html = `<button onclick="setTTKCategory('all')" class="${activeTTKCategory === 'all' ? on : off}">${t('ttk_filter_all')}</button>`;
+            const favN = base.filter(d => d.fav).length;
+            let html = favN ? `<button onclick="setTTKCategory('fav')" class="${activeTTKCategory === 'fav' ? on : off}">★ ${t('ttk_fav')} · ${favN}</button>` : '';
+            html += `<button onclick="setTTKCategory('all')" class="${activeTTKCategory === 'all' ? on : off}">${t('ttk_filter_all')}</button>`;
             cats.forEach(c => {
                 const key = c.label.toLowerCase();
                 html += `<button onclick="setTTKCategory('${encodeURIComponent(key)}')" class="${activeTTKCategory === key ? on : off}">${escapeHtml(c.label)} · ${c.n}</button>`;
@@ -40,12 +43,17 @@
             box.innerHTML = html;
         }
         function setTTKCategory(cat) { activeTTKCategory = decodeURIComponent(cat); renderTTKCategoryFilters(); filterTTK(); }
+        function setTTKSort(v) { activeTTKSort = v; filterTTK(); }
         function filterTTK() {
             const q = document.getElementById('ttk-search').value.toLowerCase(), grid = document.getElementById('ttk-grid'); grid.innerHTML = '';
             let f = menuDB.filter(d => activeTTKFilter === 'dishes' ? d.type === 'dish' : d.type === 'prep');
             // 2.1.12: поиск по названию И категории (иначе «пицца» не находит пиццы с латинскими названиями, а сетка молча пустеет); защита от записей без названия
-            if(q) f = f.filter(d => (d.name || '').toLowerCase().includes(q) || (d.category || '').toLowerCase().includes(q));
-            if(activeTTKCategory !== 'all') f = f.filter(d => (d.category || '').trim().toLowerCase() === activeTTKCategory);
+            if(q) f = f.filter(d => (d.name || '').toLowerCase().includes(q) || (d.category || '').toLowerCase().includes(q) || (d.ingredients || []).some(ing => (ing.name || '').toLowerCase().includes(q)));
+            if(activeTTKCategory === 'fav') f = f.filter(d => d.fav);
+            else if(activeTTKCategory !== 'all') f = f.filter(d => (d.category || '').trim().toLowerCase() === activeTTKCategory);
+            const fcOf = d => (d.menuPrice > 0 && d.costPrice > 0) ? (d.costPrice / d.menuPrice) * 100 : Infinity;
+            const sorts = { name: (a, b) => (a.name || '').localeCompare(b.name || '', 'ru'), fc: (a, b) => fcOf(a) - fcOf(b), price: (a, b) => (b.menuPrice || 0) - (a.menuPrice || 0), newest: (a, b) => (b.id || 0) - (a.id || 0) };
+            f.sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || (sorts[activeTTKSort] || sorts.name)(a, b));
             let _html = '';
             f.forEach(d => {
                 const badge = d.isTTKActive ? `<div class="absolute top-2 right-2 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-orange-700">${t('ttk_badge_menu')}</div>` : `<div class="absolute top-2 right-2 bg-gray-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-gray-700">${t('ttk_badge_prep')}</div>`;
@@ -110,12 +118,22 @@
 
             const ab = document.getElementById('ttk-action-buttons');
             if (currentAppRole === 'chef') {
-                ab.innerHTML = `${d.type==='dish'?(d.isTTKActive?`<button onclick="toggleDishInMenu(${d.id})" class="h-10 px-4 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 text-sm font-medium transition-colors"><i class="fa-solid fa-minus mr-1"></i> ${t('ttk_remove_from_menu')}</button>`:`<button onclick="toggleDishInMenu(${d.id})" class="h-10 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium transition-colors shadow-lg shadow-orange-500/20"><i class="fa-solid fa-plus mr-1"></i> ${t('ttk_add_to_menu')}</button>`):''}<button onclick="openCookMode(${d.id})" class="h-10 px-4 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 text-sm font-medium transition-colors"><i class="fa-solid fa-kitchen-set mr-1"></i> ${t('cook_mode')}</button><button class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors" onclick="openLabelModal('ttk', ${d.id})"><i class="fa-solid fa-tag mr-1"></i> ${t('label_btn')}</button><button onclick="printTTKSheet(${d.id})" class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"><i class="fa-solid fa-print mr-1"></i> ${t('print')}</button><button id="edit-ttk-btn" class="h-10 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium transition-colors shadow-lg shadow-orange-500/20" onclick="openTTKEditor(${d.id})"><i class="fa-solid fa-pen mr-1"></i> ${t('edit')}</button><button onclick="deleteTTK(${d.id})" title="${t('ttk_delete_ttk')}" class="h-10 w-10 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white transition-colors flex items-center justify-center"><i class="fa-solid fa-trash-can text-sm"></i></button>`;
+                ab.innerHTML = `${d.type==='dish'?(d.isTTKActive?`<button onclick="toggleDishInMenu(${d.id})" class="h-10 px-4 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 text-sm font-medium transition-colors"><i class="fa-solid fa-minus mr-1"></i> ${t('ttk_remove_from_menu')}</button>`:`<button onclick="toggleDishInMenu(${d.id})" class="h-10 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium transition-colors shadow-lg shadow-orange-500/20"><i class="fa-solid fa-plus mr-1"></i> ${t('ttk_add_to_menu')}</button>`):''}<button onclick="openCookMode(${d.id})" class="h-10 px-4 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 text-sm font-medium transition-colors"><i class="fa-solid fa-kitchen-set mr-1"></i> ${t('cook_mode')}</button><button class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors" onclick="openLabelModal('ttk', ${d.id})"><i class="fa-solid fa-tag mr-1"></i> ${t('label_btn')}</button><button onclick="printTTKSheet(${d.id})" class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"><i class="fa-solid fa-print mr-1"></i> ${t('print')}</button><button onclick="toggleTTKFav(${d.id})" class="h-10 w-10 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors flex items-center justify-center" title="${t('ttk_fav')}"><i class="fa-solid fa-star ${d.fav ? 'text-amber-400' : 'text-gray-400'}"></i></button><button onclick="duplicateTTK(${d.id})" class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors" title="${t('ttk_duplicate')}"><i class="fa-solid fa-copy mr-1"></i> ${t('ttk_duplicate')}</button><button id="edit-ttk-btn" class="h-10 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium transition-colors shadow-lg shadow-orange-500/20" onclick="openTTKEditor(${d.id})"><i class="fa-solid fa-pen mr-1"></i> ${t('edit')}</button><button onclick="deleteTTK(${d.id})" title="${t('ttk_delete_ttk')}" class="h-10 w-10 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white transition-colors flex items-center justify-center"><i class="fa-solid fa-trash-can text-sm"></i></button>`;
             } else {
-                ab.innerHTML = `<button onclick="openCookMode(${d.id})" class="h-10 px-4 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 text-sm font-medium transition-colors"><i class="fa-solid fa-kitchen-set mr-1"></i> ${t('cook_mode')}</button><button class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors" onclick="openLabelModal('ttk', ${d.id})"><i class="fa-solid fa-tag mr-1"></i> ${t('label_btn')}</button><button onclick="printTTKSheet(${d.id})" class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"><i class="fa-solid fa-print mr-1"></i> ${t('print')}</button>`;
+                ab.innerHTML = `<button onclick="openCookMode(${d.id})" class="h-10 px-4 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 text-sm font-medium transition-colors"><i class="fa-solid fa-kitchen-set mr-1"></i> ${t('cook_mode')}</button><button class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors" onclick="openLabelModal('ttk', ${d.id})"><i class="fa-solid fa-tag mr-1"></i> ${t('label_btn')}</button><button onclick="printTTKSheet(${d.id})" class="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"><i class="fa-solid fa-print mr-1"></i> ${t('print')}</button><button onclick="toggleTTKFav(${d.id})" class="h-10 w-10 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors flex items-center justify-center" title="${t('ttk_fav')}"><i class="fa-solid fa-star ${d.fav ? 'text-amber-400' : 'text-gray-400'}"></i></button>`;
             }
             
-            c.innerHTML = `<div><div class="h-48 sm:h-64 w-full rounded-3xl overflow-hidden relative shadow-2xl">${dishPhotoHtml(d, 'w-full h-full object-cover')}<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-6"><div class="flex flex-col gap-2 items-start">${badge}<h2 class="font-serif text-2xl sm:text-3xl font-bold text-white shadow-sm leading-tight">${escapeHtml(d.name)}</h2>${allergenBadgesHTML(d, false)}</div></div></div>${techPanel}${costPanel}${prodHtml}${platingHtml}</div>${tHtml}<div id="ttk-tab-assembly" class="${activeTabs.ttk === 'assembly' ? '' : 'hidden'} grid grid-cols-1 md:grid-cols-2 gap-8"><div class="bg-[#1C1C1E] rounded-2xl p-6 border border-white/5"><h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${t('ttk_ingr')}</h3>${ingHtml || `<p class="text-sm text-gray-500">${t('ttk_no_ingr')}</p>`}</div><div><h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${t('ttk_steps')}</h3>${stpHtml}</div></div>${subHtml}`;
+            // 2.1.22: история цен и правок
+            let histHtml = '';
+            const ph = (d.priceHistory || []).slice(-5).reverse();
+            const hh = (d.history || []).slice(-5).reverse();
+            if (ph.length || hh.length) {
+                const phHtml = ph.length ? `<div class="mb-2"><p class="text-xs text-gray-500 mb-1">${t('ttk_price_hist')}</p><div class="flex flex-wrap gap-2">${ph.map(e => `<span class="text-xs bg-black/30 rounded-lg px-2.5 py-1 text-gray-300">${e.date} — ${currentCurrency}${e.price}</span>`).join('')}</div></div>` : '';
+                const hhHtml = hh.length ? `<div><p class="text-xs text-gray-500 mb-1">${t('ttk_hist')}</p>${hh.map(e => `<div class="text-xs text-gray-400 py-0.5">${new Date(e.ts).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })} — ${t(e.action === 'created' ? 'ttk_hist_created' : 'ttk_hist_edited')}</div>`).join('')}</div>` : '';
+                histHtml = `<div class="bg-[#1C1C1E] rounded-2xl p-5 border border-white/5 mt-4">${phHtml}${hhHtml}</div>`;
+            }
+
+            c.innerHTML = `<div><div class="h-48 sm:h-64 w-full rounded-3xl overflow-hidden relative shadow-2xl">${dishPhotoHtml(d, 'w-full h-full object-cover')}<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-6"><div class="flex flex-col gap-2 items-start">${badge}<h2 class="font-serif text-2xl sm:text-3xl font-bold text-white shadow-sm leading-tight">${escapeHtml(d.name)}</h2>${allergenBadgesHTML(d, false)}</div></div></div>${techPanel}${costPanel}${prodHtml}${platingHtml}${histHtml}</div>${tHtml}<div id="ttk-tab-assembly" class="${activeTabs.ttk === 'assembly' ? '' : 'hidden'} grid grid-cols-1 md:grid-cols-2 gap-8"><div class="bg-[#1C1C1E] rounded-2xl p-6 border border-white/5"><h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${t('ttk_ingr')}</h3>${ingHtml || `<p class="text-sm text-gray-500">${t('ttk_no_ingr')}</p>`}</div><div><h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">${t('ttk_steps')}</h3>${stpHtml}</div></div>${subHtml}`;
             openModal('ttk-details-modal');
             if (currentAppRole === 'chef') renderScaledLines(id);
             if(hasSub && currentAppRole === 'chef') new Sortable(document.getElementById('ttk-tabs-container'), { animation: 150, delay: 200, delayOnTouchOnly: true });
@@ -273,8 +291,8 @@
                 if (auto > 0) costInput = Math.round(auto * 100) / 100;
             }
             const data = { name: n, type: type, category: document.getElementById('edit-ttk-category').value, portions: portions, yield: parseInt(document.getElementById('edit-ttk-yield').value)||0, costPrice: costInput, menuPrice: parseFloat(document.getElementById('edit-ttk-price').value)||0, targetFoodCost: parseFloat(document.getElementById('edit-ttk-target-fc').value)||30, calories: parseInt(document.getElementById('edit-ttk-cal').value)||0, protein: parseInt(document.getElementById('edit-ttk-prot').value)||0, fat: parseInt(document.getElementById('edit-ttk-fat').value)||0, carbs: parseInt(document.getElementById('edit-ttk-carb').value)||0, img: img, ingredients: [...tempEditIngredients], steps: [...tempEditSteps], modifiers: [...tempEditModifiers], station: document.getElementById('edit-ttk-station').value.trim(), panSize: document.getElementById('edit-ttk-pan-size').value.trim(), panCount: parseInt(document.getElementById('edit-ttk-pan-count').value)||0, portionTool: document.getElementById('edit-ttk-portion-tool').value.trim(), storage: document.getElementById('edit-ttk-storage').value.trim(), shelfLife: document.getElementById('edit-ttk-shelf-life').value.trim(), revisionDate: document.getElementById('edit-ttk-revision-date').value || '', version: document.getElementById('edit-ttk-version').value.trim(), platingImg: currentTTKPlatingBase64 || '' };
-            if (editingTTKId) { const d = menuDB.find(i => i.id === editingTTKId); if(d) Object.assign(d, data); openTTKDetails(editingTTKId); } 
-            else { menuDB.push({ id: Date.now(), isTTKActive: false, status: 'in_stock', glutenFree: false, lactoseFree: false, subRecipes: [], ...data }); }
+            if (editingTTKId) { const d = menuDB.find(i => i.id === editingTTKId); if(d) { Object.assign(d, data); d.history = [...(d.history || []), { ts: Date.now(), action: 'edited' }].slice(-20); } openTTKDetails(editingTTKId); } 
+            else { menuDB.push({ id: Date.now(), isTTKActive: false, status: 'in_stock', glutenFree: false, lactoseFree: false, subRecipes: [], history: [{ ts: Date.now(), action: 'created' }], ...data }); }
             markDirty();
             // 2.1.5: сохранить сразу и честно показать результат: раньше markDirty()
             // только ставил флаг, а автосейв через 5 сек мог молча упасть (переполнение),
@@ -286,6 +304,25 @@
         }
 
 
+        // 2.1.22: дублирование ТТК и избранное
+        function duplicateTTK(id) {
+            const d = menuDB.find(i => i.id === id); if (!d) return;
+            const copy = JSON.parse(JSON.stringify(d));
+            copy.id = Date.now();
+            copy.name = d.name + ' (копия)';
+            copy.isTTKActive = false;
+            copy.fav = false;
+            copy.history = [...(d.history || []), { ts: Date.now(), action: 'created' }];
+            menuDB.push(copy);
+            markDirty(); filterTTK();
+            if (!document.getElementById('menu-modal').classList.contains('hidden')) filterMenu();
+            openTTKDetails(copy.id);
+            showNotification(t('ttk_duplicated'));
+        }
+        function toggleTTKFav(id) {
+            const d = menuDB.find(i => i.id === id); if (!d) return;
+            d.fav = !d.fav; markDirty(); filterTTK(); openTTKDetails(id);
+        }
         // --- АВТОКОСТИНГ + МАСШТАБИРОВАНИЕ В КАРТОЧКЕ ТТК (v1.6) ---
         function applyAutoCost(id) {
             const d = menuDB.find(i => i.id === id); if (!d) return;

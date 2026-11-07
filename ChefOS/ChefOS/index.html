@@ -608,7 +608,7 @@
                     </div>
                 </div>
                 <button onclick="closeModal('settings-modal')" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all font-medium" data-i18n="save">Сохранить</button>
-                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.21</div>
+                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.22</div>
             </div>
         </div>
     </div>
@@ -672,6 +672,12 @@
                         <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i>
                         <input type="text" id="ttk-search" onkeyup="filterTTK()" data-i18n="ttk_search" placeholder="Поиск ТТК..." class="w-full h-11 bg-[#1C1C1E] border border-white/10 text-white rounded-xl pl-10 pr-4 outline-none focus:border-orange-500 text-sm">
                     </div>
+                    <select id="ttk-sort" onchange="setTTKSort(this.value)" class="h-11 bg-[#1C1C1E] border border-white/10 text-white rounded-xl px-3 outline-none focus:border-orange-500 text-sm shrink-0">
+                        <option value="name" data-i18n="ttk_sort_name">По имени</option>
+                        <option value="fc" data-i18n="ttk_sort_fc">По фуд-косту</option>
+                        <option value="price" data-i18n="ttk_sort_price">По цене</option>
+                        <option value="newest" data-i18n="ttk_sort_newest">Сначала новые</option>
+                    </select>
                     <button id="ttk-add-btn" onclick="openTTKEditor(null)" class="w-full sm:w-auto h-11 px-6 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center whitespace-nowrap"><i class="fa-solid fa-plus mr-2"></i> <span data-i18n="create">Создать</span></button>
                 </div>
             </div>
@@ -1545,8 +1551,8 @@
     <script src="js/sales.js"></script>
     <script src="js/tables.js?v=2.1.8"></script>
     <script src="js/reservations.js"></script>
-    <script src="js/menu.js?v=2.1.17"></script>
-    <script src="js/ttk.js?v=2.1.17"></script>
+    <script src="js/menu.js?v=2.1.22"></script>
+    <script src="js/ttk.js?v=2.1.22"></script>
     <script src="js/books.js"></script>
     <script src="js/inventory.js?v=2.1.20"></script>
     <script src="js/invoice-ocr.js"></script>

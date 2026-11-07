@@ -84,7 +84,7 @@
             const save = () => {
                 if (done) return; done = true;
                 const v = parseFloat(input.value);
-                if (!isNaN(v) && v >= 0) { d.menuPrice = Math.round(v * 100) / 100; markDirty(); }
+                if (!isNaN(v) && v >= 0) { const nv = Math.round(v * 100) / 100; if (nv !== d.menuPrice) { d.priceHistory = [...(d.priceHistory || []), { date: new Date().toISOString().slice(0, 10), price: nv }].slice(-20); } d.menuPrice = nv; markDirty(); }
                 filterMenu();
             };
             input.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Enter') save(); });
