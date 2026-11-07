@@ -131,5 +131,5 @@
                 setTimeout(() => { closeModal('foodcost-modal'); setTimeout(() => { b.innerHTML=orig; b.classList.replace('bg-green-500','bg-orange-500'); },300); }, 700);
             } else showNotification("1 - 100");
         }
-        function updateFoodCostDisplay(k) { const e = document.getElementById('food-cost-value'); if(e) { const c = getCurrentFC(k), t = getTargetFC(k); e.textContent = c.toFixed(1) + '%'; e.className = `text-lg sm:text-xl md:text-2xl font-bold flex-shrink-0 transition-colors ${c > t ? 'text-red-400' : 'text-green-400'}`; } }
+        function updateFoodCostDisplay(k) { const e = document.getElementById('food-cost-value'); if(e) { const c = getCurrentFC(k), t = getTargetFC(k); e.textContent = c.toFixed(1) + '%'; e.className = `text-xl sm:text-2xl font-bold flex-shrink-0 transition-colors duration-300 ${c > t ? 'text-red-400' : 'text-green-400'}`; const b = document.getElementById('food-cost-bar'); if (b) { b.style.width = (t > 0 ? Math.min(100, (c / t) * 100) : 0) + '%'; b.className = 'h-full rounded-full ' + (c > t ? 'bg-red-400' : 'bg-green-400'); } } }
 

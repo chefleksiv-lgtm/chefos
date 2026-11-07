@@ -76,6 +76,7 @@
                     if(nameCol) nameCol.className = 'col-span-5';
                 }
             }
+            if (typeof updateTileCounts === 'function') updateTileCounts();
         }
         function filterInventory() { renderInventoryList(document.getElementById('inventory-search').value, document.getElementById('inventory-category-filter').value, document.getElementById('inventory-supplier-filter').value); }
         

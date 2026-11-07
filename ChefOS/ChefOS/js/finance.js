@@ -48,6 +48,7 @@
             document.getElementById('finance-profit').className = `text-3xl font-bold ${profit >= 0 ? 'text-white' : 'text-red-400'}`;
             
             document.getElementById('finance-assets').textContent = `${currentCurrency}${totalAssets.toLocaleString('ru-RU')}`;
+            if (typeof updateTileCounts === 'function') updateTileCounts();
         }
 
         // --- ЖУРНАЛ ЗАРПЛАТЫ (v2.1): точный учёт выплат ---

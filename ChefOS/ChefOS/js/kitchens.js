@@ -36,7 +36,7 @@
         }
         function selectKitchen(k) {
             activeKitchen = k; document.getElementById('current-kitchen-label').textContent = t(activeKitchen);
-            renderKitchenTabs(); updateFoodCostDisplay(k); loadWidgetNote(); renderCalendar(); 
+            renderKitchenTabs(); updateFoodCostDisplay(k); updateTileCounts(); loadWidgetNote(); renderCalendar(); 
             if(!document.getElementById('menu-modal').classList.contains('hidden')) { document.getElementById('menu-kitchen-subtitle').textContent = t(activeKitchen); filterMenu(); }
             if(!document.getElementById('ttk-modal').classList.contains('hidden')) filterTTK();
             if(!document.getElementById('team-modal').classList.contains('hidden')) {

@@ -98,6 +98,8 @@
 
         // Порядок плиток на главном экране (перетаскивание, сохраняется в localStorage)
         let tileOrder = ['tile-menu', 'tile-ttk', 'tile-fc', 'tile-analytics', 'tile-inv', 'tile-sales', 'tile-kds', 'tile-foodsafety', 'tile-stocktake', 'tile-books', 'tile-team', 'tile-settings'];
+        // 2.1.20: секция каждой плитки (kitchen/money/manage) — перетаскивание между секциями
+        let tileGroups = { 'tile-menu': 'kitchen', 'tile-ttk': 'kitchen', 'tile-fc': 'kitchen', 'tile-kds': 'kitchen', 'tile-foodsafety': 'kitchen', 'tile-sales': 'money', 'tile-money': 'money', 'tile-inv': 'money', 'tile-stocktake': 'money', 'tile-analytics': 'money', 'tile-books': 'manage', 'tile-team': 'manage', 'tile-settings': 'manage' };
 
         let kitchens = ['Основная кухня', 'Горячий цех', 'Бар'];
         let activeKitchen = 'Основная кухня';

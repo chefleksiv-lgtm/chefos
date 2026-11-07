@@ -16,11 +16,23 @@
             cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation;
             position: relative;
         }
+        /* 2.1.20: цветные подложки плиток — лёгкий градиент в тон иконке */
+        .tile-tint-orange { background: linear-gradient(160deg, rgba(249,115,22,0.20), rgba(44,44,46,0.7) 70%); }
+        .tile-tint-blue { background: linear-gradient(160deg, rgba(59,130,246,0.20), rgba(44,44,46,0.7) 70%); }
+        .tile-tint-cyan { background: linear-gradient(160deg, rgba(34,211,238,0.18), rgba(44,44,46,0.7) 70%); }
+        .tile-tint-purple { background: linear-gradient(160deg, rgba(168,85,247,0.20), rgba(44,44,46,0.7) 70%); }
+        .tile-tint-emerald { background: linear-gradient(160deg, rgba(16,185,129,0.20), rgba(44,44,46,0.7) 70%); }
+        .tile-tint-amber { background: linear-gradient(160deg, rgba(245,158,11,0.20), rgba(44,44,46,0.7) 70%); }
+        .tile-tint-lime { background: linear-gradient(160deg, rgba(163,230,53,0.16), rgba(44,44,46,0.7) 70%); }
+        .tile-tint-indigo { background: linear-gradient(160deg, rgba(99,102,241,0.20), rgba(44,44,46,0.7) 70%); }
+        .tile-tint-rose { background: linear-gradient(160deg, rgba(244,63,94,0.20), rgba(44,44,46,0.7) 70%); }
+        .tile-tint-teal { background: linear-gradient(160deg, rgba(45,212,191,0.20), rgba(44,44,46,0.7) 70%); }
+        .tile-tint-gray { background: linear-gradient(160deg, rgba(255,255,255,0.08), rgba(44,44,46,0.7) 70%); }
         /* Ручка перестановки плиток: drag только отсюда, остальная плитка — тапы и скролл */
         .tile-drag-handle { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.18); font-size: 10px; cursor: grab; z-index: 2; touch-action: none; }
         .tile-drag-handle:active { cursor: grabbing; color: rgba(255,255,255,0.7); }
-        @media (hover: hover) { .ios-tile:hover { background: rgba(65, 65, 68, 0.85); border-color: rgba(255, 255, 255, 0.25); box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.1); } }
-        .ios-tile:active { transform: scale(0.95); background: rgba(44, 44, 46, 0.9); }
+        @media (hover: hover) { .ios-tile:hover { filter: brightness(1.18); border-color: rgba(255, 255, 255, 0.25); box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.1); } }
+        .ios-tile:active { transform: scale(0.95); filter: brightness(0.9); }
         .sortable-chosen { transform: scale(1.05) !important; box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.4) !important; border-color: rgba(245, 158, 11, 0.8) !important; z-index: 50; }
         .sortable-ghost { opacity: 0.3; transform: scale(0.95) !important; box-shadow: none !important; }
         .ios-widget { background: rgba(44, 44, 46, 0.5); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }

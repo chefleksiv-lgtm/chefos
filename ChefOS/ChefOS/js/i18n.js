@@ -34,6 +34,9 @@
             'tile_books': { ru: 'Книги', en: 'Books' },
             'tile_team': { ru: 'Команда', en: 'Team' },
             'tile_settings': { ru: 'Настройки', en: 'Settings' },
+            'tile_group_kitchen': { ru: 'Кухня', en: 'Kitchen' },
+            'tile_group_money': { ru: 'Деньги и учёт', en: 'Money & records' },
+            'tile_group_manage': { ru: 'Управление', en: 'Manage' },
             'tile_analytics': { ru: 'Аналитика', en: 'Analytics' },
             // --- v1.7 ---
             'next': { ru: 'Далее', en: 'Next' },

@@ -21,6 +21,8 @@
             refreshCurrencyUI();
             applyTileOrder();
             initTileSorting();
+            if (typeof updateFoodCostDisplay === 'function') updateFoodCostDisplay(activeKitchen);
+            if (typeof updateTileCounts === 'function') updateTileCounts();
             startAutosave();
             updatePinHint();
             clearPin();

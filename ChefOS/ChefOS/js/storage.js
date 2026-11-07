@@ -18,7 +18,7 @@ const PERSISTED_KEYS = [
     'kitchens', 'activeKitchen',
     'currentCurrency', 'currentCountry', 'currentLanguage', 'taxRate',
     'currentFoodCosts', 'targetFoodCosts',
-    'chefNotes', 'pinCodes', 'tileOrder',
+    'chefNotes', 'pinCodes', 'tileOrder', 'tileGroups',
     'activeTabs', 'activeMenuFilters', 'activeTTKFilter',
     'menuDB', 'suppliersDB', 'inventoryDB', 'teamDB', 'scheduleDB', 'financeDB', 'wasteDB',
     'payrollDB', 'timeclockDB', 'salesDB', 'receiptsDB', 'kdsDB', 'tipsDB', 'ordersDB', 'moneyTxDB', 'prepDB', 'v17migrated',

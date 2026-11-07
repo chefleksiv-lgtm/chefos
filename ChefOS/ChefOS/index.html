@@ -115,58 +115,79 @@
     </header>
 
     <div class="w-full max-w-6xl flex flex-col gap-6">
-        <main id="tiles-grid" class="w-full grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3 sm:gap-4 relative">
-            <div id="tile-menu" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openMenuModal()">
+        <main class="w-full flex flex-col gap-5">
+            <section>
+                <h3 class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1" data-i18n="tile_group_kitchen">Кухня</h3>
+                <div id="tiles-grid-kitchen" class="w-full grid grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4 relative">
+            <div id="tile-menu" class="ios-tile tile-tint-orange w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openMenuModal()">
                 <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
                 <div class="text-orange-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-utensils"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_menu">Актуальное<br>меню</h2>
             </div>
-            <div id="tile-ttk" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openTTKModal()">
+            <div id="tile-ttk" class="ios-tile tile-tint-blue w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openTTKModal()">
                 <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
                 <div class="text-blue-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-book-open"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_ttk">База ТТК</h2>
+                <div id="tile-ttk-count" class="text-[10px] text-gray-500 leading-none">—</div>
             </div>
-            <div id="tile-fc" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openFoodCostModal()">
+            <div id="tile-fc" class="ios-tile tile-tint-amber w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openFoodCostModal()">
                 <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
-                <div id="food-cost-value" class="text-green-400 text-xl sm:text-2xl font-bold flex-shrink-0 transition-colors duration-300">28.5%</div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_fc">Фуд-кост</h2>
+                <div id="food-cost-value" class="text-green-400 text-xl sm:text-2xl font-bold flex-shrink-0 transition-colors duration-300">28.5%</div>
+                <div class="w-full max-w-[72px] h-1 rounded-full bg-white/10 overflow-hidden"><div id="food-cost-bar" class="h-full bg-green-400 rounded-full" style="width: 95%"></div></div>
+                <h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_fc">Фуд-кост</h2>
             </div>
-            <div id="tile-analytics" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openAnalyticsModal()">
-                <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
-                <div class="text-cyan-400 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-chart-column"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_analytics">Аналитика</h2>
-            </div>
-            <div id="tile-inv" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openInventoryModal()">
-                <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
-                <div class="text-purple-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-boxes-stacked"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_inv">Склад</h2>
-            </div>
-            <div id="tile-sales" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openSalesModal()">
-                <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
-                <div class="text-emerald-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-cash-register"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_sales">Внести<br>продажи</h2>
-            </div>            <div id="tile-money" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openMoneyModal()">
-                <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
-                <div class="text-amber-400 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-sack-dollar"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_money">Деньги</h2>
-            </div>
-            <div id="tile-kds" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openKDSModal()">
+            <div id="tile-kds" class="ios-tile tile-tint-orange w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openKDSModal()">
                 <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
                 <div class="text-orange-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-fire-burner"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_kds">Кухня<br>(KDS)</h2>
             </div>
-            <div id="tile-foodsafety" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openFoodSafetyModal()">
+            <div id="tile-foodsafety" class="ios-tile tile-tint-lime w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openFoodSafetyModal()">
                 <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
                 <div class="text-lime-400 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-clipboard-check"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_foodsafety">Контроль</h2>
             </div>
-            <div id="tile-stocktake" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openInventoryCheck()">
+                </div>
+            </section>
+            <section>
+                <h3 class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1" data-i18n="tile_group_money">Деньги и учёт</h3>
+                <div id="tiles-grid-money" class="w-full grid grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4 relative">
+            <div id="tile-sales" class="ios-tile tile-tint-emerald w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openSalesModal()">
+                <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
+                <div class="text-emerald-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-cash-register"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_sales">Внести<br>продажи</h2>
+            </div>
+            <div id="tile-money" class="ios-tile tile-tint-amber w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openMoneyModal()">
+                <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
+                <div class="text-amber-400 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-sack-dollar"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_money">Деньги</h2>
+                <div id="tile-money-count" class="text-[10px] text-gray-500 leading-none">—</div>
+            </div>
+            <div id="tile-inv" class="ios-tile tile-tint-purple w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openInventoryModal()">
+                <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
+                <div class="text-purple-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-boxes-stacked"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_inv">Склад</h2>
+                <div id="tile-inv-count" class="text-[10px] text-gray-500 leading-none">—</div>
+            </div>
+            <div id="tile-stocktake" class="ios-tile tile-tint-indigo w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openInventoryCheck()">
                 <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
                 <div class="text-indigo-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-clipboard-list"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_stocktake">Инвентаризация</h2>
             </div>
-            <div id="tile-books" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openBooksModal()">
+            <div id="tile-analytics" class="ios-tile tile-tint-cyan w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openAnalyticsModal()">
+                <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
+                <div class="text-cyan-400 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-chart-column"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_analytics">Аналитика</h2>
+            </div>
+                </div>
+            </section>
+            <section>
+                <h3 class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1" data-i18n="tile_group_manage">Управление</h3>
+                <div id="tiles-grid-manage" class="w-full grid grid-cols-3 sm:grid-cols-3 gap-3 sm:gap-4 relative">
+            <div id="tile-books" class="ios-tile tile-tint-rose w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openBooksModal()">
                 <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
                 <div class="text-rose-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-book"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_books">Книги</h2>
             </div>
-            <div id="tile-team" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openTeamModal()">
+            <div id="tile-team" class="ios-tile tile-tint-teal w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openTeamModal()">
                 <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
                 <div class="text-teal-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-users-gear"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_team">Команда</h2>
             </div>
-            <div id="tile-settings" class="ios-tile w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openSettingsModal()">
+            <div id="tile-settings" class="ios-tile tile-tint-gray w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openSettingsModal()">
                 <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
                 <div class="text-gray-400 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-gear"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_settings">Настройки</h2>
             </div>
+                </div>
+            </section>
         </main>
 
         <section id="dashboard-widget" class="ios-widget w-full rounded-3xl p-5 sm:p-6 flex flex-col md:flex-row gap-6 sm:gap-8">
@@ -569,7 +590,7 @@
                     </div>
                 </div>
                 <button onclick="closeModal('settings-modal')" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all font-medium" data-i18n="save">Сохранить</button>
-                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.19</div>
+                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.20</div>
             </div>
         </div>
     </div>
@@ -1366,15 +1387,15 @@
     <div id="print-area" class="hidden"></div>
 
     <script src="js/i18n.js?v=2.1.18"></script>
-    <script src="js/data.js"></script>
+    <script src="js/data.js?v=2.1.20"></script>
     <script src="js/storage.js?v=2.1.9"></script>
     <script src="js/costing.js"></script>
     <script src="js/ui.js?v=2.1.17"></script>
-    <script src="js/tiles.js"></script>
+    <script src="js/tiles.js?v=2.1.20"></script>
     <script src="js/core.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/account.js"></script>
-    <script src="js/kitchens.js?v=2.1.17"></script>
+    <script src="js/kitchens.js?v=2.1.20"></script>
     <script src="js/calendar.js?v=2.1.17"></script>
     <!-- Модалка: обмен сменой (v1.9) -->
     <div id="swap-modal" onclick="if(event.target === this) closeModal('swap-modal')" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
@@ -1502,20 +1523,20 @@
         </div>
     </div>
 
-    <script src="js/settings.js"></script>
+    <script src="js/settings.js?v=2.1.20"></script>
     <script src="js/sales.js"></script>
     <script src="js/tables.js?v=2.1.8"></script>
     <script src="js/reservations.js"></script>
     <script src="js/menu.js?v=2.1.17"></script>
     <script src="js/ttk.js?v=2.1.17"></script>
     <script src="js/books.js"></script>
-    <script src="js/inventory.js?v=2.1.10"></script>
+    <script src="js/inventory.js?v=2.1.20"></script>
     <script src="js/invoice-ocr.js"></script>
     <script src="js/stocktake.js"></script>
     <script src="js/team.js"></script>
     <script src="js/team-v19.js"></script>
     <script src="js/prep.js"></script>
-    <script src="js/finance.js"></script>
+    <script src="js/finance.js?v=2.1.20"></script>
     <script src="js/analytics.js"></script>
     <script src="js/cookmode.js"></script>
     <script src="js/labels.js"></script>
@@ -1524,7 +1545,7 @@
     <script src="js/locations.js?v=2.1.9"></script>
     <script src="js/foodsafety.js"></script>
     <script src="js/sync.js"></script>
-    <script src="js/main.js?v=2.1.9"></script>
+    <script src="js/main.js?v=2.1.20"></script>
     <script src="js/swipe-back.js?v=2.1.3"></script>
 
     <!-- Офлайн-баннер (v2.7) -->
