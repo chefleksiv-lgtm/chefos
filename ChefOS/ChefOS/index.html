@@ -17,7 +17,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?v=2.1.17">
+    <link rel="stylesheet" href="css/style.css?v=2.1.24">
     <style>html, body { overflow-x: hidden; }</style>
 </head>
 <body class="min-h-screen p-6 sm:p-10 flex flex-col items-center relative overflow-x-hidden">
@@ -608,7 +608,7 @@
                     </div>
                 </div>
                 <button onclick="closeModal('settings-modal')" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all font-medium" data-i18n="save">Сохранить</button>
-                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.23</div>
+                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.24</div>
             </div>
         </div>
     </div>
@@ -1404,7 +1404,7 @@
         <div class="flex items-center justify-between p-4 sm:p-6 flex-shrink-0">
             <button onclick="closeCookMode()" class="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
             <span id="cook-counter" class="text-sm font-semibold text-gray-400"></span>
-            <div class="w-11"></div>
+            <button onclick="cookToggleBig()" class="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors" title="Крупный текст"><i class="fa-solid fa-text-height text-lg"></i></button>
         </div>
         <div class="h-1 bg-white/10 mx-4 sm:mx-6 rounded-full overflow-hidden flex-shrink-0"><div id="cook-progress" class="h-full bg-orange-500 rounded-full transition-all duration-300" style="width:0%"></div></div>
         <!-- 2.1.11: центрирование через m-auto у ребёнка вместо items-center у скролл-контейнера: при длинном списке центрирование обрезало верх и низ, верхние строки было не долистать -->
@@ -1420,8 +1420,8 @@
     <div id="print-area" class="hidden"></div>
 
     <script src="js/i18n.js?v=2.1.18"></script>
-    <script src="js/data.js?v=2.1.23"></script>
-    <script src="js/storage.js?v=2.1.23"></script>
+    <script src="js/data.js?v=2.1.24"></script>
+    <script src="js/storage.js?v=2.1.24"></script>
     <script src="js/costing.js"></script>
     <script src="js/ui.js?v=2.1.17"></script>
     <script src="js/tiles.js?v=2.1.21"></script>
@@ -1482,6 +1482,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <button id="kds-clear-btn" onclick="clearDoneTickets()" class="h-9 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white text-xs font-medium transition-colors" data-i18n="kds_clear_done">Очистить готовые</button>
+                    <button id="kds-sound-btn" onclick="toggleKDSSound()" class="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-colors" title="Звук нового заказа"><i class="fa-solid fa-volume-high text-sm"></i></button>
                     <button id="kds-settings-btn" onclick="toggleKDSSettings()" class="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-colors" title="Настройки"><i class="fa-solid fa-gear text-sm"></i></button>
                     <button onclick="closeModal('kds-modal')" class="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
                 </div>
@@ -1557,8 +1558,8 @@
     </div>
 
     <script src="js/settings.js?v=2.1.20"></script>
-    <script src="js/sales.js"></script>
-    <script src="js/tables.js?v=2.1.8"></script>
+    <script src="js/sales.js?v=2.1.24"></script>
+    <script src="js/tables.js?v=2.1.24"></script>
     <script src="js/reservations.js"></script>
     <script src="js/menu.js?v=2.1.22"></script>
     <script src="js/ttk.js?v=2.1.22"></script>
@@ -1571,10 +1572,10 @@
     <script src="js/prep.js"></script>
     <script src="js/finance.js?v=2.1.20"></script>
     <script src="js/analytics.js?v=2.1.23"></script>
-    <script src="js/cookmode.js"></script>
+    <script src="js/cookmode.js?v=2.1.24"></script>
     <script src="js/labels.js"></script>
     <script src="js/orders.js"></script>
-    <script src="js/kds.js"></script>
+    <script src="js/kds.js?v=2.1.24"></script>
     <script src="js/locations.js?v=2.1.9"></script>
     <script src="js/foodsafety.js"></script>
     <script src="js/sync.js?v=2.1.21"></script>

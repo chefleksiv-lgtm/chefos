@@ -227,6 +227,8 @@
         let kdsDB = [];
         // Пороги таймера KDS в минутах: до green — норма, до amber — внимание, дальше — опоздание (меняет шеф)
         let kdsThresholds = { green: 5, amber: 10 };
+        // 2.1.24: звук нового заказа KDS (true — включён)
+        let kdsSound = true;
 
         // Мульти-локации (v2.2): несколько ресторанов под одним аккаунтом.
         // locationsDB: [{id, name}]; activeLocationId — текущая; locationData: {locId: {key: value}} — данные остальных.

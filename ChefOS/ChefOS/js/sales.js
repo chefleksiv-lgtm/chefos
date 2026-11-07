@@ -622,6 +622,7 @@
                 if (opts.takeaway) { ticket.takeaway = true; if (opts.customerName) ticket.customer = opts.customerName; }
                 if (opts.allergies && opts.allergies.length) ticket.allergies = opts.allergies.slice();
                 kdsDB.unshift(ticket);
+                if (typeof kdsBeep === 'function') kdsBeep();
             }
             if (typeof checkLowStockAlerts === 'function') checkLowStockAlerts();
             markDirty();

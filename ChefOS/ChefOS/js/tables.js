@@ -679,6 +679,7 @@
             const tAlg = Array.isArray(tab.allergies) ? tab.allergies : [];
             if (tAlg.length) ticket.allergies = tAlg.slice();
             kdsDB.unshift(ticket);
+            if (typeof kdsBeep === 'function') kdsBeep();
             fresh.forEach(id => { tab.sent[id] = tab.items[id]; });
             markDirty();
             renderTableTab();

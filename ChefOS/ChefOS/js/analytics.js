@@ -71,8 +71,77 @@
             dog:       { icon: 'fa-dog',         cls: 'text-gray-500',     bg: 'border-gray-600/40' }
         };
 
+        // 2.1.23: выручка по дням за 7 дней (из чеков) + сравнение с прошлой неделей
+        function weekDayTotals(offsetWeeks) {
+            const out = [];
+            const now = new Date();
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i - offsetWeeks * 7);
+                const key = (typeof localDateKey === 'function') ? localDateKey(d) : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                let total = 0;
+                Object.keys(receiptsDB || {}).forEach(m => (receiptsDB[m] || []).forEach(r => {
+                    if (!r || !r.ts) return;
+                    const rDay = (typeof localDateKey === 'function') ? localDateKey(new Date(r.ts)) : String(r.ts).slice(0, 10);
+                    if (rDay === key) total += (Number(r.total) || 0) - (Number(r.returned) || 0);
+                }));
+                out.push({ date: d, total: Math.round(total * 100) / 100 });
+            }
+            return out;
+        }
+        function renderWeekly() {
+            const box = document.getElementById('analytics-weekly'); if (!box) return;
+            const cur = weekDayTotals(0), prev = weekDayTotals(1);
+            const sum = a => a.reduce((s, x) => s + x.total, 0);
+            const curSum = sum(cur), prevSum = sum(prev);
+            const max = Math.max(1, ...cur.map(x => x.total));
+            const dayName = d => ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][d.getDay()];
+            const bars = cur.map(x => {
+                const h = Math.max(4, Math.round((x.total / max) * 72));
+                const isToday = x.date.toDateString() === new Date().toDateString();
+                return `<div class="flex-1 flex flex-col items-center gap-1 min-w-0">
+                    <span class="text-[10px] ${x.total > 0 ? 'text-gray-300' : 'text-gray-600'} whitespace-nowrap">${x.total > 0 ? fmtMoney(x.total, 0) : ''}</span>
+                    <div class="w-full max-w-[28px] rounded-t-md ${x.total > 0 ? (isToday ? 'bg-cyan-400' : 'bg-cyan-500/70') : 'bg-white/5'}" style="height:${h}px"></div>
+                    <span class="text-[10px] ${isToday ? 'text-cyan-400 font-bold' : 'text-gray-500'}">${dayName(x.date)}</span>
+                </div>`;
+            }).join('');
+            let cmp = '';
+            if (prevSum > 0) {
+                const pct = Math.round(((curSum - prevSum) / prevSum) * 100);
+                cmp = `<p class="text-xs mt-3 ${pct >= 0 ? 'text-green-400' : 'text-red-400'}">${pct >= 0 ? '▲' : '▼'} ${Math.abs(pct)}% ${t('an_vs_prev_week')} (${fmtMoney(prevSum, 0)})</p>`;
+            } else if (curSum > 0) {
+                cmp = `<p class="text-xs mt-3 text-gray-500">${t('an_first_week')}</p>`;
+            }
+            box.innerHTML = `<div class="bg-black/40 border border-white/10 rounded-2xl p-4">
+                <div class="flex items-end gap-1 h-[104px]">${bars}</div>
+                <div class="flex justify-between items-center mt-3 pt-3 border-t border-white/5">
+                    <span class="text-xs text-gray-500">${t('an_week_total')}</span>
+                    <span class="text-lg font-bold text-white">${fmtMoney(curSum, 0)}</span>
+                </div>${cmp}</div>`;
+        }
+        // 2.1.23: цель выручки месяца с прогрессом
+        function renderTarget() {
+            const box = document.getElementById('analytics-target'); if (!box) return;
+            const mk = analyticsMonth || getCurrentMonthKey();
+            const fin = (financeDB && financeDB[mk]) || {};
+            const ms = (typeof moneySums === 'function') ? moneySums(mk) : { inn: 0, out: 0 };
+            const income = (Number(fin.income) || 0) + (ms.inn || 0);
+            const target = Number(salesTarget) || 0;
+            const pct = target > 0 ? Math.min(100, Math.round((income / target) * 100)) : 0;
+            box.innerHTML = `<div class="bg-black/40 border border-white/10 rounded-2xl p-4">
+                <div class="flex flex-wrap items-center gap-3">
+                    <label class="text-xs text-gray-500">${t('an_target_lbl')}</label>
+                    <input type="number" min="0" step="100" value="${target || ''}" placeholder="0" onchange="setSalesTarget(this.value)" class="w-28 h-9 bg-[#2C2C2E] text-white rounded-xl px-3 text-sm outline-none focus:ring-2 focus:ring-cyan-500">
+                    <span class="text-xs text-gray-500">${currentCurrency}</span>
+                    <span class="ml-auto text-sm font-bold text-white">${fmtMoney(income, 0)} / ${target > 0 ? fmtMoney(target, 0) : '—'}</span>
+                </div>
+                <div class="w-full h-2 rounded-full bg-white/10 overflow-hidden mt-3"><div class="h-full rounded-full ${pct >= 100 ? 'bg-green-400' : 'bg-cyan-400'}" style="width:${pct}%"></div></div>
+                <p class="text-xs text-gray-500 mt-2">${target > 0 ? pct + '% · ' + (income >= target ? t('an_target_done') : t('an_target_left') + ' ' + fmtMoney(target - income, 0)) : t('an_target_hint')}</p>
+            </div>`;
+        }
+        function setSalesTarget(v) { salesTarget = Math.max(0, parseFloat(v) || 0); markDirty(); renderAnalytics(); }
         function renderAnalytics() {
             const mk = analyticsMonth || getCurrentMonthKey();
+            renderWeekly(); renderTarget();
             const stats = abcClassify(dishSalesStats(mk));
             const groups = { star: [], plowhorse: [], puzzle: [], dog: [] };
             stats.forEach(s => groups[s.cat].push(s));

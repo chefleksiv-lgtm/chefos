@@ -36,6 +36,9 @@
         .tile-quick-btn:active { background: rgba(255,255,255,0.2); color: #fff; }
         @media (hover: hover) { .ios-tile:hover .tile-quick-btn { opacity: 1; } }
         @media (hover: none) { .tile-quick-btn { opacity: 0.55; } }
+        /* 2.1.24: режим повара — крупный текст шагов и чеклиста */
+        .cook-big-text p.text-2xl, .cook-big-text p.text-3xl { font-size: 2.5rem !important; line-height: 1.35 !important; }
+        .cook-big-text #cook-body button span, .cook-big-text button span { font-size: 1.2rem; }
         @media (hover: hover) { .ios-tile:hover { filter: brightness(1.18); border-color: rgba(255, 255, 255, 0.25); box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.1); } }
         .ios-tile:active { transform: scale(0.95); filter: brightness(0.9); }
         .sortable-chosen { transform: scale(1.05) !important; box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.4) !important; border-color: rgba(245, 158, 11, 0.8) !important; z-index: 50; }

@@ -58,6 +58,11 @@
             'an_target_done': { ru: 'цель достигнута', en: 'target reached' },
             'an_target_left': { ru: 'осталось', en: 'left' },
             'an_target_hint': { ru: 'Задай цель выручки на месяц — прогресс будет здесь', en: 'Set a monthly revenue target to track progress here' },
+            'kds_state_ok': { ru: 'В норме', en: 'On track' },
+            'kds_state_warn': { ru: 'Срочно', en: 'Urgent' },
+            'kds_state_late': { ru: 'Опоздание', en: 'Late' },
+            'kds_sound_on': { ru: 'Звук заказов включён', en: 'Order sound on' },
+            'kds_sound_off': { ru: 'Звук заказов выключен', en: 'Order sound off' },
             'tile_analytics': { ru: 'Аналитика', en: 'Analytics' },
             // --- v1.7 ---
             'next': { ru: 'Далее', en: 'Next' },

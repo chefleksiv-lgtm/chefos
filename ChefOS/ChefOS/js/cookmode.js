@@ -12,12 +12,22 @@
             renderCookStep();
             document.getElementById('cookmode-overlay').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
+            cookWakeLockOn();
         }
         function closeCookMode() {
             cookState = null;
             document.getElementById('cookmode-overlay').classList.add('hidden');
             document.body.style.overflow = '';
+            cookWakeLockOff();
         }
+        // 2.1.24: режим повара — экран не гаснет (Wake Lock) + крупный текст
+        let _cookWakeLock = null;
+        async function cookWakeLockOn() {
+            try { if ('wakeLock' in navigator) _cookWakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+        }
+        function cookWakeLockOff() { try { if (_cookWakeLock) { _cookWakeLock.release(); _cookWakeLock = null; } } catch (e) {} }
+        function cookToggleBig() { document.getElementById('cook-body').classList.toggle('cook-big-text'); }
+        document.addEventListener('visibilitychange', () => { if (!document.hidden && cookState) cookWakeLockOn(); });
         function cookNext() { if (cookState && cookState.idx < cookState.steps.length) { cookState.idx++; renderCookStep(); } }
         function cookPrev() { if (cookState && cookState.idx > -1) { cookState.idx--; renderCookStep(); } }
         function cookToggleCheck(i) { if (cookState) { cookState.checks[i] = !cookState.checks[i]; renderCookStep(); } }
