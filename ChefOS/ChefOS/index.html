@@ -608,7 +608,7 @@
                     </div>
                 </div>
                 <button onclick="closeModal('settings-modal')" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all font-medium" data-i18n="save">Сохранить</button>
-                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.22</div>
+                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.23</div>
             </div>
         </div>
     </div>
@@ -1330,6 +1330,15 @@
             </div>
             <div class="p-5 overflow-y-auto space-y-8">
                 <div>
+                    <h4 class="text-sm font-bold text-white mb-1" data-i18n="an_week_title">Продажи за 7 дней</h4>
+                    <p class="text-xs text-gray-500 mb-4" data-i18n="an_week_sub">Выручка по дням и сравнение с прошлой неделей</p>
+                    <div id="analytics-weekly"></div>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-white mb-1" data-i18n="an_target_title">Цель месяца</h4>
+                    <div id="analytics-target"></div>
+                </div>
+                <div>
                     <h4 class="text-sm font-bold text-white mb-1" data-i18n="an_abc_title">ABC-анализ: звёзды и аутсайдеры</h4>
                     <p class="text-xs text-gray-500 mb-4" data-i18n="an_abc_sub">Популярность × маржа на порцию, деление по медианам</p>
                     <div id="analytics-abc" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
@@ -1411,8 +1420,8 @@
     <div id="print-area" class="hidden"></div>
 
     <script src="js/i18n.js?v=2.1.18"></script>
-    <script src="js/data.js?v=2.1.21"></script>
-    <script src="js/storage.js?v=2.1.21"></script>
+    <script src="js/data.js?v=2.1.23"></script>
+    <script src="js/storage.js?v=2.1.23"></script>
     <script src="js/costing.js"></script>
     <script src="js/ui.js?v=2.1.17"></script>
     <script src="js/tiles.js?v=2.1.21"></script>
@@ -1561,7 +1570,7 @@
     <script src="js/team-v19.js"></script>
     <script src="js/prep.js"></script>
     <script src="js/finance.js?v=2.1.20"></script>
-    <script src="js/analytics.js"></script>
+    <script src="js/analytics.js?v=2.1.23"></script>
     <script src="js/cookmode.js"></script>
     <script src="js/labels.js"></script>
     <script src="js/orders.js"></script>

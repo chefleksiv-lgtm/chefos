@@ -198,6 +198,9 @@
             }
         };
 
+        // 2.1.23: цель выручки на месяц (прогресс в «Аналитике»)
+        let salesTarget = 0;
+
         let financeDB = {
             '2026-04': { income: 42000, cogs: 12000, payroll: 11000, losses: 400 },
             [getCurrentMonthKey()]: { income: 9200, cogs: 2600, payroll: 0, losses: 120 }
