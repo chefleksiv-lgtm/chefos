@@ -31,6 +31,11 @@
         /* Ручка перестановки плиток: drag только отсюда, остальная плитка — тапы и скролл */
         .tile-drag-handle { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.18); font-size: 10px; cursor: grab; z-index: 2; touch-action: none; }
         .tile-drag-handle:active { cursor: grabbing; color: rgba(255,255,255,0.7); }
+        /* 2.1.21: кнопка быстрого действия на плитке (новый рецепт/ингредиент/продажа/операция) */
+        .tile-quick-btn { position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); font-size: 11px; z-index: 2; opacity: 0; transition: opacity 0.2s; cursor: pointer; border: none; padding: 0; }
+        .tile-quick-btn:active { background: rgba(255,255,255,0.2); color: #fff; }
+        @media (hover: hover) { .ios-tile:hover .tile-quick-btn { opacity: 1; } }
+        @media (hover: none) { .tile-quick-btn { opacity: 0.55; } }
         @media (hover: hover) { .ios-tile:hover { filter: brightness(1.18); border-color: rgba(255, 255, 255, 0.25); box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.1); } }
         .ios-tile:active { transform: scale(0.95); filter: brightness(0.9); }
         .sortable-chosen { transform: scale(1.05) !important; box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.4) !important; border-color: rgba(245, 158, 11, 0.8) !important; z-index: 50; }

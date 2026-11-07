@@ -26,7 +26,7 @@ const PERSISTED_KEYS = [
     'swapRequestsDB', 'notificationsDB', 'dayOffRequestsDB', 'dayOffDB', 'v19migrated', 'menuDBUnifiedV1',
     'locationsDB', 'activeLocationId', 'locationData',
     'fsPointsDB', 'fsTempDB', 'fsCheckTemplate', 'fsCheckDB',
-    'kdsThresholds',
+    'kdsThresholds', 'tasksDB',
     'tablesDB', 'tableTabsDB', 'reservationsDB', 'waitlistDB'
 ];
 
@@ -284,6 +284,7 @@ function startAutosave() {
 
     setInterval(() => {
         if (_storageDirty) saveState();
+        if (typeof updateSyncStatus === 'function') updateSyncStatus();
     }, 5000);
 
     if (typeof window !== 'undefined' && window.addEventListener) {

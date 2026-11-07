@@ -314,11 +314,31 @@ async function syncNow(manual) {
     } finally {
         _syncInProgress = false;
         syncRefreshSettingsUI();
+        if (typeof updateSyncStatus === 'function') updateSyncStatus();
     }
 }
 function syncNowManual() {
     syncSetStatus(t('sync_running'));
     syncNow(true);
+}
+// 2.1.21: статус синка на дашборде (зелёный — ок, янтарный — идёт/есть несохранённое, красный — ошибка)
+function updateSyncStatus() {
+    const st = document.getElementById('sync-status');
+    if (!st || typeof syncMeta === 'undefined') return;
+    const dot = (color, pulse) => `<span class="w-2 h-2 rounded-full ${color} inline-block ${pulse ? 'animate-pulse' : ''}"></span>`;
+    const time = ts => new Date(ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    if (typeof _syncInProgress !== 'undefined' && _syncInProgress) {
+        st.innerHTML = dot('bg-amber-400', true) + `<span class="text-amber-400">${t('sync_status_running')}</span>`;
+    } else if (syncMeta.lastError) {
+        st.innerHTML = dot('bg-red-500') + `<span class="text-red-400">${t('sync_status_error')}</span>`;
+    } else if (syncMeta.lastSync) {
+        const dirty = (typeof _storageDirty !== 'undefined' && _storageDirty) ? ` <span class="text-amber-400">· ${t('sync_status_dirty')}</span>` : '';
+        st.innerHTML = dot('bg-green-400') + `<span>${t('sync_status_ok')} ${time(syncMeta.lastSync)}</span>${dirty}`;
+    } else if (!syncMeta.enabled) {
+        st.innerHTML = dot('bg-gray-500') + `<span>${t('sync_status_off')}</span>`;
+    } else {
+        st.innerHTML = dot('bg-gray-500') + `<span>${t('sync_status_never')}</span>`;
+    }
 }
 function syncSetStatus(text) {
     if (typeof document === 'undefined') return;

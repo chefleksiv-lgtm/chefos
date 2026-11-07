@@ -23,6 +23,9 @@
             initTileSorting();
             if (typeof updateFoodCostDisplay === 'function') updateFoodCostDisplay(activeKitchen);
             if (typeof updateTileCounts === 'function') updateTileCounts();
+            if (typeof renderTasks === 'function') renderTasks();
+            if (typeof renderTodayStrip === 'function') renderTodayStrip();
+            if (typeof updateSyncStatus === 'function') updateSyncStatus();
             startAutosave();
             updatePinHint();
             clearPin();

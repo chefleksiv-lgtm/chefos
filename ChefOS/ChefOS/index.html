@@ -115,6 +115,9 @@
     </header>
 
     <div class="w-full max-w-6xl flex flex-col gap-6">
+        <div id="sync-status" onclick="syncNowManual()" class="w-full flex items-center gap-2 px-1 text-[11px] text-gray-500 cursor-pointer select-none" title="Нажми, чтобы синхронизировать">
+            <span class="w-2 h-2 rounded-full bg-gray-500 inline-block"></span><span>Синк…</span>
+        </div>
         <main class="w-full flex flex-col gap-5">
             <section>
                 <h3 class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1" data-i18n="tile_group_kitchen">Кухня</h3>
@@ -125,6 +128,7 @@
             </div>
             <div id="tile-ttk" class="ios-tile tile-tint-blue w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openTTKModal()">
                 <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
+                <button class="tile-quick-btn" onclick="event.stopPropagation(); quickTileAction('ttk')" title="Новый рецепт"><i class="fa-solid fa-plus"></i></button>
                 <div class="text-blue-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-book-open"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_ttk">База ТТК</h2>
                 <div id="tile-ttk-count" class="text-[10px] text-gray-500 leading-none">—</div>
             </div>
@@ -149,15 +153,18 @@
                 <div id="tiles-grid-money" class="w-full grid grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4 relative">
             <div id="tile-sales" class="ios-tile tile-tint-emerald w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openSalesModal()">
                 <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
+                <button class="tile-quick-btn" onclick="event.stopPropagation(); quickTileAction('sales')" title="Новая продажа"><i class="fa-solid fa-plus"></i></button>
                 <div class="text-emerald-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-cash-register"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_sales">Внести<br>продажи</h2>
             </div>
             <div id="tile-money" class="ios-tile tile-tint-amber w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openMoneyModal()">
                 <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
+                <button class="tile-quick-btn" onclick="event.stopPropagation(); quickTileAction('money')" title="Новая операция"><i class="fa-solid fa-plus"></i></button>
                 <div class="text-amber-400 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-sack-dollar"></i></div><h2 class="text-[9px] sm:text-[11px] font-medium text-white text-center leading-tight" data-i18n="tile_money">Деньги</h2>
                 <div id="tile-money-count" class="text-[10px] text-gray-500 leading-none">—</div>
             </div>
             <div id="tile-inv" class="ios-tile tile-tint-purple w-full aspect-square overflow-hidden rounded-2xl p-2 sm:p-3 flex flex-col justify-center items-center gap-1 sm:gap-2" onclick="openInventoryModal()">
                 <div class="tile-drag-handle" title="Тянуть для перестановки"><i class="fa-solid fa-grip-vertical"></i></div>
+                <button class="tile-quick-btn" onclick="event.stopPropagation(); quickTileAction('inv')" title="Новый ингредиент"><i class="fa-solid fa-plus"></i></button>
                 <div class="text-purple-500 text-xl sm:text-2xl flex-shrink-0"><i class="fa-solid fa-boxes-stacked"></i></div><h2 class="text-[10px] sm:text-xs font-medium text-white text-center leading-tight" data-i18n="tile_inv">Склад</h2>
                 <div id="tile-inv-count" class="text-[10px] text-gray-500 leading-none">—</div>
             </div>
@@ -190,6 +197,12 @@
             </section>
         </main>
 
+        <section id="today-strip" class="ios-widget w-full rounded-3xl px-5 py-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <span id="today-strip-date" class="font-semibold text-white"></span>
+            <span id="today-strip-shifts" class="text-gray-400"></span>
+            <span id="today-strip-note" class="text-gray-400"></span>
+        </section>
+
         <section id="dashboard-widget" class="ios-widget w-full rounded-3xl p-5 sm:p-6 flex flex-col md:flex-row gap-6 sm:gap-8">
             <div class="w-full md:w-1/2 flex flex-col">
                 <div class="flex justify-between items-center mb-4">
@@ -207,7 +220,7 @@
 
             <div class="w-full md:w-1/2 flex flex-col">
                 <div class="flex justify-between items-center mb-3">
-                    <div><h3 class="text-white font-semibold sm:text-lg" data-i18n="widget_tasks">Задачи</h3><p id="selected-date-label" class="text-xs text-red-400 capitalize"></p></div>
+                    <div><h3 class="text-white font-semibold sm:text-lg" data-i18n="widget_tasks">Задачи<span id="tasks-open-count" class="text-xs text-orange-400 ml-1 font-normal"></span></h3><p id="selected-date-label" class="text-xs text-red-400 capitalize"></p></div>
                     <button id="widget-save-btn" onclick="saveWidgetNote()" class="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm font-medium transition-all active:scale-95" data-i18n="save">Сохранить</button>
                 </div>
                 <div class="flex gap-2 mb-3 overflow-x-auto hide-scrollbar" id="emoji-picker">
@@ -218,6 +231,11 @@
                     <button onclick="toggleEmoji('⭐️')" class="emoji-btn w-11 h-11 flex-shrink-0 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-lg" data-emoji="⭐️">⭐️</button>
                 </div>
                 <textarea id="widget-notes-input" class="w-full flex-grow min-h-[100px] bg-black/30 border border-white/5 rounded-2xl px-4 py-3 text-sm text-white outline-none focus:ring-1 focus:ring-red-500/50 resize-none placeholder-gray-600" data-i18n="widget_placeholder" placeholder="Выберите день и напишите задачи..."></textarea>
+                <div class="flex items-center gap-2 mt-3">
+                    <input id="task-input" type="text" class="flex-1 h-10 bg-black/30 border border-white/5 rounded-xl px-3 text-sm text-white outline-none focus:ring-1 focus:ring-orange-500/50 placeholder-gray-600" placeholder="Новая задача…" onkeydown="if(event.key==='Enter') addTask()">
+                    <button onclick="addTask()" class="w-10 h-10 rounded-xl bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition-colors shrink-0" title="Добавить задачу"><i class="fa-solid fa-plus text-sm"></i></button>
+                </div>
+                <div id="tasks-list" class="flex flex-col gap-1.5 mt-2 max-h-[160px] overflow-y-auto show-scroll"></div>
             </div>
         </section>
     </div>
@@ -590,7 +608,7 @@
                     </div>
                 </div>
                 <button onclick="closeModal('settings-modal')" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-all font-medium" data-i18n="save">Сохранить</button>
-                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.20</div>
+                <div class="text-center text-[10px] text-gray-600 pt-1">ChefOS v2.1.21</div>
             </div>
         </div>
     </div>
@@ -1387,16 +1405,16 @@
     <div id="print-area" class="hidden"></div>
 
     <script src="js/i18n.js?v=2.1.18"></script>
-    <script src="js/data.js?v=2.1.20"></script>
-    <script src="js/storage.js?v=2.1.9"></script>
+    <script src="js/data.js?v=2.1.21"></script>
+    <script src="js/storage.js?v=2.1.21"></script>
     <script src="js/costing.js"></script>
     <script src="js/ui.js?v=2.1.17"></script>
-    <script src="js/tiles.js?v=2.1.20"></script>
+    <script src="js/tiles.js?v=2.1.21"></script>
     <script src="js/core.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/account.js"></script>
-    <script src="js/kitchens.js?v=2.1.20"></script>
-    <script src="js/calendar.js?v=2.1.17"></script>
+    <script src="js/kitchens.js?v=2.1.21"></script>
+    <script src="js/calendar.js?v=2.1.21"></script>
     <!-- Модалка: обмен сменой (v1.9) -->
     <div id="swap-modal" onclick="if(event.target === this) closeModal('swap-modal')" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300 p-4">
         <div class="bg-[#1C1C1E] rounded-3xl w-full max-w-sm p-6 border border-white/10 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh] overflow-y-auto show-scroll">
@@ -1544,8 +1562,8 @@
     <script src="js/kds.js"></script>
     <script src="js/locations.js?v=2.1.9"></script>
     <script src="js/foodsafety.js"></script>
-    <script src="js/sync.js"></script>
-    <script src="js/main.js?v=2.1.20"></script>
+    <script src="js/sync.js?v=2.1.21"></script>
+    <script src="js/main.js?v=2.1.21"></script>
     <script src="js/swipe-back.js?v=2.1.3"></script>
 
     <!-- Офлайн-баннер (v2.7) -->

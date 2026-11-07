@@ -82,7 +82,8 @@
             const invEl = document.getElementById('tile-inv-count');
             if (invEl && Array.isArray(inventoryDB)) {
                 const n = inventoryDB.length;
-                invEl.textContent = n + ' ' + ruPlural(n, 'позиция', 'позиции', 'позиций');
+                const low = inventoryDB.filter(i => (i.minQty || 0) > 0 && (i.quantity || 0) <= i.minQty).length;
+                invEl.innerHTML = n + ' ' + ruPlural(n, 'позиция', 'позиции', 'позиций') + (low > 0 ? ` <span class="text-red-400">· ${low} на исходе</span>` : '');
             }
             const moneyEl = document.getElementById('tile-money-count');
             if (moneyEl) {
@@ -102,4 +103,12 @@
                     }
                 } catch (e) { moneyEl.textContent = '—'; }
             }
+        }
+
+        // 2.1.21: быстрые действия с плиток (кнопка «+» в углу плитки)
+        function quickTileAction(kind) {
+            if (kind === 'ttk') { if (typeof openTTKEditor === 'function') openTTKEditor(null); }
+            else if (kind === 'inv') { if (typeof openIngredientEditModal === 'function') openIngredientEditModal(null); }
+            else if (kind === 'sales') { if (typeof openSalesModal === 'function') openSalesModal(); }
+            else if (kind === 'money') { if (typeof openMoneyTxModal === 'function') openMoneyTxModal('out'); }
         }

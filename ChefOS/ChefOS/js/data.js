@@ -101,6 +101,9 @@
         // 2.1.20: секция каждой плитки (kitchen/money/manage) — перетаскивание между секциями
         let tileGroups = { 'tile-menu': 'kitchen', 'tile-ttk': 'kitchen', 'tile-fc': 'kitchen', 'tile-kds': 'kitchen', 'tile-foodsafety': 'kitchen', 'tile-sales': 'money', 'tile-money': 'money', 'tile-inv': 'money', 'tile-stocktake': 'money', 'tile-analytics': 'money', 'tile-books': 'manage', 'tile-team': 'manage', 'tile-settings': 'manage' };
 
+        // 2.1.21: список задач на дашборде (виджет «Задачи»)
+        let tasksDB = [];
+
         let kitchens = ['Основная кухня', 'Горячий цех', 'Бар'];
         let activeKitchen = 'Основная кухня';
         let currentCurrency = 'C$'; 
