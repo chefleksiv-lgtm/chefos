@@ -63,6 +63,9 @@
             'kds_state_late': { ru: 'Опоздание', en: 'Late' },
             'kds_sound_on': { ru: 'Звук заказов включён', en: 'Order sound on' },
             'kds_sound_off': { ru: 'Звук заказов выключен', en: 'Order sound off' },
+            'settings_appearance': { ru: 'Внешний вид', en: 'Appearance' },
+            'theme_dark': { ru: 'Тёмная', en: 'Dark' },
+            'theme_light': { ru: 'Светлая', en: 'Light' },
             'tile_analytics': { ru: 'Аналитика', en: 'Analytics' },
             // --- v1.7 ---
             'next': { ru: 'Далее', en: 'Next' },

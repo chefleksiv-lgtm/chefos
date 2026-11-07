@@ -26,6 +26,7 @@
             if (typeof renderTasks === 'function') renderTasks();
             if (typeof renderTodayStrip === 'function') renderTodayStrip();
             if (typeof updateSyncStatus === 'function') updateSyncStatus();
+            if (typeof applyAppearance === 'function') applyAppearance();
             startAutosave();
             updatePinHint();
             clearPin();

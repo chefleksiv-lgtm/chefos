@@ -9,6 +9,7 @@
             const lbl = document.getElementById('tax-rate-label');
             if (lbl) lbl.textContent = t('settings_tax') + ' (' + (typeof taxRate === 'number' ? taxRate : 13) + '%)';
             if (typeof renderLocationManager === 'function') renderLocationManager();
+            if (typeof applyAppearance === 'function') applyAppearance();
             openModal('settings-modal');
         }
         function setCurrency(c) { 
@@ -133,3 +134,16 @@
         }
         function updateFoodCostDisplay(k) { const e = document.getElementById('food-cost-value'); if(e) { const c = getCurrentFC(k), t = getTargetFC(k); e.textContent = c.toFixed(1) + '%'; e.className = `text-xl sm:text-2xl font-bold flex-shrink-0 transition-colors duration-300 ${c > t ? 'text-red-400' : 'text-green-400'}`; const b = document.getElementById('food-cost-bar'); if (b) { b.style.width = (t > 0 ? Math.min(100, (c / t) * 100) : 0) + '%'; b.className = 'h-full rounded-full ' + (c > t ? 'bg-red-400' : 'bg-green-400'); } } }
 
+
+        // 2.1.25: внешний вид — акцентный цвет и тема
+        function applyAppearance() {
+            const root = document.documentElement;
+            if (typeof accentColor === 'string' && accentColor && accentColor !== 'orange') root.setAttribute('data-accent', accentColor);
+            else root.removeAttribute('data-accent');
+            if (typeof themeMode === 'string' && themeMode === 'light') root.setAttribute('data-theme', 'light');
+            else root.removeAttribute('data-theme');
+            document.querySelectorAll('.accent-btn').forEach(b => { b.dataset.selected = (b.dataset.accent === (accentColor || 'orange')) ? 'true' : 'false'; });
+            document.querySelectorAll('.theme-btn').forEach(b => { b.dataset.selected = (b.dataset.theme === (themeMode || 'dark')) ? 'true' : 'false'; });
+        }
+        function setAccentColor(c) { accentColor = c; markDirty(); applyAppearance(); }
+        function setThemeMode(m) { themeMode = m; markDirty(); applyAppearance(); }

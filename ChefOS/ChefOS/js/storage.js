@@ -26,7 +26,7 @@ const PERSISTED_KEYS = [
     'swapRequestsDB', 'notificationsDB', 'dayOffRequestsDB', 'dayOffDB', 'v19migrated', 'menuDBUnifiedV1',
     'locationsDB', 'activeLocationId', 'locationData',
     'fsPointsDB', 'fsTempDB', 'fsCheckTemplate', 'fsCheckDB',
-    'kdsThresholds', 'kdsSound', 'tasksDB', 'salesTarget',
+    'kdsThresholds', 'kdsSound', 'tasksDB', 'salesTarget', 'accentColor', 'themeMode',
     'tablesDB', 'tableTabsDB', 'reservationsDB', 'waitlistDB'
 ];
 

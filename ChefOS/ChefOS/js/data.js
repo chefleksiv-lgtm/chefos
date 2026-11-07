@@ -110,6 +110,9 @@
         let currentCountry = 'CA';
         let taxRate = 13; // ставка налога с продаж, % (HST Онтарио)
         let currentLanguage = 'ru';
+        // 2.1.25: внешний вид — акцентный цвет и тема (dark/light)
+        let accentColor = 'orange';
+        let themeMode = 'dark';
         let currentFoodCosts = { 'Основная кухня': 28.5, 'Горячий цех': 32.1, 'Бар': 21.0 };
         let targetFoodCosts = { 'Основная кухня': 30, 'Горячий цех': 30, 'Бар': 25 };
         let currentMonthDate = new Date();
