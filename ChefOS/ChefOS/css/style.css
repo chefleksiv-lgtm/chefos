@@ -32,10 +32,9 @@
         .tile-drag-handle { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.18); font-size: 10px; cursor: grab; z-index: 2; touch-action: none; }
         .tile-drag-handle:active { cursor: grabbing; color: rgba(255,255,255,0.7); }
         /* 2.1.21: кнопка быстрого действия на плитке (новый рецепт/ингредиент/продажа/операция) */
-        .tile-quick-btn { position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); font-size: 11px; z-index: 2; opacity: 0; transition: opacity 0.2s; cursor: pointer; border: none; padding: 0; }
+        .tile-quick-btn { position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); font-size: 11px; z-index: 2; opacity: 0.55; transition: opacity 0.2s; cursor: pointer; border: none; padding: 0; }
         .tile-quick-btn:active { background: rgba(255,255,255,0.2); color: #fff; }
         @media (hover: hover) { .ios-tile:hover .tile-quick-btn { opacity: 1; } }
-        @media (hover: none) { .tile-quick-btn { opacity: 0.55; } }
 
         /* 2.1.25: акцентный цвет (html[data-accent]) — перекрашивает оранжевый акцент приложения */
         html[data-accent="green"] .bg-orange-500 { background-color: #10b981; }
@@ -116,6 +115,8 @@
         html[data-theme="light"] .bg-black\/30 { background-color: rgba(0,0,0,0.05); }
         html[data-theme="light"] .bg-black\/40 { background-color: rgba(255,255,255,0.7); }
         html[data-theme="light"] .tile-drag-handle { color: rgba(0,0,0,0.25); }
+        html[data-theme="light"] .text-orange-500 { color: #ea580c; }
+        html[data-theme="light"] .text-orange-400 { color: #c2410c; }
         html[data-theme="light"] .tile-quick-btn { background: rgba(0,0,0,0.08); color: rgba(0,0,0,0.5); }
         html[data-theme="light"] #cookmode-overlay .text-white, html[data-theme="light"] #pin-screen .text-white { color: #fff; }
         html[data-theme="light"] #cookmode-overlay .text-gray-400, html[data-theme="light"] #pin-screen .text-gray-400 { color: #9ca3af; }
